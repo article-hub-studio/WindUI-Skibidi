@@ -89,7 +89,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		Dropdown.UIElements.Menu,
 		New("UISizeConstraint", {
 			MinSize = Vector2.new(170, 0),
-			MaxSize = Vector2.new(300, 400),
+			MaxSize = Vector2.new(Dropdown.MenuMaxWidth or 520, 400),
 		}),
 	})
 
@@ -98,8 +98,38 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			UDim2.fromOffset(0, Dropdown.UIElements.UIListLayout.AbsoluteContentSize.Y)
 	end
 
+	local function GetDropdownButton()
+		return Dropdown.UIElements.Dropdown or Dropdown.DropdownFrame.UIElements.Main
+	end
+
+	local function GetViewportSize()
+		if Config.WindUI.DropdownGui and Config.WindUI.DropdownGui.AbsoluteSize.X > 0 then
+			return Config.WindUI.DropdownGui.AbsoluteSize
+		end
+		return Camera.ViewportSize
+	end
+
+	local function GetCanvasWidth()
+		local button = GetDropdownButton()
+		local PaddingWidth = 6 + 6 + 5 + 5 + 18 + 6 + 6
+		local Width = Dropdown.FullWidth and math.max(button.AbsoluteSize.X, Dropdown.MenuWidth) or Dropdown.MenuWidth
+		return math.floor(Width + PaddingWidth + 0.5)
+	end
+
+	local function ApplyCanvasWidth()
+		local Width = GetCanvasWidth()
+		Dropdown.UIElements.MenuCanvas.Size = UDim2.new(
+			0,
+			Width,
+			Dropdown.UIElements.MenuCanvas.Size.Y.Scale,
+			Dropdown.UIElements.MenuCanvas.Size.Y.Offset
+		)
+	end
+
 	local function RecalculateListSize()
-		local MaxHeight = Config.WindUI.DropdownGui.AbsoluteSize.Y
+		ApplyCanvasWidth()
+
+		local MaxHeight = GetViewportSize().Y - (Element.MenuPadding * 2)
 
 		local ContentY = Dropdown.UIElements.UIListLayout.AbsoluteContentSize.Y / Config.UIScale
 		local SearchBarOffset = Dropdown.SearchBarEnabled and (Element.SearchBarHeight + (Element.MenuPadding * 3))
@@ -116,26 +146,88 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 	end
 
 	function UpdatePosition()
-		local button = Dropdown.UIElements.Dropdown or Dropdown.DropdownFrame.UIElements.Main
+		local button = GetDropdownButton()
 		local menu = Dropdown.UIElements.MenuCanvas
+		local viewport = GetViewportSize()
+		local padding = Element.MenuPadding * 2
+		local direction = tostring(Dropdown.Direction or "Auto")
+		local side = tostring(Dropdown.Side or "Right")
 
-		local availableSpaceBelow = Camera.ViewportSize.Y
-			- (button.AbsolutePosition.Y + button.AbsoluteSize.Y)
-			- Element.MenuPadding
-			- 54
-		local requiredSpace = menu.AbsoluteSize.Y + Element.MenuPadding
-
-		local offset = -54 -- topbar offset
-		if availableSpaceBelow < requiredSpace then
-			offset = requiredSpace - availableSpaceBelow - 54
+		if direction == "Auto" then
+			local below = viewport.Y - (button.AbsolutePosition.Y + button.AbsoluteSize.Y) - padding
+			local above = button.AbsolutePosition.Y - padding
+			if below >= menu.AbsoluteSize.Y or below >= above then
+				direction = "Down"
+			else
+				direction = "Up"
+			end
 		end
 
-		menu.Position = UDim2.new(
-			0,
-			button.AbsolutePosition.X + button.AbsoluteSize.X,
-			0,
-			button.AbsolutePosition.Y + button.AbsoluteSize.Y - offset + (Element.MenuPadding * 2)
-		)
+		if direction ~= "Up" and direction ~= "Left" and direction ~= "Right" then
+			direction = "Down"
+		end
+
+		local x
+		local y
+		local anchor = Vector2.new(1, 0)
+
+		if direction == "Left" then
+			x = button.AbsolutePosition.X - padding
+			y = button.AbsolutePosition.Y
+			anchor = Vector2.new(1, 0)
+		elseif direction == "Right" then
+			x = button.AbsolutePosition.X + button.AbsoluteSize.X + padding
+			y = button.AbsolutePosition.Y
+			anchor = Vector2.new(0, 0)
+		elseif direction == "Up" then
+			y = button.AbsolutePosition.Y - padding
+			anchor = Vector2.new(side == "Left" and 0 or side == "Center" and 0.5 or 1, 1)
+			if side == "Left" then
+				x = button.AbsolutePosition.X
+			elseif side == "Center" then
+				x = button.AbsolutePosition.X + (button.AbsoluteSize.X / 2)
+			else
+				x = button.AbsolutePosition.X + button.AbsoluteSize.X
+			end
+		else
+			y = button.AbsolutePosition.Y + button.AbsoluteSize.Y + padding
+			anchor = Vector2.new(side == "Left" and 0 or side == "Center" and 0.5 or 1, 0)
+			if side == "Left" then
+				x = button.AbsolutePosition.X
+			elseif side == "Center" then
+				x = button.AbsolutePosition.X + (button.AbsoluteSize.X / 2)
+			else
+				x = button.AbsolutePosition.X + button.AbsoluteSize.X
+			end
+		end
+
+		local left = x - (anchor.X * menu.AbsoluteSize.X)
+		local top = y - (anchor.Y * menu.AbsoluteSize.Y)
+
+		if left < padding then
+			x += padding - left
+		elseif left + menu.AbsoluteSize.X > viewport.X - padding then
+			x -= (left + menu.AbsoluteSize.X) - (viewport.X - padding)
+		end
+
+		if top < padding then
+			y += padding - top
+		elseif top + menu.AbsoluteSize.Y > viewport.Y - padding then
+			y -= (top + menu.AbsoluteSize.Y) - (viewport.Y - padding)
+		end
+
+		menu.AnchorPoint = anchor
+		menu.Position = UDim2.fromOffset(x, y)
+		Dropdown.UIElements.Menu.AnchorPoint = direction == "Left" and Vector2.new(1, 0)
+			or direction == "Right" and Vector2.new(0, 0)
+			or direction == "Up" and Vector2.new(1, 1)
+			or Vector2.new(1, 0)
+		Dropdown.UIElements.Menu.Position = direction == "Left" and UDim2.new(1, 0, 0, 0)
+			or direction == "Right" and UDim2.new(0, 0, 0, 0)
+			or direction == "Up" and UDim2.new(1, 0, 1, 0)
+			or UDim2.new(1, 0, 0, 0)
+
+		return direction
 	end
 
 	local SearchLabel
@@ -561,12 +653,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		--     end
 		-- end
 
-		Dropdown.UIElements.MenuCanvas.Size = UDim2.new(
-			0,
-			Dropdown.MenuWidth + 6 + 6 + 5 + 5 + 18 + 6 + 6,
-			Dropdown.UIElements.MenuCanvas.Size.Y.Scale,
-			Dropdown.UIElements.MenuCanvas.Size.Y.Offset
-		)
+		ApplyCanvasWidth()
 		Callback()
 
 		Dropdown.Values = Values
@@ -591,6 +678,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 	RecalculateCanvasSize()
 
 	local MenuMotionToken = 0
+	local LastDirection = "Down"
 
 	function DropdownModule:Open()
 		if not Dropdown.Locked then
@@ -599,7 +687,11 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			Dropdown.UIElements.Menu.Visible = true
 			Dropdown.UIElements.MenuCanvas.Visible = true
 			Dropdown.UIElements.MenuCanvas.Active = true
-			Dropdown.UIElements.Menu.Size = UDim2.new(1, 0, 0, 0)
+			RecalculateListSize()
+			RecalculateCanvasSize()
+			LastDirection = UpdatePosition()
+			local Horizontal = LastDirection == "Left" or LastDirection == "Right"
+			Dropdown.UIElements.Menu.Size = Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0)
 			Motion.Play(Dropdown.UIElements.Menu, "DropdownOpen", {
 				Size = UDim2.new(1, 0, 1, 0),
 				ImageTransparency = 0,
@@ -622,8 +714,9 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		local Token = MenuMotionToken
 		Dropdown.Opened = false
 
+		local Horizontal = LastDirection == "Left" or LastDirection == "Right"
 		Motion.Play(Dropdown.UIElements.Menu, "DropdownClose", {
-			Size = UDim2.new(1, 0, 0, 0),
+			Size = Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0),
 			ImageTransparency = 1,
 		}, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, "OpenClose")
 

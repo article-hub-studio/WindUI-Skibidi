@@ -109,6 +109,12 @@ return {
 					function content:SetThumbnail(image, size)
 						return frame.SetThumbnail and frame:SetThumbnail(image, size)
 					end
+					function content:SetTransparency(value)
+						return frame.SetTransparency and frame:SetTransparency(value)
+					end
+					function content:SetLiquidGlass(value)
+						return frame.SetLiquidGlass and frame:SetLiquidGlass(value)
+					end
 					function content:Highlight()
 						frame:Highlight()
 					end
@@ -122,7 +128,7 @@ return {
 					end
 				end
 
-				Window.AllElements[config.Index] = content
+				Window.AllElements[config.GlobalIndex] = content
 				tbl.Elements[config.Index] = content
 				if Tab then
 					Tab.Elements[config.Index] = content

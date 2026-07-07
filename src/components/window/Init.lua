@@ -59,6 +59,11 @@ return function(Config)
 		ElementsRadius = Config.ElementsRadius,
 		Radius = Config.Radius or 16,
 		Transparent = Config.Transparent or false,
+		ElementTransparency = Config.ElementTransparency or Config.ElementsTransparency,
+		ElementGlassTransparency = Config.ElementGlassTransparency or Config.GlassTransparency,
+		LiquidGlass = Config.LiquidGlass or Config.GlassLiquid or Config.ElementGlass or false,
+		ElementCornerStyle = Config.ElementCornerStyle or Config.ElementsCornerStyle or Config.CornerStyle,
+		Watermark = Config.Watermark ~= nil and Config.Watermark or Config.WaterMark,
 		HideSearchBar = Config.HideSearchBar ~= false,
 		ScrollBarEnabled = Config.ScrollBarEnabled or false,
 		SideBarWidth = Config.SideBarWidth or 200,
@@ -115,6 +120,10 @@ return function(Config)
 	Window.ElementConfig = {
 		UIPadding = (Window.NewElements and 10 or 13),
 		UICorner = Window.ElementsRadius or (Window.NewElements and 23 or 16),
+		Transparency = Window.ElementTransparency,
+		GlassTransparency = Window.ElementGlassTransparency or 0.24,
+		LiquidGlass = Window.LiquidGlass,
+		CornerStyle = Window.ElementCornerStyle or (Window.NewElements and "Native" or "Shape"),
 	}
 
 	local WindowSize = Window.Size or UDim2.new(0, 580, 0, 460)
@@ -1248,6 +1257,22 @@ return function(Config)
 	-- end
 
 	Window.OpenButtonMain = require("./Openbutton").New(Window)
+	Window.WatermarkMain = require("./Watermark").New(Window, Config.WindUI)
+
+	function Window:SetWatermark(WatermarkConfig)
+		Window.Watermark = WatermarkConfig
+		return Window.WatermarkMain:Edit(WatermarkConfig)
+	end
+
+	function Window:ToggleWatermark(Value)
+		if Window.WatermarkMain then
+			Window.WatermarkMain:Visible(Value)
+		end
+	end
+
+	if Window.Watermark ~= nil and Window.Watermark ~= false then
+		Window:SetWatermark(Window.Watermark)
+	end
 
 	task.spawn(function()
 		if Window.Icon then
@@ -1428,6 +1453,33 @@ return function(Config)
 		local rounded = math.floor(tonumber(v) * 10 + 0.5) / 10
 		Config.WindUI.TransparencyValue = rounded
 		Window:ToggleTransparency(rounded > 0)
+	end
+
+	function Window:SetElementTransparency(v)
+		local Rounded = math.floor(Creator.ClampTransparency(v, Window.ElementConfig.Transparency or 0) * 100 + 0.5)
+			/ 100
+
+		Window.ElementTransparency = Rounded
+		Window.ElementConfig.Transparency = Rounded
+
+		for _, Element in next, Window.AllElements do
+			if Element and Element.SetTransparency then
+				Element:SetTransparency(Rounded)
+			end
+		end
+
+		return Rounded
+	end
+
+	function Window:SetLiquidGlass(Value)
+		Window.LiquidGlass = Value == true
+		Window.ElementConfig.LiquidGlass = Window.LiquidGlass
+
+		for _, Element in next, Window.AllElements do
+			if Element and Element.SetLiquidGlass then
+				Element:SetLiquidGlass(Window.LiquidGlass)
+			end
+		end
 	end
 
 	local CurrentPos

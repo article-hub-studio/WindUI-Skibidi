@@ -10,10 +10,27 @@ local cloneref = (cloneref or clonereference or function(instance) return instan
 
 local UserInputService = cloneref(game:GetService("UserInputService"))
 
+local POSITIONS = {
+    TopCenter = UDim2.new(0.5, 0, 0, 6 + 44 / 2),
+    TopLeft = UDim2.new(0, 14 + 44 / 2, 0, 6 + 44 / 2),
+    TopRight = UDim2.new(1, -14 - 44 / 2, 0, 6 + 44 / 2),
+    BottomCenter = UDim2.new(0.5, 0, 1, -14 - 44 / 2),
+    BottomLeft = UDim2.new(0, 14 + 44 / 2, 1, -14 - 44 / 2),
+    BottomRight = UDim2.new(1, -14 - 44 / 2, 1, -14 - 44 / 2),
+}
+
+local function ResolvePosition(Position)
+    if typeof(Position) == "UDim2" then
+        return Position
+    end
+    return POSITIONS[tostring(Position or "TopCenter")] or POSITIONS.TopCenter
+end
+
 
 function OpenButton.New(Window)
     local OpenButtonMain = {
-        Button = nil
+        Button = nil,
+        IconSize = 22,
     }
     
     local Icon
@@ -174,6 +191,7 @@ function OpenButton.New(Window)
             Icon.Size = UDim2.new(0,22,0,22)
             Icon.LayoutOrder = -1
             Icon.Parent = OpenButtonMain.Button.TextButton
+            Icon.Size = UDim2.new(0, OpenButtonMain.IconSize, 0, OpenButtonMain.IconSize)
         end
     end
     
@@ -207,19 +225,38 @@ function OpenButton.New(Window)
     function OpenButtonMain:SetScale(scale)
         UIScale.Scale = scale
     end
+
+    function OpenButtonMain:Pulse()
+        Tween(UIScale, .08, {Scale = UIScale.Scale * 0.94}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+        task.delay(.08, function()
+            if UIScale.Parent then
+                Tween(UIScale, .12, {Scale = OpenButtonMain.Scale or 1}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
+            end
+        end)
+    end
     
     function OpenButtonMain:Edit(OpenButtonConfig)
         local OpenButtonModule = {
             Title = OpenButtonConfig.Title,
             Icon = OpenButtonConfig.Icon,
             Enabled = OpenButtonConfig.Enabled,
-            Position = OpenButtonConfig.Position,
-            OnlyIcon = OpenButtonConfig.OnlyIcon or false,
+            Position = OpenButtonConfig.Position or OpenButtonConfig.Preset,
+            OnlyIcon = OpenButtonConfig.OnlyIcon or OpenButtonConfig.Style == "Circle" or false,
             Draggable = OpenButtonConfig.Draggable or nil,
             OnlyMobile = OpenButtonConfig.OnlyMobile,
             CornerRadius = OpenButtonConfig.CornerRadius or UDim.new(1, 0),
             StrokeThickness = OpenButtonConfig.StrokeThickness or 2,
+            StrokeTransparency = OpenButtonConfig.StrokeTransparency,
             Scale = OpenButtonConfig.Scale or 1,
+            Height = math.max(tonumber(OpenButtonConfig.Height) or 44, 34),
+            IconSize = math.max(tonumber(OpenButtonConfig.IconSize) or OpenButtonMain.IconSize or 22, 14),
+            Padding = math.max(tonumber(OpenButtonConfig.Padding) or 11, 6),
+            BackgroundColor = OpenButtonConfig.BackgroundColor,
+            BackgroundTransparency = OpenButtonConfig.BackgroundTransparency or OpenButtonConfig.Transparency,
+            TextColor = OpenButtonConfig.TextColor,
+            TextTransparency = OpenButtonConfig.TextTransparency,
+            Glass = OpenButtonConfig.Glass or OpenButtonConfig.LiquidGlass or OpenButtonConfig.GlassLiquid,
+            Visible = OpenButtonConfig.Visible,
             Color = OpenButtonConfig.Color 
                 or ColorSequence.new(Color3.fromHex("40c9ff"), Color3.fromHex("e81cff")),
         }
@@ -247,8 +284,16 @@ function OpenButton.New(Window)
         end
         
         if OpenButtonModule.Position and Container then
-            Container.Position = OpenButtonModule.Position
+            Container.Position = ResolvePosition(OpenButtonModule.Position)
         end
+
+        OpenButtonMain.IconSize = OpenButtonModule.IconSize
+        OpenButtonMain.Scale = OpenButtonModule.Scale
+
+        Button.Size = UDim2.new(0, 0, 0, OpenButtonModule.Height)
+        Button.TextButton.Size = UDim2.new(0, 0, 0, OpenButtonModule.Height - 8)
+        Drag.Size = UDim2.new(0, OpenButtonModule.Height - 8, 0, OpenButtonModule.Height - 8)
+        Divider.Position = UDim2.new(0, (OpenButtonModule.Height - 8) + 8, 0.5, 0)
         
         if OpenButtonModule.OnlyIcon == true and Title then
             Title.Visible = false
@@ -256,8 +301,8 @@ function OpenButton.New(Window)
             Button.TextButton.UIPadding.PaddingRight = UDim.new(0,7)
         elseif OpenButtonModule.OnlyIcon == false then
             Title.Visible = true
-            Button.TextButton.UIPadding.PaddingLeft = UDim.new(0,7+4)
-            Button.TextButton.UIPadding.PaddingRight = UDim.new(0,7+4)
+            Button.TextButton.UIPadding.PaddingLeft = UDim.new(0, OpenButtonModule.Padding)
+            Button.TextButton.UIPadding.PaddingRight = UDim.new(0, OpenButtonModule.Padding)
         end
         
         --OpenButtonMain:Visible((not OpenButtonModule.OnlyMobile) or (not Window.IsPC))
@@ -275,11 +320,33 @@ function OpenButton.New(Window)
         
         if OpenButtonModule.Icon then
             OpenButtonMain:SetIcon(OpenButtonModule.Icon)
+        elseif Icon then
+            Icon.Size = UDim2.new(0, OpenButtonMain.IconSize, 0, OpenButtonMain.IconSize)
         end
 
         Button.UIStroke.UIGradient.Color = OpenButtonModule.Color
+        if OpenButtonModule.StrokeTransparency ~= nil then
+            Button.UIStroke.Transparency = Creator.ClampTransparency(OpenButtonModule.StrokeTransparency, Button.UIStroke.Transparency)
+        elseif OpenButtonModule.Glass then
+            Button.UIStroke.Transparency = 0.38
+        end
         if Glow then
             Glow.UIGradient.Color = OpenButtonModule.Color
+        end
+
+        if OpenButtonModule.BackgroundColor then
+            Button.BackgroundColor3 = OpenButtonModule.BackgroundColor
+        end
+        if OpenButtonModule.BackgroundTransparency ~= nil then
+            Button.BackgroundTransparency = Creator.ClampTransparency(OpenButtonModule.BackgroundTransparency, Button.BackgroundTransparency)
+        elseif OpenButtonModule.Glass then
+            Button.BackgroundTransparency = 0.44
+        end
+        if OpenButtonModule.TextColor then
+            Title.TextColor3 = OpenButtonModule.TextColor
+        end
+        if OpenButtonModule.TextTransparency ~= nil then
+            Title.TextTransparency = Creator.ClampTransparency(OpenButtonModule.TextTransparency, Title.TextTransparency)
         end
 
         Button.UICorner.CornerRadius = OpenButtonModule.CornerRadius
@@ -287,6 +354,9 @@ function OpenButton.New(Window)
         Button.UIStroke.Thickness = OpenButtonModule.StrokeThickness
         
         OpenButtonMain:SetScale(OpenButtonModule.Scale)
+        if OpenButtonModule.Visible ~= nil then
+            OpenButtonMain:Visible(OpenButtonModule.Visible)
+        end
     end
 
     return OpenButtonMain

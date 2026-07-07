@@ -7,6 +7,16 @@ local Window = WindUI:CreateWindow({
 	Folder = "WindUIFullExample",
 	Icon = "sparkles",
 	NewElements = true,
+	ElementTransparency = 0.18,
+	LiquidGlass = true,
+	Watermark = {
+		Title = "WindUI",
+		Desc = "liquid build",
+		Icon = "sparkles",
+		Position = "BottomRight",
+		Transparency = 0.2,
+		Draggable = true,
+	},
 	Settings = {
 		DefaultConfig = "full-example",
 		Width = 352,
@@ -22,10 +32,17 @@ local Window = WindUI:CreateWindow({
 	},
 	OpenButton = {
 		Title = "Open WindUI",
+		Icon = "sparkles",
+		Glass = true,
 		Enabled = true,
 		Draggable = true,
 		OnlyMobile = false,
 		Scale = 0.55,
+		Position = "TopCenter",
+		Height = 46,
+		IconSize = 20,
+		BackgroundTransparency = 0.42,
+		StrokeTransparency = 0.34,
 		Color = ColorSequence.new(Color3.fromHex("#30FF6A"), Color3.fromHex("#E7FF2F")),
 	},
 	BackgroundColor = Color3.fromHex("#08111A"),
@@ -130,6 +147,47 @@ SettingsTab:ChipList({
 	Title = "Theme Tags",
 	Options = { "Glass", "Mobile", "Motion" },
 	Value = { "Glass", "Mobile" },
+})
+
+SettingsTab:Dropdown({
+	Title = "Full Width Dropdown",
+	Desc = "Auto chooses up or down and matches the trigger width.",
+	Values = { "Auto", "Down", "Up" },
+	Value = "Auto",
+	FullWidth = true,
+	Direction = "Auto",
+	Side = "Left",
+})
+
+local DropdownRow = SettingsTab:HStack({
+	MinChildWidth = 180,
+})
+DropdownRow:Dropdown({
+	Title = "Open Left",
+	Values = { "Alpha", "Beta", "Gamma" },
+	Value = "Alpha",
+	Direction = "Left",
+	MenuWidth = 170,
+})
+DropdownRow:Dropdown({
+	Title = "Open Right",
+	Values = { "North", "East", "South", "West" },
+	Value = "East",
+	Direction = "Right",
+	MenuWidth = 170,
+})
+
+SettingsTab:Slider({
+	Title = "Element Transparency",
+	Value = {
+		Min = 0,
+		Max = 0.65,
+		Default = 0.18,
+		Increment = 0.01,
+	},
+	Callback = function(Value)
+		Window:SetElementTransparency(Value)
+	end,
 })
 
 local DiscordTab = Window:Tab({

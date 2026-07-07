@@ -542,6 +542,53 @@ function Creator.Tween(Object, Time, Properties, ...)
 	return TweenService:Create(Object, TweenInfo.new(Time, ...), Properties)
 end
 
+function Creator.ClampTransparency(Value, Default)
+	local Number = tonumber(Value)
+	if Number == nil then
+		return Default
+	end
+
+	return math.clamp(Number, 0, 1)
+end
+
+function Creator.ToUDimRadius(Value, Default)
+	if typeof(Value) == "UDim" then
+		return Value
+	end
+
+	if typeof(Default) == "UDim" then
+		return Default
+	end
+
+	return UDim.new(0, tonumber(Value) or tonumber(Default) or 0)
+end
+
+function Creator.ApplyCornerRadii(Corner, Radius, Corners)
+	if typeof(Corner) ~= "Instance" or not Corner:IsA("UICorner") then
+		return Corner
+	end
+
+	local Rounded = Creator.ToUDimRadius(Radius, Corner.CornerRadius)
+	local Flat = UDim.new(0, 0)
+	local ActiveCorners = Corners or {
+		TopLeft = true,
+		TopRight = true,
+		BottomLeft = true,
+		BottomRight = true,
+	}
+
+	Corner.CornerRadius = Rounded
+
+	pcall(function()
+		Corner.TopLeftRadius = ActiveCorners.TopLeft ~= false and Rounded or Flat
+		Corner.TopRightRadius = ActiveCorners.TopRight ~= false and Rounded or Flat
+		Corner.BottomRightRadius = ActiveCorners.BottomRight ~= false and Rounded or Flat
+		Corner.BottomLeftRadius = ActiveCorners.BottomLeft ~= false and Rounded or Flat
+	end)
+
+	return Corner
+end
+
 --[[function Creator.NewRoundFrame(Radius, Type, Properties, Children, isButton, ReturnTable)
 	local function getImageForType(shapeType)
 		return Creator.Shapes[shapeType]
@@ -971,15 +1018,53 @@ function Creator:GetElementPosition(elements, targetIndex, isHStack)
 
 	local function calculate(pos, size)
 		if size == 1 then
-			return "Squircle"
+			return "Squircle", {
+				TopLeft = true,
+				TopRight = true,
+				BottomLeft = true,
+				BottomRight = true,
+			}
 		end
 		if pos == 1 then
-			return isHStack and "SquircleH-TL-TR" or "Squircle-TL-TR"
+			if isHStack then
+				return "Squircle-TL-BL", {
+					TopLeft = true,
+					TopRight = false,
+					BottomLeft = true,
+					BottomRight = false,
+				}
+			end
+
+			return "Squircle-TL-TR", {
+				TopLeft = true,
+				TopRight = true,
+				BottomLeft = false,
+				BottomRight = false,
+			}
 		end
 		if pos == size then
-			return isHStack and "SquircleH-BL-BR" or "Squircle-BL-BR"
+			if isHStack then
+				return "Squircle-TR-BR", {
+					TopLeft = false,
+					TopRight = true,
+					BottomLeft = false,
+					BottomRight = true,
+				}
+			end
+
+			return "Squircle-BL-BR", {
+				TopLeft = false,
+				TopRight = false,
+				BottomLeft = true,
+				BottomRight = true,
+			}
 		end
-		return "Square"
+		return "Square", {
+			TopLeft = false,
+			TopRight = false,
+			BottomLeft = false,
+			BottomRight = false,
+		}
 	end
 
 	local groupStart = 1

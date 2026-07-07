@@ -82,11 +82,14 @@ function Element:New(Config)
 			)
 
 			if newShape and CodeElement.CodeFrameModule then
-				CodeElement.CodeFrameModule:SetType(newShape)
+				local DynamicShape = (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle"
+					or newShape
+
+				CodeElement.CodeFrameModule:SetType(DynamicShape)
 				--CodeElement.BackgroundFrameModule:SetType(newShape)
-				print(newShape)
 				CodeElement.TopbarFrameModule:SetType(
-					table.find({ "Squircle-BL-BR", "SquircleH-BL-BR" }, newShape) ~= nil and "Square" or newShape
+					table.find({ "Squircle-BL-BR", "SquircleH-BL-BR", "Squircle-TR-BR" }, newShape) ~= nil and "Square"
+						or DynamicShape
 				)
 			end
 		end
