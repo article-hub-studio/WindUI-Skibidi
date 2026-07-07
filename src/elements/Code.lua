@@ -75,11 +75,16 @@ function Element:New(Config)
 
 	function Code.UpdateShape(Tab)
 		if Config.Window.NewElements then
-			local newShape = Creator:GetElementPosition(
-				Tab.Elements,
-				Code.Index,
-				Config.ParentType == "HStack" or Config.ParentType == "Group"
-			)
+			local ShouldLinkCorners = Config.Window.ElementConfig.LinkCorners or Config.LinkCorners == true
+			local newShape = "Squircle"
+
+			if ShouldLinkCorners then
+				newShape = Creator:GetElementPosition(
+					Tab.Elements,
+					Code.Index,
+					Config.ParentType == "HStack" or Config.ParentType == "Group"
+				)
+			end
 
 			if newShape and CodeElement.CodeFrameModule then
 				local DynamicShape = (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle"

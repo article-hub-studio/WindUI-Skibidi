@@ -63,7 +63,10 @@ return function(Config)
 		ElementGlassTransparency = Config.ElementGlassTransparency or Config.GlassTransparency,
 		LiquidGlass = Config.LiquidGlass or Config.GlassLiquid or Config.ElementGlass or false,
 		ElementCornerStyle = Config.ElementCornerStyle or Config.ElementsCornerStyle or Config.CornerStyle,
+		ElementGap = Config.ElementGap or Config.ElementsGap,
+		LinkElementCorners = Config.LinkElementCorners == true or Config.ElementsLinkCorners == true,
 		Watermark = Config.Watermark ~= nil and Config.Watermark or Config.WaterMark,
+		KeyBindMenu = Config.KeyBindMenu == false and false or (Config.KeyBindMenu or {}),
 		HideSearchBar = Config.HideSearchBar ~= false,
 		ScrollBarEnabled = Config.ScrollBarEnabled or false,
 		SideBarWidth = Config.SideBarWidth or 200,
@@ -124,6 +127,7 @@ return function(Config)
 		GlassTransparency = Window.ElementGlassTransparency or 0.24,
 		LiquidGlass = Window.LiquidGlass,
 		CornerStyle = Window.ElementCornerStyle or (Window.NewElements and "Native" or "Shape"),
+		LinkCorners = Window.LinkElementCorners,
 	}
 
 	local WindowSize = Window.Size or UDim2.new(0, 580, 0, 460)
@@ -1505,6 +1509,34 @@ return function(Config)
 		)
 		SettingsMenu:SetButton(SettingsButton)
 		Window.SettingsMenu = SettingsMenu
+	end
+
+	if Window.KeyBindMenu ~= false and Window.Topbar.KeyBindMenu ~= false then
+		local KeyBindMenu = require("./KeyBindMenu").New(Window, Config.WindUI, Config)
+		local KeyBindButton = Window:CreateTopbarButton(
+			"KeyBind",
+			"keyboard",
+			function()
+				KeyBindMenu:Toggle()
+			end,
+			Window.Topbar.ButtonsType == "Default" and 996 or 1001,
+			true,
+			Color3.fromHex("#38BDF8"),
+			nil,
+			{
+				ForceIcon = true,
+			}
+		)
+		KeyBindMenu:SetButton(KeyBindButton)
+		Window.KeyBindMenuMain = KeyBindMenu
+
+		function Window:ToggleKeyBindMenu()
+			return KeyBindMenu:Toggle()
+		end
+
+		function Window:OpenKeyBindMenu()
+			return KeyBindMenu:OpenMenu()
+		end
 	end
 
 	local FullscreenButton = Window:CreateTopbarButton(

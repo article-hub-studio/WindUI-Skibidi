@@ -522,7 +522,7 @@ return function(Config)
 				ApplyStrokeMode = "Border",
 				Thickness = 1,
 				Color = Color3.new(1, 1, 1),
-				Transparency = 0.78,
+				Transparency = 0.88,
 			}),
 			NativeLiquidSheen,
 		}
@@ -954,11 +954,28 @@ return function(Config)
 
 	function Element.UpdateShape(Tab)
 		if Config.Window.NewElements then
-			local newShape, corners = Creator:GetElementPosition(
-				Tab.Elements,
-				Element.Index,
-				Config.ParentConfig.ParentTable.__type == "HStack" or Config.ParentConfig.ParentTable.__type == "Group"
-			)
+			local ParentType = Config.ParentConfig
+					and Config.ParentConfig.ParentTable
+					and Config.ParentConfig.ParentTable.__type
+				or Config.ParentType
+			local ShouldLinkCorners = Config.Window.ElementConfig.LinkCorners
+				or (Config.ParentConfig and Config.ParentConfig.LinkCorners == true)
+
+			local newShape = "Squircle"
+			local corners = {
+				TopLeft = true,
+				TopRight = true,
+				BottomLeft = true,
+				BottomRight = true,
+			}
+
+			if ShouldLinkCorners then
+				newShape, corners = Creator:GetElementPosition(
+					Tab.Elements,
+					Element.Index,
+					ParentType == "HStack" or ParentType == "Group"
+				)
+			end
 
 			if newShape and Main then
 				local DynamicShape = (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle"

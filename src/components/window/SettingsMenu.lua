@@ -1,4 +1,5 @@
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local Creator = require("../../modules/Creator")
 local Motion = require("../../modules/Motion")
@@ -59,8 +60,8 @@ end
 function SettingsMenu.New(Window, WindUI, Config)
 	local SettingsConfig = typeof(Window.Settings) == "table" and Window.Settings or {}
 	local DefaultConfigName = SettingsConfig.DefaultConfig or "default"
-	local RootWidth = SettingsConfig.Width or 348
-	local RootHeight = SettingsConfig.Height or 424
+	local RootWidth = SettingsConfig.Width or 360
+	local RootHeight = SettingsConfig.Height or 410
 	local PageHeight = SettingsConfig.PageHeight or (RootHeight - 142)
 	local Menu = {
 		Open = false,
@@ -72,6 +73,11 @@ function SettingsMenu.New(Window, WindUI, Config)
 		TabButtons = {},
 		Pages = {},
 	}
+
+	local function GetViewportSize()
+		local Camera = Workspace.CurrentCamera
+		return Camera and Camera.ViewportSize or Vector2.new(1280, 720)
+	end
 
 	local function Notify(Title, Content, Icon)
 		if WindUI.Notify then
@@ -188,12 +194,12 @@ function SettingsMenu.New(Window, WindUI, Config)
 		Name = "SettingsDropdown",
 		Size = UDim2.new(0, RootWidth, 0, RootHeight),
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -Window.UIPadding, 0, Window.Topbar.Height + 8),
+		Position = UDim2.fromOffset(0, 0),
 		ImageTransparency = 1,
 		Visible = false,
 		Active = false,
 		ZIndex = 10000,
-		Parent = Window.UIElements.Main.Main,
+		Parent = WindUI.ScreenGui,
 		ThemeTag = {
 			ImageColor3 = "Background",
 		},
@@ -230,7 +236,7 @@ function SettingsMenu.New(Window, WindUI, Config)
 		Visible = false,
 		Active = false,
 		ZIndex = 9998,
-		Parent = Window.UIElements.Main.Main,
+		Parent = WindUI.ScreenGui,
 	})
 
 	local Content = New("CanvasGroup", {
@@ -261,6 +267,32 @@ function SettingsMenu.New(Window, WindUI, Config)
 	Menu.UIElements.Content = Content
 	Menu.UIElements.GlassLayer = Root.GlassLayer
 	Menu.UIElements.Outline = Root.Outline
+
+	local function UpdateRootPosition()
+		local Viewport = GetViewportSize()
+		local Margin = 12
+		local Anchor = Vector2.new(1, 0)
+		local X = Viewport.X - Margin
+		local Y = Margin + Window.Topbar.Height
+
+		if Menu.Button and Menu.Button.AbsoluteSize.X > 0 then
+			local ButtonPosition = Menu.Button.AbsolutePosition
+			local ButtonSize = Menu.Button.AbsoluteSize
+			X = ButtonPosition.X + ButtonSize.X
+			Y = ButtonPosition.Y + ButtonSize.Y + 10
+		end
+
+		if X - RootWidth < Margin then
+			X = math.min(Viewport.X - Margin, Margin + RootWidth)
+		end
+		if Y + RootHeight > Viewport.Y - Margin then
+			Y = math.max(Margin, Viewport.Y - RootHeight - Margin)
+		end
+
+		Root.AnchorPoint = Anchor
+		Root.Position = UDim2.fromOffset(X, Y)
+		Scrim.Size = UDim2.fromOffset(Viewport.X, Viewport.Y)
+	end
 
 	local Header = New("Frame", {
 		Name = "Header",
@@ -755,6 +787,7 @@ function SettingsMenu.New(Window, WindUI, Config)
 		RefreshConfigMeta()
 		UpdateThemeButtons()
 		Menu:SelectTab(Menu.SelectedTab)
+		UpdateRootPosition()
 		Root.Visible = true
 		Root.Active = true
 		Menu.UIElements.Scrim.Visible = true
@@ -764,11 +797,11 @@ function SettingsMenu.New(Window, WindUI, Config)
 		Menu.UIElements.GlassLayer.ImageTransparency = 1
 		Menu.UIElements.Outline.ImageTransparency = 1
 		Menu.UIElements.Scale.Scale = 0.98
-		Motion.Play(Root, "DropdownOpen", { ImageTransparency = 0.01 }, nil, nil, "Settings")
-		Motion.Play(Menu.UIElements.Scrim, "DropdownOpen", { BackgroundTransparency = 0.5 }, nil, nil, "SettingsScrim")
+		Motion.Play(Root, "DropdownOpen", { ImageTransparency = 0.18 }, nil, nil, "Settings")
+		Motion.Play(Menu.UIElements.Scrim, "DropdownOpen", { BackgroundTransparency = SettingsConfig.ScrimTransparency or 0.72 }, nil, nil, "SettingsScrim")
 		Motion.Play(Menu.UIElements.Content, "DropdownOpen", { GroupTransparency = 0 }, nil, nil, "SettingsContent")
-		Motion.Play(Menu.UIElements.GlassLayer, "DropdownOpen", { ImageTransparency = 0.86 }, nil, nil, "SettingsGlass")
-		Motion.Play(Menu.UIElements.Outline, "DropdownOpen", { ImageTransparency = 0.62 }, nil, nil, "SettingsOutline")
+		Motion.Play(Menu.UIElements.GlassLayer, "DropdownOpen", { ImageTransparency = 0.78 }, nil, nil, "SettingsGlass")
+		Motion.Play(Menu.UIElements.Outline, "DropdownOpen", { ImageTransparency = 0.72 }, nil, nil, "SettingsOutline")
 		Motion.Play(Menu.UIElements.Scale, "DropdownOpen", { Scale = 1 }, nil, nil, "SettingsScale")
 	end
 

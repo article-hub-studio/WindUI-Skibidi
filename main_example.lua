@@ -8,7 +8,14 @@ local Window = WindUI:CreateWindow({
 	Icon = "sparkles",
 	NewElements = true,
 	ElementTransparency = 0.18,
+	ElementGap = 8,
 	LiquidGlass = true,
+	ToggleKey = Enum.KeyCode.RightShift,
+	KeyBindMenu = {
+		DefaultKey = "RightShift",
+		QuickKeys = { "RightShift", "F", "LeftControl" },
+		ScrimTransparency = 0.8,
+	},
 	Watermark = {
 		Title = "WindUI",
 		Desc = "liquid build",
@@ -19,8 +26,9 @@ local Window = WindUI:CreateWindow({
 	},
 	Settings = {
 		DefaultConfig = "full-example",
-		Width = 352,
-		Height = 424,
+		Width = 360,
+		Height = 410,
+		ScrimTransparency = 0.76,
 	},
 	Motion = {
 		Preset = "Subtle",
