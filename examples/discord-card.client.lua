@@ -1,4 +1,4 @@
-local WindUI = require("../src/Init")
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/article-hub-studio/WindUI-Skibidi/main/dist/main.lua"))()
 
 local Window = WindUI:CreateWindow({
 	Title = "WindUI Discord Example",

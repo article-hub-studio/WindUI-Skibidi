@@ -1,8 +1,236 @@
---[[
-    WindUI Example 
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/article-hub-studio/WindUI-Skibidi/main/dist/main.lua"))()
 
-    example moved to main.client.lua
-]]
+WindUI:SetMotionPreset("Subtle")
 
+local Window = WindUI:CreateWindow({
+	Title = ".ftgs hub | WindUI Full Example",
+	Folder = "WindUIFullExample",
+	Icon = "sparkles",
+	NewElements = true,
+	Settings = {
+		DefaultConfig = "full-example",
+		Width = 352,
+		Height = 424,
+	},
+	Motion = {
+		Preset = "Subtle",
+		Reduced = false,
+	},
+	Topbar = {
+		Height = 44,
+		ButtonsType = "Mac",
+	},
+	OpenButton = {
+		Title = "Open WindUI",
+		Enabled = true,
+		Draggable = true,
+		OnlyMobile = false,
+		Scale = 0.55,
+		Color = ColorSequence.new(Color3.fromHex("#30FF6A"), Color3.fromHex("#E7FF2F")),
+	},
+	BackgroundColor = Color3.fromHex("#08111A"),
+	BackgroundGradient = WindUI:Gradient({
+		["0"] = { Color = Color3.fromHex("#08111A"), Transparency = 0.06 },
+		["45"] = { Color = Color3.fromHex("#12352F"), Transparency = 0.3 },
+		["100"] = { Color = Color3.fromHex("#24172D"), Transparency = 0.54 },
+	}, {
+		Rotation = 118,
+	}),
+	BackgroundOverlayTransparency = 0.47,
+})
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/main.client.lua'))()
+local OverviewTab = Window:Tab({
+	Title = "Overview",
+	Icon = "home",
+})
+
+OverviewTab:Callout({
+	Title = "WindUI Full Example",
+	Desc = "Full example loaded from GitHub with loadstring.",
+	Variant = "Info",
+})
+
+local OverviewStats = OverviewTab:HStack()
+OverviewStats:StatusCard({
+	Title = "Build",
+	Status = "Success",
+	Value = "Ready",
+})
+OverviewStats:StatCard({
+	Title = "Elements",
+	Value = "Modern",
+	SubValue = "Tabs + Discord + Settings",
+})
+
+OverviewTab:KeyValue({
+	Title = "Runtime",
+	Items = {
+		{ Title = "Loader", Value = "loadstring" },
+		{ Title = "Theme", Value = WindUI:GetCurrentTheme() },
+		{ Title = "Topbar", Value = "Mac + Settings Gear" },
+	},
+})
+
+local SettingsTab = Window:Tab({
+	Title = "Settings",
+	Icon = "settings",
+})
+
+SettingsTab:Button({
+	Title = "Open Settings Panel",
+	Icon = "settings",
+	Callback = function()
+		if Window.SettingsMenu then
+			Window.SettingsMenu:Toggle()
+		end
+	end,
+})
+
+SettingsTab:SegmentedControl({
+	Title = "Demo Mode",
+	Options = { "Clean", "Dense", "Glass" },
+	Value = "Glass",
+})
+
+SettingsTab:Slider({
+	Title = "Background Overlay",
+	Value = {
+		Min = 0.25,
+		Max = 0.75,
+		Default = 0.47,
+		Increment = 0.01,
+	},
+	Callback = function(Value)
+		Window:SetBackgroundOverlayTransparency(Value)
+	end,
+})
+
+SettingsTab:ChipList({
+	Title = "Theme Tags",
+	Options = { "Glass", "Mobile", "Motion" },
+	Value = { "Glass", "Mobile" },
+})
+
+local DiscordTab = Window:Tab({
+	Title = "Discord",
+	Icon = "message-circle",
+})
+
+local InviteCard = DiscordTab:DiscordCard({
+	Title = "WindUI Community",
+	Desc = "Copy the invite or run a custom callback from one card.",
+	Invite = "ftgs-development-hub-1300692552005189632",
+	Members = "10k+",
+	Online = "Live",
+	Callback = function(Url)
+		WindUI:Notify({
+			Title = "Discord callback",
+			Content = Url,
+			Icon = "external-link",
+		})
+	end,
+})
+
+local DiscordActions = DiscordTab:HStack()
+DiscordActions:Button({
+	Title = "Copy",
+	Icon = "copy",
+	Callback = function()
+		InviteCard:Copy()
+	end,
+})
+DiscordActions:Button({
+	Title = "Highlight",
+	Icon = "scan",
+	Callback = function()
+		InviteCard:Highlight()
+	end,
+})
+
+DiscordTab:Timeline({
+	Title = "Invite Flow",
+	Items = {
+		{ Title = "URL normalized", Value = InviteCard:GetUrl() },
+		{ Title = "Copy fallback", Value = "Notify" },
+		{ Title = "Join callback", Value = "Enabled" },
+	},
+})
+
+local MotionTab = Window:Tab({
+	Title = "Motion",
+	Icon = "sparkles",
+})
+
+local SectionBox = MotionTab:Section({
+	Title = "Section Box Tabs",
+	Desc = "TabBox keeps page height synced after nested elements mount.",
+	Icon = "folder-kanban",
+	Box = true,
+	BoxBorder = true,
+	Opened = true,
+})
+
+local BoxTabs = SectionBox:TabBox({
+	Title = "Animated Pages",
+	Desc = "Nested controls with page switch animation",
+})
+
+local Overview = BoxTabs:Tab({
+	Title = "Overview",
+	Icon = "badge-check",
+})
+Overview:StatusCard({
+	Title = "Renderer",
+	Status = "Success",
+	Value = "Ready",
+})
+Overview:ProgressBar({
+	Title = "Load",
+	Value = 72,
+})
+
+local Controls = BoxTabs:Tab({
+	Title = "Controls",
+	Icon = "sliders-horizontal",
+})
+local ControlRow = Controls:HStack()
+ControlRow:Stepper({
+	Title = "Amount",
+	Value = {
+		Min = 1,
+		Max = 10,
+		Default = 4,
+		Increment = 1,
+	},
+})
+ControlRow:Toggle({
+	Title = "Pulse",
+	Value = true,
+})
+Controls:ChipList({
+	Title = "Filters",
+	Options = { "Motion", "Mobile", "Glass" },
+	Value = { "Motion", "Glass" },
+})
+
+local Logs = BoxTabs:Tab({
+	Title = "Logs",
+	Icon = "history",
+})
+Logs:Timeline({
+	Title = "Events",
+	Items = {
+		{ Title = "Window opened", Value = "Done" },
+		{ Title = "TabBox measured", Value = "Done" },
+		{ Title = "Animations active", Value = "Live" },
+	},
+})
+
+MotionTab:Accordion({
+	Title = "Motion Notes",
+	OpenIndex = 1,
+	Items = {
+		{ Title = "Switch", Desc = "TabBox fades pages and updates height after layout changes." },
+		{ Title = "Press", Desc = "Buttons and cards keep compact touch feedback." },
+	},
+})

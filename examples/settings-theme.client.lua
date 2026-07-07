@@ -1,4 +1,4 @@
-local WindUI = require("../src/Init")
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/article-hub-studio/WindUI-Skibidi/main/dist/main.lua"))()
 
 WindUI:SetMotionPreset("Subtle")
 
