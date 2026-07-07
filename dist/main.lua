@@ -1814,7 +1814,7 @@ end
 end
 
 function d.Tween(h,i,l,m,p,r)
-if not h then
+if not h or typeof(h)~="Instance"then
 return f
 end
 
@@ -5656,6 +5656,18 @@ Button=nil
 
 local ah
 
+local function GetInnerCornerRadius(ai,aj)
+if typeof(ai)~="UDim"then
+return UDim.new(1,0)
+end
+
+if ai.Scale~=0 then
+return UDim.new(ai.Scale,math.max(ai.Offset,0))
+end
+
+return UDim.new(0,math.max(ai.Offset-aj,0))
+end
+
 
 
 
@@ -5759,7 +5771,7 @@ Size=UDim2.new(0,0,0,36),
 BackgroundColor3=Color3.new(1,1,1),
 },{
 ac("UICorner",{
-CornerRadius=UDim.new(1,-4)
+CornerRadius=GetInnerCornerRadius(UDim.new(1,0),4)
 }),
 ah,
 ac("UIListLayout",{
@@ -5909,7 +5921,7 @@ Glow.UIGradient.Color=ar.Color
 end
 
 an.UICorner.CornerRadius=ar.CornerRadius
-an.TextButton.UICorner.CornerRadius=UDim.new(ar.CornerRadius.Scale,ar.CornerRadius.Offset-4)
+an.TextButton.UICorner.CornerRadius=GetInnerCornerRadius(ar.CornerRadius,4)
 an.UIStroke.Thickness=ar.StrokeThickness
 
 ag:SetScale(ar.Scale)
@@ -5921,6 +5933,7 @@ end
 
 
 return aa end function a.C()
+
 local aa={}
 
 local ab=a.load'd'
@@ -12405,6 +12418,18 @@ ao.Size=UDim2.new(0,18,0,18)
 return ao
 end
 
+function aa.GetImageTarget(af)
+if typeof(af)~="Instance"then
+return nil
+end
+
+if af:IsA"ImageLabel"or af:IsA"ImageButton"then
+return af
+end
+
+return af:FindFirstChildWhichIsA"ImageLabel"or af:FindFirstChildWhichIsA"ImageButton"
+end
+
 function aa.CreateText(af,ai,ak,al,am,an)
 return af("TextLabel",{
 BackgroundTransparency=1,
@@ -13702,8 +13727,8 @@ for ap,aq in next,ao.Tabs do
 local ar=ao.Selected==ap
 af.Play(aq.Button,"Switch",{ImageTransparency=ar and 0.82 or 0.94},nil,nil,"State")
 af.Play(aq.TitleLabel,"Switch",{TextTransparency=ar and 0 or 0.25},nil,nil,"State")
-if aq.Icon then
-af.Play(aq.Icon.ImageLabel,"Switch",{ImageTransparency=ar and 0 or 0.35},nil,nil,"State")
+if aq.IconTarget then
+af.Play(aq.IconTarget,"Switch",{ImageTransparency=ar and 0 or 0.35},nil,nil,"State")
 end
 end
 end
@@ -13754,8 +13779,9 @@ local at=ak.CreateIcon(aa,as.Icon,an.Window.Folder,"TabBox",true,"TabBoxIcon")
 if at then
 at.Size=UDim2.new(0,15,0,15)
 end
+local au=ak.GetImageTarget(at)
 
-local au=ai("TextLabel",{
+local av=ai("TextLabel",{
 Name="Title",
 BackgroundTransparency=1,
 Text=as.Title,
@@ -13768,7 +13794,7 @@ TextColor3="Text",
 },
 })
 
-local av=aa.NewRoundFrame(999,"Squircle",{
+local aw=aa.NewRoundFrame(999,"Squircle",{
 Name="Tab",
 LayoutOrder=ar,
 Size=UDim2.new(0,math.max(72,string.len(as.Title)*7+(at and 38 or 24)),0,30),
@@ -13789,10 +13815,10 @@ VerticalAlignment="Center",
 HorizontalAlignment="Center",
 }),
 at,
-au,
+av,
 },true)
 
-local aw=ai("CanvasGroup",{
+local ax=ai("CanvasGroup",{
 Name="Page",
 LayoutOrder=ar,
 Size=UDim2.new(1,0,0,0),
@@ -13815,22 +13841,23 @@ SortOrder="LayoutOrder",
 }),
 })
 
-as.Button=av
-as.TitleLabel=au
+as.Button=aw
+as.TitleLabel=av
 as.Icon=at
-as.ElementFrame=aw
-as.UIElements.Container=aw
-as.UIElements.Title=au
+as.IconTarget=au
+as.ElementFrame=ax
+as.UIElements.Container=ax
+as.UIElements.Title=av
 
 an.ElementsModule.Load(
 as,
-aw,
+ax,
 an.ElementsModule.Elements,
 an.Window,
 an.WindUI,
 function()
 if ao.Selected==ar then
-aw.Size=UDim2.new(1,0,0,GetPageHeight(as))
+ax.Size=UDim2.new(1,0,0,GetPageHeight(as))
 end
 end,
 an.ElementsModule,
@@ -13838,13 +13865,13 @@ an.UIScale,
 an.Tab
 )
 
-function as.Select(ax)
+function as.Select(ay)
 return ao:Select(ar)
 end
 
-function as.Destroy(ax)
-av:Destroy()
+function as.Destroy(ay)
 aw:Destroy()
+ax:Destroy()
 table.remove(ao.Tabs,ar)
 if ao.Selected==ar then
 ao.Selected=nil
@@ -13856,17 +13883,17 @@ end
 
 ao.Tabs[ar]=as
 
-af.AttachPress(av,aa,{
+af.AttachPress(aw,aa,{
 Amount=0.97,
 })
 
-aa.AddSignal(av.MouseButton1Click,function()
+aa.AddSignal(aw.MouseButton1Click,function()
 ao:Select(ar)
 end)
 
-aa.AddSignal(aw.UIListLayout:GetPropertyChangedSignal"AbsoluteContentSize",function()
+aa.AddSignal(ax.UIListLayout:GetPropertyChangedSignal"AbsoluteContentSize",function()
 if ao.Selected==ar then
-aw.Size=UDim2.new(1,0,0,GetPageHeight(as))
+ax.Size=UDim2.new(1,0,0,GetPageHeight(as))
 end
 end)
 

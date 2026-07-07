@@ -128,6 +128,18 @@ function Utils.CreateIcon(Creator, IconName, Folder, Type, Themed, ThemeTag)
 	return Icon
 end
 
+function Utils.GetImageTarget(Icon)
+	if typeof(Icon) ~= "Instance" then
+		return nil
+	end
+
+	if Icon:IsA("ImageLabel") or Icon:IsA("ImageButton") then
+		return Icon
+	end
+
+	return Icon:FindFirstChildWhichIsA("ImageLabel") or Icon:FindFirstChildWhichIsA("ImageButton")
+end
+
 function Utils.CreateText(New, Creator, Text, Size, Weight, Transparency)
 	return New("TextLabel", {
 		BackgroundTransparency = 1,

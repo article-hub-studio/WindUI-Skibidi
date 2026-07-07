@@ -164,7 +164,7 @@ function Motion.Cancel(Object, Key)
 end
 
 function Motion.Tween(Object, Duration, Properties, EasingStyle, EasingDirection, Key)
-	if not Object then
+	if not Object or typeof(Object) ~= "Instance" then
 		return NoopTween
 	end
 

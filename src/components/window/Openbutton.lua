@@ -17,6 +17,18 @@ function OpenButton.New(Window)
     }
     
     local Icon
+
+    local function GetInnerCornerRadius(CornerRadius, Inset)
+        if typeof(CornerRadius) ~= "UDim" then
+            return UDim.new(1, 0)
+        end
+
+        if CornerRadius.Scale ~= 0 then
+            return UDim.new(CornerRadius.Scale, math.max(CornerRadius.Offset, 0))
+        end
+
+        return UDim.new(0, math.max(CornerRadius.Offset - Inset, 0))
+    end
     
     
     
@@ -121,7 +133,7 @@ function OpenButton.New(Window)
             BackgroundColor3 = Color3.new(1,1,1),
         }, {
             New("UICorner", {
-                CornerRadius = UDim.new(1,-4)
+                CornerRadius = GetInnerCornerRadius(UDim.new(1, 0), 4)
             }),
             Icon,
             New("UIListLayout", {
@@ -271,7 +283,7 @@ function OpenButton.New(Window)
         end
 
         Button.UICorner.CornerRadius = OpenButtonModule.CornerRadius
-        Button.TextButton.UICorner.CornerRadius = UDim.new(OpenButtonModule.CornerRadius.Scale, OpenButtonModule.CornerRadius.Offset-4)
+        Button.TextButton.UICorner.CornerRadius = GetInnerCornerRadius(OpenButtonModule.CornerRadius, 4)
         Button.UIStroke.Thickness = OpenButtonModule.StrokeThickness
         
         OpenButtonMain:SetScale(OpenButtonModule.Scale)

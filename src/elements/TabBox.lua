@@ -63,8 +63,8 @@ function Element:New(Config)
 			local Selected = TabBox.Selected == Index
 			Motion.Play(Page.Button, "Switch", { ImageTransparency = Selected and 0.82 or 0.94 }, nil, nil, "State")
 			Motion.Play(Page.TitleLabel, "Switch", { TextTransparency = Selected and 0 or 0.25 }, nil, nil, "State")
-			if Page.Icon then
-				Motion.Play(Page.Icon.ImageLabel, "Switch", { ImageTransparency = Selected and 0 or 0.35 }, nil, nil, "State")
+			if Page.IconTarget then
+				Motion.Play(Page.IconTarget, "Switch", { ImageTransparency = Selected and 0 or 0.35 }, nil, nil, "State")
 			end
 		end
 	end
@@ -115,6 +115,7 @@ function Element:New(Config)
 		if Icon then
 			Icon.Size = UDim2.new(0, 15, 0, 15)
 		end
+		local IconTarget = Utils.GetImageTarget(Icon)
 
 		local Title = New("TextLabel", {
 			Name = "Title",
@@ -179,6 +180,7 @@ function Element:New(Config)
 		Page.Button = Button
 		Page.TitleLabel = Title
 		Page.Icon = Icon
+		Page.IconTarget = IconTarget
 		Page.ElementFrame = Container
 		Page.UIElements.Container = Container
 		Page.UIElements.Title = Title
