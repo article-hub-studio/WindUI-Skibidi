@@ -7493,7 +7493,7 @@ ImageColor3="ElementBackground",
 },
 },{
 aA,
-})
+},true)
 aA.Position=UDim2.new(0.5,0,0.5,0)
 aA.AnchorPoint=Vector2.new(0.5,0.5)
 

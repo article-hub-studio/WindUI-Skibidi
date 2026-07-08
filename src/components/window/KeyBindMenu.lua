@@ -322,7 +322,7 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		},
 	}, {
 		CloseIcon,
-	})
+	}, true)
 	CloseIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
 	CloseIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 
