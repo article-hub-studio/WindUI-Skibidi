@@ -1,13 +1,26 @@
 local Creator = require("../modules/Creator")
 local New = Creator.New
 local Tween = Creator.Tween
+local UserInputService = game:GetService("UserInputService")
 
 local CreateToggle = require("../components/ui/Toggle").New
 local CreateCheckbox = require("../components/ui/Checkbox").New
 
 local Element = {}
 
+local function NormalizeKey(Value)
+	if typeof(Value) == "EnumItem" then
+		return Value.Name, Value
+	end
+	if typeof(Value) == "string" and Enum.KeyCode[Value] then
+		return Value, Enum.KeyCode[Value]
+	end
+	return nil, nil
+end
+
 function Element:New(Config)
+	local KeybindName, KeybindCode =
+		NormalizeKey(Config.Keybind or Config.KeyBind or Config.Shortcut or Config.Bind or Config.Hotkey)
 	local Toggle = {
 		__type = "Toggle",
 		Title = Config.Title or "Toggle",
@@ -18,6 +31,8 @@ function Element:New(Config)
 		Icon = Config.Icon or nil,
 		IconSize = Config.IconSize or 23, -- from 26 to 0
 		Type = Config.Type or "Toggle",
+		Keybind = KeybindName,
+		KeyCode = KeybindCode,
 		Callback = Config.Callback or function() end,
 		UIElements = {},
 	}
@@ -97,6 +112,10 @@ function Element:New(Config)
 		end
 	end
 
+	function Toggle:Toggle(isCallback, isAnim)
+		Toggle:Set(not Toggle.Value, isCallback, isAnim or Config.Window.NewElements)
+	end
+
 	Toggle:Set(Toggled, false, Config.Window.NewElements)
 
 	local CurInput = Config.WindUI.GenerateGUID()
@@ -128,13 +147,24 @@ function Element:New(Config)
 	else
 		if Toggle.Type == "Toggle" then
 			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.MouseButton1Click, function()
-				Toggle:Set(not Toggle.Value, nil, Config.Window.NewElements)
+				Toggle:Toggle(nil, Config.Window.NewElements)
 			end)
 		elseif Toggle.Type == "Checkbox" then
 			Creator.AddSignal(ToggleFrame.MouseButton1Click, function()
-				Toggle:Set(not Toggle.Value, nil, Config.Window.NewElements)
+				Toggle:Toggle(nil, Config.Window.NewElements)
 			end)
 		end
+	end
+
+	if Toggle.KeyCode then
+		Creator.AddSignal(UserInputService.InputBegan, function(Input, GameProcessed)
+			if GameProcessed or UserInputService:GetFocusedTextBox() then
+				return
+			end
+			if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == Toggle.KeyCode then
+				Toggle:Toggle(nil, Config.Window.NewElements)
+			end
+		end)
 	end
 
 	return Toggle.__type, Toggle

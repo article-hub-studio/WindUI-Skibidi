@@ -1,7 +1,18 @@
 local Creator = require("../modules/Creator")
 local New = Creator.New
+local UserInputService = game:GetService("UserInputService")
 
 local Element = {}
+
+local function NormalizeKey(Value)
+	if typeof(Value) == "EnumItem" then
+		return Value.Name, Value
+	end
+	if typeof(Value) == "string" and Enum.KeyCode[Value] then
+		return Value, Enum.KeyCode[Value]
+	end
+	return nil, nil
+end
 
 local function GetImageTarget(Object)
 	if typeof(Object) ~= "Instance" then
@@ -16,6 +27,8 @@ local function GetImageTarget(Object)
 end
 
 function Element:New(Config)
+	local KeybindName, KeybindCode =
+		NormalizeKey(Config.Keybind or Config.KeyBind or Config.Shortcut or Config.Bind or Config.Hotkey)
 	local Button = {
 		__type = "Button",
 		Title = Config.Title or "Button",
@@ -30,6 +43,8 @@ function Element:New(Config)
 		LockedTitle = Config.LockedTitle,
 		Golden = Config.Golden == true or Config.Premium == true,
 		Premium = Config.Premium == true or Config.Golden == true,
+		Keybind = KeybindName,
+		KeyCode = KeybindCode,
 		Callback = Config.Callback or function() end,
 		UIElements = {},
 	}
@@ -115,13 +130,29 @@ function Element:New(Config)
 		Button:Lock()
 	end
 
-	Creator.AddSignal(Button.ButtonFrame.UIElements.Main.MouseButton1Click, function()
+	function Button:Press()
 		if CanCallback then
 			task.spawn(function()
 				Creator.SafeCallback(Button.Callback)
 			end)
 		end
+	end
+
+	Creator.AddSignal(Button.ButtonFrame.UIElements.Main.MouseButton1Click, function()
+		Button:Press()
 	end)
+
+	if Button.KeyCode then
+		Creator.AddSignal(UserInputService.InputBegan, function(Input, GameProcessed)
+			if GameProcessed or UserInputService:GetFocusedTextBox() then
+				return
+			end
+			if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == Button.KeyCode then
+				Button:Press()
+			end
+		end)
+	end
+
 	return Button.__type, Button
 end
 

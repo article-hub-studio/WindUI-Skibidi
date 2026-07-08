@@ -14,7 +14,8 @@ local Window = WindUI:CreateWindow({
 	KeyBindMenu = {
 		DefaultKey = "RightShift",
 		QuickKeys = { "RightShift", "F", "LeftControl" },
-		ScrimTransparency = 0.8,
+		Scrim = false,
+		BackgroundTransparency = 0.52,
 		Compact = true,
 		UseWindowBackground = true,
 	},
@@ -127,11 +128,19 @@ local SettingsTab = Window:Tab({
 SettingsTab:Button({
 	Title = "Open Settings Panel",
 	Icon = "settings",
+	Keybind = "G",
 	Callback = function()
 		if Window.SettingsMenu then
 			Window.SettingsMenu:Toggle()
 		end
 	end,
+})
+
+SettingsTab:Toggle({
+	Title = "Mobile Boost",
+	Desc = "Shown inside the mobile keybind menu.",
+	Value = true,
+	Keybind = "T",
 })
 
 SettingsTab:SegmentedControl({

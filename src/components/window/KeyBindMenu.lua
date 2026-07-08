@@ -36,9 +36,9 @@ function KeyBindMenu.New(Window, WindUI, Config)
 	local IsMobile = (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or Window.IsPC == false
 	local Compact = MenuConfig.Compact == true or (MenuConfig.Compact ~= false and IsMobile)
 	local RootWidth = MenuConfig.Width or (Compact and 330 or 326)
-	local RootHeight = MenuConfig.Height or (Compact and 216 or 230)
+	local RootHeight = MenuConfig.Height or (Compact and 300 or 354)
 	local ContentPadding = Compact and 10 or 14
-	local ContentGap = Compact and 9 or 12
+	local ContentGap = Compact and 6 or 10
 	local QuickKeys = MenuConfig.QuickKeys or { "RightShift", "F", "LeftControl" }
 	local Menu = {
 		Open = false,
@@ -64,6 +64,16 @@ function KeyBindMenu.New(Window, WindUI, Config)
 	local function GetViewportSize()
 		local Camera = Workspace.CurrentCamera
 		return Camera and Camera.ViewportSize or Vector2.new(1280, 720)
+	end
+
+	local function GetScrimTransparency()
+		if MenuConfig.Scrim == false or MenuConfig.ShowScrim == false then
+			return 1
+		end
+		if MenuConfig.ScrimTransparency ~= nil then
+			return MenuConfig.ScrimTransparency
+		end
+		return Compact and 1 or 0.78
 	end
 
 	local function CreateIcon(IconName, Parent, Size)
@@ -383,10 +393,87 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		},
 	})
 
+	local ElementBindings = Creator.NewRoundFrame(16, "Squircle", {
+		Name = "ElementBindings",
+		Size = UDim2.new(1, 0, 0, Compact and 84 or 94),
+		ImageTransparency = Compact and 0.86 or 0.9,
+		LayoutOrder = 3,
+		Parent = Content,
+		ThemeTag = {
+			ImageColor3 = "ElementBackground",
+		},
+	}, {
+		New("UIStroke", {
+			ApplyStrokeMode = "Border",
+			Color = Color3.new(1, 1, 1),
+			Transparency = Compact and 0.82 or 0.9,
+			Thickness = 1,
+		}),
+		New("UIPadding", {
+			PaddingTop = UDim.new(0, 8),
+			PaddingLeft = UDim.new(0, 10),
+			PaddingRight = UDim.new(0, 10),
+			PaddingBottom = UDim.new(0, 8),
+		}),
+		New("UIListLayout", {
+			Padding = UDim.new(0, 5),
+			FillDirection = "Vertical",
+			SortOrder = "LayoutOrder",
+		}),
+	})
+
+	local ElementBindingsHeader = New("TextLabel", {
+		Name = "Header",
+		Size = UDim2.new(1, 0, 0, 14),
+		BackgroundTransparency = 1,
+		Text = "Element keybinds",
+		TextSize = Compact and 11 or 12,
+		TextXAlignment = "Left",
+		TextTransparency = 0.3,
+		LayoutOrder = 1,
+		Parent = ElementBindings,
+		FontFace = Font.new(Creator.Font, Enum.FontWeight.SemiBold),
+		ThemeTag = {
+			TextColor3 = "Text",
+		},
+	})
+
+	local ElementList = New("ScrollingFrame", {
+		Name = "List",
+		Size = UDim2.new(1, 0, 1, -19),
+		BackgroundTransparency = 1,
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		AutomaticCanvasSize = "Y",
+		ScrollingDirection = "Y",
+		ScrollBarThickness = 0,
+		LayoutOrder = 2,
+		Parent = ElementBindings,
+	}, {
+		New("UIListLayout", {
+			Padding = UDim.new(0, 5),
+			FillDirection = "Vertical",
+			SortOrder = "LayoutOrder",
+		}),
+	})
+
+	local ElementEmpty = New("TextLabel", {
+		Name = "Empty",
+		Size = UDim2.new(1, 0, 0, 28),
+		BackgroundTransparency = 1,
+		Text = "No element keybinds",
+		TextSize = Compact and 11 or 12,
+		TextTransparency = 0.48,
+		FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
+		Parent = ElementList,
+		ThemeTag = {
+			TextColor3 = "Text",
+		},
+	})
+
 	local Actions = New("Frame", {
 		Size = UDim2.new(1, 0, 0, Compact and 38 or 38),
 		BackgroundTransparency = 1,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 		Parent = Content,
 	}, {
 		New("UIListLayout", {
@@ -499,7 +586,7 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		Name = "QuickKeys",
 		Size = UDim2.new(1, 0, 0, Compact and 34 or 32),
 		BackgroundTransparency = 1,
-		LayoutOrder = 4,
+		LayoutOrder = 5,
 		Parent = Content,
 	}, {
 		New("UIListLayout", {
@@ -531,6 +618,159 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		end
 	end
 
+	local ElementRows = {}
+	local ElementRowSignals = {}
+
+	local function ClearElementRows()
+		for _, Connection in next, ElementRowSignals do
+			if Connection then
+				Connection:Disconnect()
+			end
+		end
+		for _, Row in next, ElementRows do
+			if Row and Row.Destroy then
+				Row:Destroy()
+			end
+		end
+		for Key in next, ElementRowSignals do
+			ElementRowSignals[Key] = nil
+		end
+		for Key in next, ElementRows do
+			ElementRows[Key] = nil
+		end
+	end
+
+	local function NormalizeElementKey(Value)
+		local Name, EnumKey = NormalizeKey(Value)
+		if EnumKey then
+			return ShortKeyName(Name), EnumKey
+		end
+		if typeof(Value) == "string" and Value ~= "" then
+			return ShortKeyName(Value), nil
+		end
+		return nil, nil
+	end
+
+	local function GetElementKeybind(Element)
+		if typeof(Element) ~= "table" then
+			return nil, nil
+		end
+
+		local Value = Element.Keybind
+			or Element.KeyBind
+			or Element.Shortcut
+			or Element.Bind
+			or Element.Hotkey
+			or (Element.__type == "Keybind" and Element.Value)
+		return NormalizeElementKey(Value)
+	end
+
+	local function GetElementIcon(Element)
+		if Element.__type == "Toggle" then
+			return "toggle-right"
+		elseif Element.__type == "Button" then
+			return "mouse-pointer-click"
+		end
+		return "keyboard"
+	end
+
+	local function ActivateElement(Element, KeyName)
+		if typeof(Element) ~= "table" then
+			return
+		end
+		if Element.Locked then
+			return
+		end
+		if Element.__type == "Toggle" and Element.Toggle then
+			Element:Toggle()
+			return
+		end
+		if Element.__type == "Button" and Element.Press then
+			Element:Press()
+			return
+		end
+		if Element.Callback then
+			Creator.SafeCallback(Element.Callback, KeyName)
+		end
+	end
+
+	local function CreateElementRow(Element, KeyName, Order)
+		local Row = Creator.NewRoundFrame(12, "Squircle", {
+			Name = "ElementBind",
+			Size = UDim2.new(1, 0, 0, Compact and 28 or 32),
+			ImageTransparency = Compact and 0.9 or 0.92,
+			LayoutOrder = Order,
+			Parent = ElementList,
+			ThemeTag = {
+				ImageColor3 = "ElementBackground",
+			},
+		}, {
+			New("UIPadding", {
+				PaddingLeft = UDim.new(0, 8),
+				PaddingRight = UDim.new(0, 8),
+			}),
+			New("UIListLayout", {
+				Padding = UDim.new(0, 7),
+				FillDirection = "Horizontal",
+				VerticalAlignment = "Center",
+			}),
+			CreateIcon(GetElementIcon(Element), nil, Compact and 13 or 14),
+			New("TextLabel", {
+				Name = "Title",
+				Size = UDim2.new(1, -84, 1, 0),
+				BackgroundTransparency = 1,
+				Text = Element.Title or Element.__type or "Element",
+				TextSize = Compact and 11 or 12,
+				TextXAlignment = "Left",
+				TextTruncate = "AtEnd",
+				FontFace = Font.new(Creator.Font, Enum.FontWeight.SemiBold),
+				ThemeTag = {
+					TextColor3 = "Text",
+				},
+			}),
+			New("TextLabel", {
+				Name = "Key",
+				Size = UDim2.new(0, 56, 0, Compact and 20 or 22),
+				BackgroundTransparency = 1,
+				Text = KeyName,
+				TextSize = Compact and 11 or 12,
+				TextXAlignment = "Right",
+				TextTransparency = 0.14,
+				FontFace = Font.new(Creator.Font, Enum.FontWeight.Bold),
+				ThemeTag = {
+					TextColor3 = "Text",
+				},
+			}),
+		}, true)
+
+		Motion.AttachPress(Row, Creator, {
+			Amount = 0.98,
+		})
+
+		local ClickConnection = Row.MouseButton1Click:Connect(function()
+			ActivateElement(Element, KeyName)
+		end)
+
+		table.insert(ElementRowSignals, ClickConnection)
+		table.insert(ElementRows, Row)
+	end
+
+	local function RenderElementBindings()
+		ClearElementRows()
+
+		local Count = 0
+		for _, Element in next, Window.AllElements or {} do
+			local KeyName = GetElementKeybind(Element)
+			if KeyName then
+				Count += 1
+				CreateElementRow(Element, KeyName, Count)
+			end
+		end
+
+		ElementEmpty.Visible = Count == 0
+		ElementBindingsHeader.Text = Count > 0 and ("Element keybinds (" .. Count .. ")") or "Element keybinds"
+	end
+
 	if Window.ToggleKey == nil and MenuConfig.DefaultKey and MenuConfig.ApplyDefault ~= false then
 		local _, DefaultKey = NormalizeKey(MenuConfig.DefaultKey)
 		if DefaultKey then
@@ -544,7 +784,7 @@ function KeyBindMenu.New(Window, WindUI, Config)
 
 		if Compact then
 			RootWidth = math.min(MenuConfig.Width or 330, math.max(240, Viewport.X - (Margin * 2)))
-			RootHeight = MenuConfig.Height or 216
+			RootHeight = MenuConfig.Height or 300
 			Root.Size = UDim2.fromOffset(RootWidth, RootHeight)
 			Root.AnchorPoint = Vector2.new(0.5, 1)
 			Menu.TargetPosition = UDim2.fromOffset(Viewport.X / 2, Viewport.Y - Margin)
@@ -604,6 +844,7 @@ function KeyBindMenu.New(Window, WindUI, Config)
 
 		Menu.Open = true
 		Menu.Token += 1
+		RenderElementBindings()
 		UpdateRootPosition()
 		local TargetPosition = Menu.TargetPosition or Root.Position
 		Root.Visible = true
@@ -624,17 +865,17 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		Root.Scale.Scale = 0.98
 		Scrim.BackgroundTransparency = 1
 		Motion.Play(Root, "DropdownOpen", {
-			ImageTransparency = Compact and 0.06 or 0.18,
+			ImageTransparency = MenuConfig.BackgroundTransparency or (Compact and 0.48 or 0.18),
 			Position = TargetPosition,
 		}, nil, nil, "KeyBindMenu")
 		Motion.Play(Content, "DropdownOpen", { GroupTransparency = 0 }, nil, nil, "KeyBindContent")
-		Motion.Play(Root.GlassLayer, "DropdownOpen", { ImageTransparency = Compact and 0.9 or 0.78 }, nil, nil, "KeyBindGlass")
-		Motion.Play(Root.Outline, "DropdownOpen", { ImageTransparency = Compact and 0.5 or 0.72 }, nil, nil, "KeyBindOutline")
+		Motion.Play(Root.GlassLayer, "DropdownOpen", { ImageTransparency = Compact and 0.92 or 0.78 }, nil, nil, "KeyBindGlass")
+		Motion.Play(Root.Outline, "DropdownOpen", { ImageTransparency = Compact and 0.48 or 0.72 }, nil, nil, "KeyBindOutline")
 		Motion.Play(Root.Scale, "DropdownOpen", { Scale = 1 }, nil, nil, "KeyBindScale")
 		Motion.Play(
 			Scrim,
 			"DropdownOpen",
-			{ BackgroundTransparency = MenuConfig.ScrimTransparency or (Compact and 0.62 or 0.78) },
+			{ BackgroundTransparency = GetScrimTransparency() },
 			nil,
 			nil,
 			"KeyBindScrim"

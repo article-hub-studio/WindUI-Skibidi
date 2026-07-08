@@ -187,14 +187,9 @@ function TabModule.New(Config, UIScale)
 
 	if Tab.Golden then
 		Tab.UIElements.Main.Frame.ImageColor3 = Color3.fromRGB(64, 49, 18)
-		Tab.UIElements.Main.Frame.ImageTransparency = 0.82
-		Tab.UIElements.GoldenStroke = New("UIStroke", {
-			ApplyStrokeMode = "Border",
-			Color = Color3.fromRGB(255, 214, 92),
-			Transparency = 0.62,
-			Thickness = 1,
-			Parent = Tab.UIElements.Main,
-		})
+		Tab.UIElements.Main.Frame.ImageTransparency = 0.88
+		Tab.UIElements.Main.Outline.ImageColor3 = Color3.fromRGB(255, 214, 92)
+		Tab.UIElements.Main.Outline.ImageTransparency = 0.78
 		Tab.UIElements.GoldenShine = New("UIGradient", {
 			Rotation = 18,
 			Offset = Vector2.new(-1, 0),
@@ -671,6 +666,12 @@ local function ApplyGoldenTabVisual(TabObject, Active)
 	if IconTarget then
 		IconTarget.ImageColor3 = TabObject.IconColor or Color3.fromRGB(255, 222, 105)
 		IconTarget.ImageTransparency = Active and 0 or 0.08
+	end
+
+	local Outline = TabObject.UIElements and TabObject.UIElements.Main and TabObject.UIElements.Main.Outline
+	if Outline then
+		Outline.ImageColor3 = Active and Color3.fromRGB(255, 232, 132) or Color3.fromRGB(255, 214, 92)
+		Outline.ImageTransparency = Active and 0.58 or 0.78
 	end
 end
 

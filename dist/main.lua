@@ -7207,9 +7207,9 @@ local aj=typeof(ag.KeyBindMenu)=="table"and ag.KeyBindMenu or{}
 local ak=(aa.TouchEnabled and not aa.KeyboardEnabled)or ag.IsPC==false
 local al=aj.Compact==true or(aj.Compact~=false and ak)
 local am=aj.Width or(al and 330 or 326)
-local an=aj.Height or(al and 216 or 230)
+local an=aj.Height or(al and 300 or 354)
 local ao=al and 10 or 14
-local ap=al and 9 or 12
+local ap=al and 6 or 10
 local aq=aj.QuickKeys or{"RightShift","F","LeftControl"}
 local ar={
 Open=false,
@@ -7235,6 +7235,16 @@ end
 local function GetViewportSize()
 local as=ab.CurrentCamera
 return as and as.ViewportSize or Vector2.new(1280,720)
+end
+
+local function GetScrimTransparency()
+if aj.Scrim==false or aj.ShowScrim==false then
+return 1
+end
+if aj.ScrimTransparency~=nil then
+return aj.ScrimTransparency
+end
+return al and 1 or 0.78
 end
 
 local function CreateIcon(as,at,au)
@@ -7554,10 +7564,87 @@ TextColor3="Text",
 },
 })
 
-local g=ae("Frame",{
+local g=ac.NewRoundFrame(16,"Squircle",{
+Name="ElementBindings",
+Size=UDim2.new(1,0,0,al and 84 or 94),
+ImageTransparency=al and 0.86 or 0.9,
+LayoutOrder=3,
+Parent=au,
+ThemeTag={
+ImageColor3="ElementBackground",
+},
+},{
+ae("UIStroke",{
+ApplyStrokeMode="Border",
+Color=Color3.new(1,1,1),
+Transparency=al and 0.82 or 0.9,
+Thickness=1,
+}),
+ae("UIPadding",{
+PaddingTop=UDim.new(0,8),
+PaddingLeft=UDim.new(0,10),
+PaddingRight=UDim.new(0,10),
+PaddingBottom=UDim.new(0,8),
+}),
+ae("UIListLayout",{
+Padding=UDim.new(0,5),
+FillDirection="Vertical",
+SortOrder="LayoutOrder",
+}),
+})
+
+local h=ae("TextLabel",{
+Name="Header",
+Size=UDim2.new(1,0,0,14),
+BackgroundTransparency=1,
+Text="Element keybinds",
+TextSize=al and 11 or 12,
+TextXAlignment="Left",
+TextTransparency=0.3,
+LayoutOrder=1,
+Parent=g,
+FontFace=Font.new(ac.Font,Enum.FontWeight.SemiBold),
+ThemeTag={
+TextColor3="Text",
+},
+})
+
+local i=ae("ScrollingFrame",{
+Name="List",
+Size=UDim2.new(1,0,1,-19),
+BackgroundTransparency=1,
+CanvasSize=UDim2.new(0,0,0,0),
+AutomaticCanvasSize="Y",
+ScrollingDirection="Y",
+ScrollBarThickness=0,
+LayoutOrder=2,
+Parent=g,
+},{
+ae("UIListLayout",{
+Padding=UDim.new(0,5),
+FillDirection="Vertical",
+SortOrder="LayoutOrder",
+}),
+})
+
+local l=ae("TextLabel",{
+Name="Empty",
+Size=UDim2.new(1,0,0,28),
+BackgroundTransparency=1,
+Text="No element keybinds",
+TextSize=al and 11 or 12,
+TextTransparency=0.48,
+FontFace=Font.new(ac.Font,Enum.FontWeight.Medium),
+Parent=i,
+ThemeTag={
+TextColor3="Text",
+},
+})
+
+local m=ae("Frame",{
 Size=UDim2.new(1,0,0,al and 38 or 38),
 BackgroundTransparency=1,
-LayoutOrder=3,
+LayoutOrder=4,
 Parent=au,
 },{
 ae("UIListLayout",{
@@ -7567,13 +7654,13 @@ HorizontalAlignment="Center",
 }),
 })
 
-local function CreateButton(h,i,l,m,p)
-local r=ac.NewRoundFrame(14,"Squircle",{
+local function CreateButton(p,r,u,v,x)
+local z=ac.NewRoundFrame(14,"Squircle",{
 Size=UDim2.new(0.5,-4,1,0),
-ImageTransparency=m=="Primary"and(al and 0.08 or 0.18)or(al and 0.84 or 0.9),
-Parent=h,
+ImageTransparency=v=="Primary"and(al and 0.08 or 0.18)or(al and 0.84 or 0.9),
+Parent=p,
 ThemeTag={
-ImageColor3=m=="Primary"and"Primary"or"ElementBackground",
+ImageColor3=v=="Primary"and"Primary"or"ElementBackground",
 },
 },{
 ae("UIPadding",{
@@ -7586,13 +7673,13 @@ FillDirection="Horizontal",
 VerticalAlignment="Center",
 HorizontalAlignment="Center",
 }),
-l and CreateIcon(l,nil,al and 13 or 15)or nil,
+u and CreateIcon(u,nil,al and 13 or 15)or nil,
 ae("TextLabel",{
 Name="Title",
 Size=UDim2.new(0,0,1,0),
 AutomaticSize="X",
 BackgroundTransparency=1,
-Text=i,
+Text=r,
 TextSize=al and 12 or 13,
 FontFace=Font.new(ac.Font,Enum.FontWeight.SemiBold),
 ThemeTag={
@@ -7601,37 +7688,37 @@ TextColor3="Text",
 }),
 },true)
 
-ad.AttachPress(r,ac,{
+ad.AttachPress(z,ac,{
 Amount=0.97,
 })
 
-ac.AddSignal(r.MouseButton1Click,function()
-ac.SafeCallback(p)
+ac.AddSignal(z.MouseButton1Click,function()
+ac.SafeCallback(x)
 end)
 
-return r
+return z
 end
 
-local h
+local p
 
-local function ApplyKey(i,l)
-local m,p=NormalizeKey(i)
-ag:SetToggleKey(p)
-f.Text=m
-if not l then
-Notify("Keybind updated",p and("Toggle key: "..m)or"Toggle key cleared.","keyboard")
+local function ApplyKey(r,u)
+local v,x=NormalizeKey(r)
+ag:SetToggleKey(x)
+f.Text=v
+if not u then
+Notify("Keybind updated",x and("Toggle key: "..v)or"Toggle key cleared.","keyboard")
 end
 end
 
 local function StopCapture()
 ar.Capturing=false
-if h then
-h:Disconnect()
-h=nil
+if p then
+p:Disconnect()
+p=nil
 end
 end
 
-function ar.Capture(i)
+function ar.Capture(r)
 if ar.Capturing then
 return
 end
@@ -7639,38 +7726,38 @@ end
 ar.Capturing=true
 f.Text="Press key..."
 
-h=aa.InputBegan:Connect(function(l)
-if l.UserInputType~=Enum.UserInputType.Keyboard then
+p=aa.InputBegan:Connect(function(u)
+if u.UserInputType~=Enum.UserInputType.Keyboard then
 return
 end
-if l.KeyCode==Enum.KeyCode.Unknown then
+if u.KeyCode==Enum.KeyCode.Unknown then
 return
 end
-if l.KeyCode==Enum.KeyCode.Escape then
+if u.KeyCode==Enum.KeyCode.Escape then
 StopCapture()
-local m=NormalizeKey(ag.ToggleKey)
-f.Text=m
+local v=NormalizeKey(ag.ToggleKey)
+f.Text=v
 return
 end
 
-ApplyKey(l.KeyCode)
+ApplyKey(u.KeyCode)
 StopCapture()
 end)
 end
 
-local i=CreateButton(g,al and"Bind"or"Set Key","scan-line","Primary",function()
+local r=CreateButton(m,al and"Bind"or"Set Key","scan-line","Primary",function()
 ar:Capture()
 end)
-local l=CreateButton(g,"Clear","x","Secondary",function()
+local u=CreateButton(m,"Clear","x","Secondary",function()
 StopCapture()
 ApplyKey(nil)
 end)
 
-local m=ae("Frame",{
+local v=ae("Frame",{
 Name="QuickKeys",
 Size=UDim2.new(1,0,0,al and 34 or 32),
 BackgroundTransparency=1,
-LayoutOrder=4,
+LayoutOrder=5,
 Parent=au,
 },{
 ae("UIListLayout",{
@@ -7680,47 +7767,200 @@ HorizontalAlignment="Center",
 }),
 })
 
-local function ShortKeyName(p)
-local r=tostring(p)
+local function ShortKeyName(x)
+local z=tostring(x)
 if not al then
-return r
+return z
 end
 
-r=r:gsub("Right","R")
-r=r:gsub("Left","L")
-r=r:gsub("Control","Ctrl")
-return r
+z=z:gsub("Right","R")
+z=z:gsub("Left","L")
+z=z:gsub("Control","Ctrl")
+return z
 end
 
-for p,r in next,aq do local
-u, v=NormalizeKey(r)
-if v then
-CreateButton(m,ShortKeyName(r),nil,"Secondary",function()
+for x,z in next,aq do local
+A, B=NormalizeKey(z)
+if B then
+CreateButton(v,ShortKeyName(z),nil,"Secondary",function()
 StopCapture()
-ApplyKey(v)
+ApplyKey(B)
 end).Size=UDim2.new(1/#aq,-4,1,0)
 end
 end
 
+local x={}
+local z={}
+
+local function ClearElementRows()
+for A,B in next,z do
+if B then
+B:Disconnect()
+end
+end
+for A,B in next,x do
+if B and B.Destroy then
+B:Destroy()
+end
+end
+for A in next,z do
+z[A]=nil
+end
+for A in next,x do
+x[A]=nil
+end
+end
+
+local function NormalizeElementKey(A)
+local B,C=NormalizeKey(A)
+if C then
+return ShortKeyName(B),C
+end
+if typeof(A)=="string"and A~=""then
+return ShortKeyName(A),nil
+end
+return nil,nil
+end
+
+local function GetElementKeybind(A)
+if typeof(A)~="table"then
+return nil,nil
+end
+
+local B=A.Keybind
+or A.KeyBind
+or A.Shortcut
+or A.Bind
+or A.Hotkey
+or(A.__type=="Keybind"and A.Value)
+return NormalizeElementKey(B)
+end
+
+local function GetElementIcon(A)
+if A.__type=="Toggle"then
+return"toggle-right"
+elseif A.__type=="Button"then
+return"mouse-pointer-click"
+end
+return"keyboard"
+end
+
+local function ActivateElement(A,B)
+if typeof(A)~="table"then
+return
+end
+if A.Locked then
+return
+end
+if A.__type=="Toggle"and A.Toggle then
+A:Toggle()
+return
+end
+if A.__type=="Button"and A.Press then
+A:Press()
+return
+end
+if A.Callback then
+ac.SafeCallback(A.Callback,B)
+end
+end
+
+local function CreateElementRow(A,B,C)
+local F=ac.NewRoundFrame(12,"Squircle",{
+Name="ElementBind",
+Size=UDim2.new(1,0,0,al and 28 or 32),
+ImageTransparency=al and 0.9 or 0.92,
+LayoutOrder=C,
+Parent=i,
+ThemeTag={
+ImageColor3="ElementBackground",
+},
+},{
+ae("UIPadding",{
+PaddingLeft=UDim.new(0,8),
+PaddingRight=UDim.new(0,8),
+}),
+ae("UIListLayout",{
+Padding=UDim.new(0,7),
+FillDirection="Horizontal",
+VerticalAlignment="Center",
+}),
+CreateIcon(GetElementIcon(A),nil,al and 13 or 14),
+ae("TextLabel",{
+Name="Title",
+Size=UDim2.new(1,-84,1,0),
+BackgroundTransparency=1,
+Text=A.Title or A.__type or"Element",
+TextSize=al and 11 or 12,
+TextXAlignment="Left",
+TextTruncate="AtEnd",
+FontFace=Font.new(ac.Font,Enum.FontWeight.SemiBold),
+ThemeTag={
+TextColor3="Text",
+},
+}),
+ae("TextLabel",{
+Name="Key",
+Size=UDim2.new(0,56,0,al and 20 or 22),
+BackgroundTransparency=1,
+Text=B,
+TextSize=al and 11 or 12,
+TextXAlignment="Right",
+TextTransparency=0.14,
+FontFace=Font.new(ac.Font,Enum.FontWeight.Bold),
+ThemeTag={
+TextColor3="Text",
+},
+}),
+},true)
+
+ad.AttachPress(F,ac,{
+Amount=0.98,
+})
+
+local G=F.MouseButton1Click:Connect(function()
+ActivateElement(A,B)
+end)
+
+table.insert(z,G)
+table.insert(x,F)
+end
+
+local function RenderElementBindings()
+ClearElementRows()
+
+local A=0
+for B,C in next,ag.AllElements or{}do
+local F=GetElementKeybind(C)
+if F then
+A+=1
+CreateElementRow(C,F,A)
+end
+end
+
+l.Visible=A==0
+h.Text=A>0 and("Element keybinds ("..A..")")or"Element keybinds"
+end
+
 if ag.ToggleKey==nil and aj.DefaultKey and aj.ApplyDefault~=false then local
-p, r=NormalizeKey(aj.DefaultKey)
-if r then
-ApplyKey(r,true)
+A, B=NormalizeKey(aj.DefaultKey)
+if B then
+ApplyKey(B,true)
 end
 end
 
 local function UpdateRootPosition()
-local p=GetViewportSize()
-local r=12
+local A=GetViewportSize()
+local B=12
 
 if al then
-am=math.min(aj.Width or 330,math.max(240,p.X-(r*2)))
-an=aj.Height or 216
+am=math.min(aj.Width or 330,math.max(240,A.X-(B*2)))
+an=aj.Height or 300
 as.Size=UDim2.fromOffset(am,an)
 as.AnchorPoint=Vector2.new(0.5,1)
-ar.TargetPosition=UDim2.fromOffset(p.X/2,p.Y-r)
+ar.TargetPosition=UDim2.fromOffset(A.X/2,A.Y-B)
 as.Position=ar.TargetPosition
-at.Size=UDim2.fromOffset(p.X,p.Y)
+at.Size=UDim2.fromOffset(A.X,A.Y)
 
 if ar.UserMoved and ar.StoredPosition then
 as.Position=ar.StoredPosition
@@ -7730,62 +7970,63 @@ end
 return
 end
 
-local u=p.X-r
-local v=r+ag.Topbar.Height
+local C=A.X-B
+local F=B+ag.Topbar.Height
 
 if ar.Button and ar.Button.AbsoluteSize.X>0 then
-local x=ar.Button.AbsolutePosition
-local z=ar.Button.AbsoluteSize
-u=x.X+z.X
-v=x.Y+z.Y+10
+local G=ar.Button.AbsolutePosition
+local H=ar.Button.AbsoluteSize
+C=G.X+H.X
+F=G.Y+H.Y+10
 end
 
-if u-am<r then
-u=math.min(p.X-r,r+am)
+if C-am<B then
+C=math.min(A.X-B,B+am)
 end
-if v+an>p.Y-r then
-v=math.max(r,p.Y-an-r)
+if F+an>A.Y-B then
+F=math.max(B,A.Y-an-B)
 end
 
-as.Position=UDim2.fromOffset(u,v)
+as.Position=UDim2.fromOffset(C,F)
 ar.TargetPosition=as.Position
-at.Size=UDim2.fromOffset(p.X,p.Y)
+at.Size=UDim2.fromOffset(A.X,A.Y)
 
 if ar.UserMoved and ar.StoredPosition then
 as.Position=ar.StoredPosition
 end
 end
 
-function ar.SetButton(p,r)
-ar.Button=r
+function ar.SetButton(A,B)
+ar.Button=B
 end
 
-local p=ac.Drag(as,{aw,av},function(p)
-if not p then
+local A=ac.Drag(as,{aw,av},function(A)
+if not A then
 ar.UserMoved=true
 ar.StoredPosition=as.Position
 end
 end)
-ar.UIElements.Drag=p
+ar.UIElements.Drag=A
 
-function ar.OpenMenu(r)
+function ar.OpenMenu(B)
 if ar.Open then
 return
 end
 
 ar.Open=true
 ar.Token+=1
+RenderElementBindings()
 UpdateRootPosition()
-local u=ar.TargetPosition or as.Position
+local C=ar.TargetPosition or as.Position
 as.Visible=true
 as.Active=true
 at.Visible=true
 if al then
 as.Position=UDim2.new(
-u.X.Scale,
-u.X.Offset,
-u.Y.Scale,
-u.Y.Offset+18
+C.X.Scale,
+C.X.Offset,
+C.Y.Scale,
+C.Y.Offset+18
 )
 end
 as.ImageTransparency=1
@@ -7795,57 +8036,57 @@ as.Outline.ImageTransparency=1
 as.Scale.Scale=0.98
 at.BackgroundTransparency=1
 ad.Play(as,"DropdownOpen",{
-ImageTransparency=al and 0.06 or 0.18,
-Position=u,
+ImageTransparency=aj.BackgroundTransparency or(al and 0.48 or 0.18),
+Position=C,
 },nil,nil,"KeyBindMenu")
 ad.Play(au,"DropdownOpen",{GroupTransparency=0},nil,nil,"KeyBindContent")
-ad.Play(as.GlassLayer,"DropdownOpen",{ImageTransparency=al and 0.9 or 0.78},nil,nil,"KeyBindGlass")
-ad.Play(as.Outline,"DropdownOpen",{ImageTransparency=al and 0.5 or 0.72},nil,nil,"KeyBindOutline")
+ad.Play(as.GlassLayer,"DropdownOpen",{ImageTransparency=al and 0.92 or 0.78},nil,nil,"KeyBindGlass")
+ad.Play(as.Outline,"DropdownOpen",{ImageTransparency=al and 0.48 or 0.72},nil,nil,"KeyBindOutline")
 ad.Play(as.Scale,"DropdownOpen",{Scale=1},nil,nil,"KeyBindScale")
 ad.Play(
 at,
 "DropdownOpen",
-{BackgroundTransparency=aj.ScrimTransparency or(al and 0.62 or 0.78)},
+{BackgroundTransparency=GetScrimTransparency()},
 nil,
 nil,
 "KeyBindScrim"
 )
 end
 
-function ar.CloseMenu(r)
+function ar.CloseMenu(B)
 if not ar.Open then
 return
 end
 
 ar.Open=false
 ar.Token+=1
-local u=ar.Token
+local C=ar.Token
 StopCapture()
 as.Active=false
-local v=as.Position
+local F=as.Position
 if al then
-v=UDim2.new(
+F=UDim2.new(
 as.Position.X.Scale,
 as.Position.X.Offset,
 as.Position.Y.Scale,
 as.Position.Y.Offset+18
 )
 end
-ad.Play(as,"DropdownClose",{ImageTransparency=1,Position=v},nil,nil,"KeyBindMenu")
+ad.Play(as,"DropdownClose",{ImageTransparency=1,Position=F},nil,nil,"KeyBindMenu")
 ad.Play(au,"DropdownClose",{GroupTransparency=1},nil,nil,"KeyBindContent")
 ad.Play(as.GlassLayer,"DropdownClose",{ImageTransparency=1},nil,nil,"KeyBindGlass")
 ad.Play(as.Outline,"DropdownClose",{ImageTransparency=1},nil,nil,"KeyBindOutline")
 ad.Play(as.Scale,"DropdownClose",{Scale=0.98},nil,nil,"KeyBindScale")
 ad.Play(at,"DropdownClose",{BackgroundTransparency=1},nil,nil,"KeyBindScrim")
 task.delay(ad.GetDuration"DropdownClose",function()
-if u==ar.Token then
+if C==ar.Token then
 as.Visible=false
 at.Visible=false
 end
 end)
 end
 
-function ar.Toggle(r)
+function ar.Toggle(B)
 if ar.Open then
 ar:CloseMenu()
 else
@@ -7853,22 +8094,22 @@ ar:OpenMenu()
 end
 end
 
-ac.AddSignal(aa.InputBegan,function(r)
+ac.AddSignal(aa.InputBegan,function(B)
 if not ar.Open then
 return
 end
-if r.UserInputType~=Enum.UserInputType.MouseButton1 and r.UserInputType~=Enum.UserInputType.Touch then
+if B.UserInputType~=Enum.UserInputType.MouseButton1 and B.UserInputType~=Enum.UserInputType.Touch then
 return
 end
-if ContainsPoint(as,r.Position)or ContainsPoint(ar.Button,r.Position)then
+if ContainsPoint(as,B.Position)or ContainsPoint(ar.Button,B.Position)then
 return
 end
 ar:CloseMenu()
 end)
 
 ar.UIElements.CurrentKey=f
-ar.UIElements.SetButton=i
-ar.UIElements.ClearButton=l
+ar.UIElements.SetButton=r
+ar.UIElements.ClearButton=u
 
 return ar
 end
@@ -9395,64 +9636,79 @@ return ac end function a.J()
 
 local aa=a.load'd'local ab=
 aa.New
+local ac=game:GetService"UserInputService"
 
-local ac={}
+local ad={}
 
-local function GetImageTarget(ad)
-if typeof(ad)~="Instance"then
+local function NormalizeKey(ae)
+if typeof(ae)=="EnumItem"then
+return ae.Name,ae
+end
+if typeof(ae)=="string"and Enum.KeyCode[ae]then
+return ae,Enum.KeyCode[ae]
+end
+return nil,nil
+end
+
+local function GetImageTarget(ae)
+if typeof(ae)~="Instance"then
 return nil
 end
 
-if ad:IsA"ImageLabel"or ad:IsA"ImageButton"then
-return ad
+if ae:IsA"ImageLabel"or ae:IsA"ImageButton"then
+return ae
 end
 
-return ad:FindFirstChildWhichIsA("ImageLabel",true)or ad:FindFirstChildWhichIsA("ImageButton",true)
+return ae:FindFirstChildWhichIsA("ImageLabel",true)or ae:FindFirstChildWhichIsA("ImageButton",true)
 end
 
-function ac.New(ad,ae)
-local af={
+function ad.New(ae,af)
+local ag,ah=
+NormalizeKey(af.Keybind or af.KeyBind or af.Shortcut or af.Bind or af.Hotkey)
+local ai={
 __type="Button",
-Title=ae.Title or"Button",
-Desc=ae.Desc or nil,
-Icon=ae.Icon or"mouse-pointer-click",
-IconThemed=ae.IconThemed or false,
-IconColor=ae.IconColor or nil,
-Color=ae.Color,
-Justify=ae.Justify or"Between",
-IconAlign=ae.IconAlign or"Right",
-Locked=ae.Locked or false,
-LockedTitle=ae.LockedTitle,
-Golden=ae.Golden==true or ae.Premium==true,
-Premium=ae.Premium==true or ae.Golden==true,
-Callback=ae.Callback or function()end,
+Title=af.Title or"Button",
+Desc=af.Desc or nil,
+Icon=af.Icon or"mouse-pointer-click",
+IconThemed=af.IconThemed or false,
+IconColor=af.IconColor or nil,
+Color=af.Color,
+Justify=af.Justify or"Between",
+IconAlign=af.IconAlign or"Right",
+Locked=af.Locked or false,
+LockedTitle=af.LockedTitle,
+Golden=af.Golden==true or af.Premium==true,
+Premium=af.Premium==true or af.Golden==true,
+Keybind=ag,
+KeyCode=ah,
+Callback=af.Callback or function()end,
 UIElements={},
 }
 
-local ag=true
+local aj=true
 
-af.ButtonFrame=a.load'H'{
-Title=af.Title,
-Desc=af.Desc,
-Parent=ae.Parent,
-
-
+ai.ButtonFrame=a.load'H'{
+Title=ai.Title,
+Desc=ai.Desc,
+Parent=af.Parent,
 
 
-Window=ae.Window,
-Color=af.Color,
-Justify=af.Justify,
+
+
+Window=af.Window,
+Color=ai.Color,
+Justify=ai.Justify,
 TextOffset=20,
 Hover=true,
 Scalable=true,
-Tab=ae.Tab,
-Index=ae.Index,
-ElementTable=af,
-ParentConfig=ae,
-Size=ae.Size,
-Tags=ae.Tags,
-Golden=af.Golden,
-Premium=af.Premium,
+Tab=af.Tab,
+Index=af.Index,
+ElementTable=ai,
+ParentConfig=af,
+Size=af.Size,
+Tags=af.Tags,
+Golden=ai.Golden,
+Premium=ai.Premium,
 }
 
 
@@ -9468,59 +9724,75 @@ Premium=af.Premium,
 
 
 
-af.UIElements.ButtonIcon=aa.Image(
-af.Icon,
-af.Icon,
+ai.UIElements.ButtonIcon=aa.Image(
+ai.Icon,
+ai.Icon,
 0,
-ae.Window.Folder,
+af.Window.Folder,
 "Button",
-not(af.Color or af.IconColor)and true or nil,
-af.IconThemed
+not(ai.Color or ai.IconColor)and true or nil,
+ai.IconThemed
 )
 
-af.UIElements.ButtonIcon.Size=UDim2.new(0,20,0,20)
-af.UIElements.ButtonIcon.Parent=af.Justify=="Between"and af.ButtonFrame.UIElements.Main
-or af.ButtonFrame.UIElements.Container.TitleFrame
-af.UIElements.ButtonIcon.LayoutOrder=af.IconAlign=="Left"and-99999 or 99999
-af.UIElements.ButtonIcon.AnchorPoint=Vector2.new(1,0.5)
-af.UIElements.ButtonIcon.Position=UDim2.new(1,0,0.5,0)
+ai.UIElements.ButtonIcon.Size=UDim2.new(0,20,0,20)
+ai.UIElements.ButtonIcon.Parent=ai.Justify=="Between"and ai.ButtonFrame.UIElements.Main
+or ai.ButtonFrame.UIElements.Container.TitleFrame
+ai.UIElements.ButtonIcon.LayoutOrder=ai.IconAlign=="Left"and-99999 or 99999
+ai.UIElements.ButtonIcon.AnchorPoint=Vector2.new(1,0.5)
+ai.UIElements.ButtonIcon.Position=UDim2.new(1,0,0.5,0)
 
-local ah=GetImageTarget(af.UIElements.ButtonIcon)
-if ah then
-if af.IconColor then
-ah.ImageColor3=af.IconColor
-elseif af.Golden then
-ah.ImageColor3=Color3.fromRGB(255,222,105)
+local ak=GetImageTarget(ai.UIElements.ButtonIcon)
+if ak then
+if ai.IconColor then
+ak.ImageColor3=ai.IconColor
+elseif ai.Golden then
+ak.ImageColor3=Color3.fromRGB(255,222,105)
 end
-af.ButtonFrame:Colorize(ah,"ImageColor3")
-end
-
-function af.Lock(ai)
-af.Locked=true
-ag=false
-return af.ButtonFrame:Lock(af.LockedTitle)
-end
-function af.Unlock(ai)
-af.Locked=false
-ag=true
-return af.ButtonFrame:Unlock()
+ai.ButtonFrame:Colorize(ak,"ImageColor3")
 end
 
-if af.Locked then
-af:Lock()
+function ai.Lock(al)
+ai.Locked=true
+aj=false
+return ai.ButtonFrame:Lock(ai.LockedTitle)
+end
+function ai.Unlock(al)
+ai.Locked=false
+aj=true
+return ai.ButtonFrame:Unlock()
 end
 
-aa.AddSignal(af.ButtonFrame.UIElements.Main.MouseButton1Click,function()
-if ag then
+if ai.Locked then
+ai:Lock()
+end
+
+function ai.Press(al)
+if aj then
 task.spawn(function()
-aa.SafeCallback(af.Callback)
+aa.SafeCallback(ai.Callback)
 end)
 end
-end)
-return af.__type,af
 end
 
-return ac end function a.K()
+aa.AddSignal(ai.ButtonFrame.UIElements.Main.MouseButton1Click,function()
+ai:Press()
+end)
+
+if ai.KeyCode then
+aa.AddSignal(ac.InputBegan,function(al,am)
+if am or ac:GetFocusedTextBox()then
+return
+end
+if al.UserInputType==Enum.UserInputType.Keyboard and al.KeyCode==ai.KeyCode then
+ai:Press()
+end
+end)
+end
+
+return ai.__type,ai
+end
+
+return ad end function a.K()
 
 local aa={}
 
@@ -10041,122 +10313,141 @@ return aa end function a.M()
 local aa=a.load'd'local ab=
 aa.New local ac=
 aa.Tween
+local ad=game:GetService"UserInputService"
 
-local ad=a.load'K'.New
-local ae=a.load'L'.New
+local ae=a.load'K'.New
+local af=a.load'L'.New
 
-local af={}
+local ag={}
 
-function af.New(ag,ah)
-local ai={
+local function NormalizeKey(ah)
+if typeof(ah)=="EnumItem"then
+return ah.Name,ah
+end
+if typeof(ah)=="string"and Enum.KeyCode[ah]then
+return ah,Enum.KeyCode[ah]
+end
+return nil,nil
+end
+
+function ag.New(ah,ai)
+local aj,ak=
+NormalizeKey(ai.Keybind or ai.KeyBind or ai.Shortcut or ai.Bind or ai.Hotkey)
+local al={
 __type="Toggle",
-Title=ah.Title or"Toggle",
-Desc=ah.Desc or nil,
-Locked=ah.Locked or false,
-LockedTitle=ah.LockedTitle,
-Value=ah.Value,
-Icon=ah.Icon or nil,
-IconSize=ah.IconSize or 23,
-Type=ah.Type or"Toggle",
-Callback=ah.Callback or function()end,
+Title=ai.Title or"Toggle",
+Desc=ai.Desc or nil,
+Locked=ai.Locked or false,
+LockedTitle=ai.LockedTitle,
+Value=ai.Value,
+Icon=ai.Icon or nil,
+IconSize=ai.IconSize or 23,
+Type=ai.Type or"Toggle",
+Keybind=aj,
+KeyCode=ak,
+Callback=ai.Callback or function()end,
 UIElements={},
 }
-ai.ToggleFrame=a.load'H'{
-Title=ai.Title,
-Desc=ai.Desc,
+al.ToggleFrame=a.load'H'{
+Title=al.Title,
+Desc=al.Desc,
 
 
 
 
-Window=ah.Window,
-Parent=ah.Parent,
+Window=ai.Window,
+Parent=ai.Parent,
 TextOffset=(52),
 Hover=false,
-Tab=ah.Tab,
-Index=ah.Index,
-ElementTable=ai,
-ParentConfig=ah,
-Tags=ah.Tags,
+Tab=ai.Tab,
+Index=ai.Index,
+ElementTable=al,
+ParentConfig=ai,
+Tags=ai.Tags,
 }
 
-local aj=true
+local am=true
 
-if ai.Value==nil then
-ai.Value=false
+if al.Value==nil then
+al.Value=false
 end
 
-function ai.Lock(ak)
-ai.Locked=true
-aj=false
-return ai.ToggleFrame:Lock(ai.LockedTitle)
+function al.Lock(an)
+al.Locked=true
+am=false
+return al.ToggleFrame:Lock(al.LockedTitle)
 end
-function ai.Unlock(ak)
-ai.Locked=false
-aj=true
-return ai.ToggleFrame:Unlock()
-end
-
-if ai.Locked then
-ai:Lock()
+function al.Unlock(an)
+al.Locked=false
+am=true
+return al.ToggleFrame:Unlock()
 end
 
-local ak=ai.Value
+if al.Locked then
+al:Lock()
+end
 
-local al,am
-if ai.Type=="Toggle"then
-al,am=ad(
-ak,
-ai.Icon,
-ai.IconSize,
-ai.ToggleFrame.UIElements.Main,
-ai.Callback,
-ah.Window.NewElements,
-ah
+local an=al.Value
+
+local ao,ap
+if al.Type=="Toggle"then
+ao,ap=ae(
+an,
+al.Icon,
+al.IconSize,
+al.ToggleFrame.UIElements.Main,
+al.Callback,
+ai.Window.NewElements,
+ai
 )
-elseif ai.Type=="Checkbox"then
-al,am=ae(
-ak,
-ai.Icon,
-ai.IconSize,
-ai.ToggleFrame.UIElements.Main,
-ai.Callback,
-ah
+elseif al.Type=="Checkbox"then
+ao,ap=af(
+an,
+al.Icon,
+al.IconSize,
+al.ToggleFrame.UIElements.Main,
+al.Callback,
+ai
 )
 else
-error("Unknown Toggle Type: "..tostring(ai.Type))
+error("Unknown Toggle Type: "..tostring(al.Type))
 end
 
-al.AnchorPoint=Vector2.new(1,ah.Window.NewElements and 0 or 0.5)
-al.Position=UDim2.new(1,0,ah.Window.NewElements and 0 or 0.5,0)
+ao.AnchorPoint=Vector2.new(1,ai.Window.NewElements and 0 or 0.5)
+ao.Position=UDim2.new(1,0,ai.Window.NewElements and 0 or 0.5,0)
 
-function ai.Set(an,ao,ap,aq)
-if aj then
-am:Set(ao,ap,aq or false)
-ak=ao
-ai.Value=ao
+function al.Set(aq,ar,as,at)
+if am then
+ap:Set(ar,as,at or false)
+an=ar
+al.Value=ar
 end
 end
 
-ai:Set(ak,false,ah.Window.NewElements)
+function al.Toggle(aq,ar,as)
+al:Set(not al.Value,ar,as or ai.Window.NewElements)
+end
 
-local an=ah.WindUI.GenerateGUID()
+al:Set(an,false,ai.Window.NewElements)
 
-if ah.Window.NewElements and am.Animate then
-if ai.Type=="Toggle"then
-aa.AddSignal(al.ToggleFrame.Hitbox.InputBegan,function(ao)
+local aq=ai.WindUI.GenerateGUID()
+
+if ai.Window.NewElements and ap.Animate then
+if al.Type=="Toggle"then
+aa.AddSignal(ao.ToggleFrame.Hitbox.InputBegan,function(ar)
 if
-not ah.Window.IsToggleDragging
+not ai.Window.IsToggleDragging
 and(
-ao.UserInputType==Enum.UserInputType.MouseButton1
-or ao.UserInputType==Enum.UserInputType.Touch
+ar.UserInputType==Enum.UserInputType.MouseButton1
+or ar.UserInputType==Enum.UserInputType.Touch
 )
 then
-if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
+if ai.WindUI.CurrentInput and ai.WindUI.CurrentInput~=aq then
 return
 end
 
-ah.WindUI.CurrentInput=an
-am:Animate(ao,ai)
+ai.WindUI.CurrentInput=aq
+ap:Animate(ar,al)
 end
 end)
 end
@@ -10166,21 +10457,32 @@ end
 
 
 else
-if ai.Type=="Toggle"then
-aa.AddSignal(al.ToggleFrame.Hitbox.MouseButton1Click,function()
-ai:Set(not ai.Value,nil,ah.Window.NewElements)
+if al.Type=="Toggle"then
+aa.AddSignal(ao.ToggleFrame.Hitbox.MouseButton1Click,function()
+al:Toggle(nil,ai.Window.NewElements)
 end)
-elseif ai.Type=="Checkbox"then
-aa.AddSignal(al.MouseButton1Click,function()
-ai:Set(not ai.Value,nil,ah.Window.NewElements)
+elseif al.Type=="Checkbox"then
+aa.AddSignal(ao.MouseButton1Click,function()
+al:Toggle(nil,ai.Window.NewElements)
 end)
 end
 end
 
-return ai.__type,ai
+if al.KeyCode then
+aa.AddSignal(ad.InputBegan,function(ar,as)
+if as or ad:GetFocusedTextBox()then
+return
+end
+if ar.UserInputType==Enum.UserInputType.Keyboard and ar.KeyCode==al.KeyCode then
+al:Toggle(nil,ai.Window.NewElements)
+end
+end)
 end
 
-return af end function a.N()
+return al.__type,al
+end
+
+return ag end function a.N()
 
 local aa=(cloneref or clonereference or function(aa)
 return aa
@@ -18646,14 +18948,9 @@ PaddingBottom=UDim.new(0,at.TabPaddingY),
 
 if at.Golden then
 at.UIElements.Main.Frame.ImageColor3=Color3.fromRGB(64,49,18)
-at.UIElements.Main.Frame.ImageTransparency=0.82
-at.UIElements.GoldenStroke=an("UIStroke",{
-ApplyStrokeMode="Border",
-Color=Color3.fromRGB(255,214,92),
-Transparency=0.62,
-Thickness=1,
-Parent=at.UIElements.Main,
-})
+at.UIElements.Main.Frame.ImageTransparency=0.88
+at.UIElements.Main.Outline.ImageColor3=Color3.fromRGB(255,214,92)
+at.UIElements.Main.Outline.ImageTransparency=0.78
 at.UIElements.GoldenShine=an("UIGradient",{
 Rotation=18,
 Offset=Vector2.new(-1,0),
@@ -19130,6 +19427,12 @@ local au=ar.UIElements and ar.UIElements.Icon and GetImageTarget(ar.UIElements.I
 if au then
 au.ImageColor3=ar.IconColor or Color3.fromRGB(255,222,105)
 au.ImageTransparency=as and 0 or 0.08
+end
+
+local av=ar.UIElements and ar.UIElements.Main and ar.UIElements.Main.Outline
+if av then
+av.ImageColor3=as and Color3.fromRGB(255,232,132)or Color3.fromRGB(255,214,92)
+av.ImageTransparency=as and 0.58 or 0.78
 end
 end
 
