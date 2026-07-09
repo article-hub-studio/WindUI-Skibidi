@@ -22,7 +22,7 @@ local Element = {
 	MenuCorner = 14,
 	MenuPadding = 4,
 	TabPadding = 8,
-	SearchBarHeight = 34,
+	SearchBarHeight = 36,
 	TabIcon = 16,
 	ItemHeight = 32,
 }

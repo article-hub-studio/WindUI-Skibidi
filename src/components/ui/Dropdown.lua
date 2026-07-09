@@ -92,9 +92,38 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		}),
 	})
 
+	local function GetLayoutScale()
+		local Scale = Config.UIScale or Creator.UIScale or 1
+		return Scale > 0 and Scale or 1
+	end
+
+	local function GetVisibleContentHeight()
+		local ContentHeight = 0
+		local VisibleItems = 0
+		local Scale = GetLayoutScale()
+		local ScrollingFrame = Dropdown.UIElements.Menu.Frame.ScrollingFrame
+
+		for _, Child in next, ScrollingFrame:GetChildren() do
+			if Child:IsA("GuiObject") and Child.Visible then
+				local Height = Child.AbsoluteSize.Y / Scale
+				if Height <= 0 then
+					Height = Child.Size.Y.Offset > 0 and Child.Size.Y.Offset or Dropdown.ItemHeight
+				end
+
+				ContentHeight += Height
+				VisibleItems += 1
+			end
+		end
+
+		if VisibleItems > 1 then
+			ContentHeight += Dropdown.UIElements.UIListLayout.Padding.Offset * (VisibleItems - 1)
+		end
+
+		return ContentHeight
+	end
+
 	local function RecalculateCanvasSize()
-		Dropdown.UIElements.Menu.Frame.ScrollingFrame.CanvasSize =
-			UDim2.fromOffset(0, Dropdown.UIElements.UIListLayout.AbsoluteContentSize.Y)
+		Dropdown.UIElements.Menu.Frame.ScrollingFrame.CanvasSize = UDim2.fromOffset(0, GetVisibleContentHeight())
 	end
 
 	local function GetDropdownButton()
@@ -190,7 +219,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			math.min(Dropdown.MenuMaxHeight or (IsMobileViewport() and 280 or 340), Viewport.Y - (Element.MenuPadding * 4))
 		)
 
-		local ContentY = Dropdown.UIElements.UIListLayout.AbsoluteContentSize.Y / (Config.UIScale or Creator.UIScale or 1)
+		local ContentY = GetVisibleContentHeight()
 		local SearchBarOffset = Dropdown.SearchBarEnabled and (Element.SearchBarHeight + (Element.MenuPadding * 3))
 			or (Element.MenuPadding * 2)
 		local TotalY = ContentY + SearchBarOffset
@@ -321,11 +350,11 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			BackgroundTransparency = 1,
 			ClearTextOnFocus = false,
 			ClipsDescendants = true,
-			FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
+			FontFace = Font.new(Creator.Font, Enum.FontWeight.Regular),
 			PlaceholderText = Dropdown.SearchPlaceholder,
 			Text = SearchQuery,
 			TextColor3 = Color3.new(1, 1, 1),
-			TextSize = 14,
+			TextSize = 16,
 			TextScaled = false,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			TextWrapped = false,
@@ -335,7 +364,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 				PlaceholderColor3 = "PlaceholderText",
 				TextColor3 = "Text",
 			},
-			Size = UDim2.new(1, -24, 1, 0),
+			Size = UDim2.new(1, -31, 1, 0),
 		})
 
 		local SearchFrame = Creator.NewRoundFrame(Radius, "Squircle", {
@@ -353,35 +382,41 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 				Size = UDim2.new(1, 1, 1, 1),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
-				ImageTransparency = 0.72,
+				ImageTransparency = 0.8,
 				ThemeTag = {
 					ImageColor3 = "DropdownTabBorder",
 				},
 			}),
-			New("UIPadding", {
-				PaddingLeft = UDim.new(0, 10),
-				PaddingRight = UDim.new(0, 10),
-			}),
-			New("UIListLayout", {
-				FillDirection = "Horizontal",
-				HorizontalAlignment = "Left",
-				VerticalAlignment = "Center",
-				Padding = UDim.new(0, 8),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-			}),
-			New("ImageLabel", {
-				Name = "Icon",
+			New("Frame", {
+				Name = "Content",
 				BackgroundTransparency = 1,
-				Image = IconData[1],
-				ImageRectOffset = IconData[2].ImageRectPosition,
-				ImageRectSize = IconData[2].ImageRectSize,
-				ImageTransparency = 0.35,
-				Size = UDim2.new(0, 15, 0, 15),
-				ThemeTag = {
-					ImageColor3 = "Icon",
-				},
+				Size = UDim2.new(1, 0, 1, 0),
+			}, {
+				New("UIPadding", {
+					PaddingLeft = UDim.new(0, 12),
+					PaddingRight = UDim.new(0, 12),
+				}),
+				New("UIListLayout", {
+					FillDirection = "Horizontal",
+					HorizontalAlignment = "Left",
+					VerticalAlignment = "Center",
+					Padding = UDim.new(0, 8),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+				New("ImageLabel", {
+					Name = "Icon",
+					BackgroundTransparency = 1,
+					Image = IconData[1],
+					ImageRectOffset = IconData[2].ImageRectPosition,
+					ImageRectSize = IconData[2].ImageRectSize,
+					ImageTransparency = 0.18,
+					Size = UDim2.new(0, 19, 0, 19),
+					ThemeTag = {
+						ImageColor3 = "Icon",
+					},
+				}),
+				SearchBox,
 			}),
-			SearchBox,
 		})
 
 		Creator.AddSignal(SearchBox:GetPropertyChangedSignal("Text"), function()
@@ -393,7 +428,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		end)
 
 		Creator.AddSignal(SearchBox.FocusLost, function()
-			Tween(SearchFrame.Outline, 0.12, { ImageTransparency = 0.72 }):Play()
+			Tween(SearchFrame.Outline, 0.12, { ImageTransparency = 0.8 }):Play()
 		end)
 
 		return SearchFrame
@@ -422,20 +457,22 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 	end
 
 	function ApplySearchFilter(Query)
-		SearchQuery = string.lower(tostring(Query or ""))
+		SearchQuery = tostring(Query or "")
+		local NormalizedQuery = string.lower(SearchQuery)
 
 		for _, tab in next, Dropdown.Tabs do
 			if tab.UIElements and tab.UIElements.TabItem then
 				local TabItem = tab.UIElements.TabItem
-				local Visible = SearchQuery == "" or string.find(GetSearchText(tab), SearchQuery, 1, true) ~= nil
+				local Visible = NormalizedQuery == "" or string.find(GetSearchText(tab), NormalizedQuery, 1, true) ~= nil
 				if Visible then
+					if not TabItem.Parent then
+						TabItem.Parent = Dropdown.UIElements.Menu.Frame.ScrollingFrame
+					end
 					TabItem.Visible = true
-					TabItem.Parent = Dropdown.UIElements.Menu.Frame.ScrollingFrame
 					TabItem.Size = tab.Size
 					TabItem.AutomaticSize = tab.AutomaticSize
 				else
 					TabItem.Visible = false
-					TabItem.Parent = nil
 				end
 			end
 		end

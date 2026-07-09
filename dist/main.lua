@@ -12327,9 +12327,38 @@ MaxSize=Vector2.new(aq.MenuMaxWidth or 420,aq.MenuMaxHeight or 340),
 }),
 })
 
+local function GetLayoutScale()
+local au=ap.UIScale or ak.UIScale or 1
+return au>0 and au or 1
+end
+
+local function GetVisibleContentHeight()
+local au=0
+local av=0
+local aw=GetLayoutScale()
+local ax=aq.UIElements.Menu.Frame.ScrollingFrame
+
+for ay,az in next,ax:GetChildren()do
+if az:IsA"GuiObject"and az.Visible then
+local aA=az.AbsoluteSize.Y/aw
+if aA<=0 then
+aA=az.Size.Y.Offset>0 and az.Size.Y.Offset or aq.ItemHeight
+end
+
+au+=aA
+av+=1
+end
+end
+
+if av>1 then
+au+=aq.UIElements.UIListLayout.Padding.Offset*(av-1)
+end
+
+return au
+end
+
 local function RecalculateCanvasSize()
-aq.UIElements.Menu.Frame.ScrollingFrame.CanvasSize=
-UDim2.fromOffset(0,aq.UIElements.UIListLayout.AbsoluteContentSize.Y)
+aq.UIElements.Menu.Frame.ScrollingFrame.CanvasSize=UDim2.fromOffset(0,GetVisibleContentHeight())
 end
 
 local function GetDropdownButton()
@@ -12425,7 +12454,7 @@ av,
 math.min(aq.MenuMaxHeight or(IsMobileViewport()and 280 or 340),au.Y-(ar.MenuPadding*4))
 )
 
-local ax=aq.UIElements.UIListLayout.AbsoluteContentSize.Y/(ap.UIScale or ak.UIScale or 1)
+local ax=GetVisibleContentHeight()
 local ay=aq.SearchBarEnabled and(ar.SearchBarHeight+(ar.MenuPadding*3))
 or(ar.MenuPadding*2)
 local az=ax+ay
@@ -12556,11 +12585,11 @@ Name="TextBox",
 BackgroundTransparency=1,
 ClearTextOnFocus=false,
 ClipsDescendants=true,
-FontFace=Font.new(ak.Font,Enum.FontWeight.Medium),
+FontFace=Font.new(ak.Font,Enum.FontWeight.Regular),
 PlaceholderText=aq.SearchPlaceholder,
 Text=av,
 TextColor3=Color3.new(1,1,1),
-TextSize=14,
+TextSize=16,
 TextScaled=false,
 TextTruncate=Enum.TextTruncate.AtEnd,
 TextWrapped=false,
@@ -12570,7 +12599,7 @@ ThemeTag={
 PlaceholderColor3="PlaceholderText",
 TextColor3="Text",
 },
-Size=UDim2.new(1,-24,1,0),
+Size=UDim2.new(1,-31,1,0),
 })
 
 local aA=ak.NewRoundFrame(ay,"Squircle",{
@@ -12588,14 +12617,19 @@ Name="Outline",
 Size=UDim2.new(1,1,1,1),
 AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
-ImageTransparency=0.72,
+ImageTransparency=0.8,
 ThemeTag={
 ImageColor3="DropdownTabBorder",
 },
 }),
+am("Frame",{
+Name="Content",
+BackgroundTransparency=1,
+Size=UDim2.new(1,0,1,0),
+},{
 am("UIPadding",{
-PaddingLeft=UDim.new(0,10),
-PaddingRight=UDim.new(0,10),
+PaddingLeft=UDim.new(0,12),
+PaddingRight=UDim.new(0,12),
 }),
 am("UIListLayout",{
 FillDirection="Horizontal",
@@ -12610,13 +12644,14 @@ BackgroundTransparency=1,
 Image=az[1],
 ImageRectOffset=az[2].ImageRectPosition,
 ImageRectSize=az[2].ImageRectSize,
-ImageTransparency=0.35,
-Size=UDim2.new(0,15,0,15),
+ImageTransparency=0.18,
+Size=UDim2.new(0,19,0,19),
 ThemeTag={
 ImageColor3="Icon",
 },
 }),
 aw,
+}),
 })
 
 ak.AddSignal(aw:GetPropertyChangedSignal"Text",function()
@@ -12628,7 +12663,7 @@ an(aA.Outline,0.12,{ImageTransparency=0.48}):Play()
 end)
 
 ak.AddSignal(aw.FocusLost,function()
-an(aA.Outline,0.12,{ImageTransparency=0.72}):Play()
+an(aA.Outline,0.12,{ImageTransparency=0.8}):Play()
 end)
 
 return aA
@@ -12657,20 +12692,22 @@ return string.lower(table.concat(aA," "))
 end
 
 function ax(ay)
-av=string.lower(tostring(ay or""))
+av=tostring(ay or"")
+local az=string.lower(av)
 
-for az,aA in next,aq.Tabs do
-if aA.UIElements and aA.UIElements.TabItem then
-local aB=aA.UIElements.TabItem
-local b=av==""or string.find(GetSearchText(aA),av,1,true)~=nil
-if b then
-aB.Visible=true
-aB.Parent=aq.UIElements.Menu.Frame.ScrollingFrame
-aB.Size=aA.Size
-aB.AutomaticSize=aA.AutomaticSize
+for aA,aB in next,aq.Tabs do
+if aB.UIElements and aB.UIElements.TabItem then
+local b=aB.UIElements.TabItem
+local d=az==""or string.find(GetSearchText(aB),az,1,true)~=nil
+if d then
+if not b.Parent then
+b.Parent=aq.UIElements.Menu.Frame.ScrollingFrame
+end
+b.Visible=true
+b.Size=aB.Size
+b.AutomaticSize=aB.AutomaticSize
 else
-aB.Visible=false
-aB.Parent=nil
+b.Visible=false
 end
 end
 end
@@ -13279,7 +13316,7 @@ UIPadding=12,
 MenuCorner=14,
 MenuPadding=4,
 TabPadding=8,
-SearchBarHeight=34,
+SearchBarHeight=36,
 TabIcon=16,
 ItemHeight=32,
 }
