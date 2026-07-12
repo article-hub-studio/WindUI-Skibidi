@@ -9,7 +9,7 @@
 
 <img src="docs/WindUI – Themes.png" alt="WindUI Modded Banner">
 
-[![WindUI Modded](https://uibin.orqan.xyz/api/card?id=1678c7fc-92c0-40f8-a486-da13ae1635da&theme=amber)](https://uibin.orqan.xyz/library/1678c7fc-92c0-40f8-a486-da13ae1635da)
+[![WindUI Modded](https://uibin.orqan.xyz/api/card?id=1678c7fc-92c0-40f8-a486-da13ae1635da&theme=orange)](https://uibin.orqan.xyz/library/1678c7fc-92c0-40f8-a486-da13ae1635da)
 
 > [!WARNING]
 > WindUI Modded is a fork of the original WindUI project.
