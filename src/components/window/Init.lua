@@ -1284,7 +1284,24 @@ return function(Config)
 		return GradientFrame
 	end
 
+	local function ClearDetachedBackgroundMedia(KeepKind)
+		if KeepKind ~= "Image" and BGImage and BGImage:IsA("ImageLabel") then
+			BGImage:Destroy()
+			BGImage = nil
+		elseif KeepKind ~= "Video" and BGImage and BGImage:IsA("VideoFrame") then
+			BGImage:Destroy()
+			BGImage = nil
+		end
+
+		if KeepKind ~= "Gradient" and Window.UIElements.BackgroundGradient then
+			Window.UIElements.BackgroundGradient:Destroy()
+			Window.UIElements.BackgroundGradient = nil
+		end
+	end
+
 	local function CreateImageBackground()
+		ClearDetachedBackgroundMedia("Image")
+
 		if BGImage and BGImage:IsA("ImageLabel") then
 			return BGImage
 		end
@@ -1311,6 +1328,8 @@ return function(Config)
 	end
 
 	local function CreateVideoBackground()
+		ClearDetachedBackgroundMedia("Video")
+
 		if BGImage then
 			BGImage:Destroy()
 		end
@@ -1450,8 +1469,10 @@ return function(Config)
 
 	function Window:SetBackgroundImage(id, Options)
 		Options = typeof(Options) == "table" and Options or { Transparency = Options }
+		ClearDetachedBackgroundMedia("Image")
 		local Image = CreateImageBackground()
 		Window.Background = id
+		Window.BackgroundGradient = nil
 		Window.BackgroundScaleType = Options.ScaleType or Window.BackgroundScaleType
 		Window.BackgroundImageTransparency = GetBackgroundTransparency(
 			Options.Transparency or Options.ImageTransparency,
@@ -1473,8 +1494,10 @@ return function(Config)
 
 	function Window:SetBackgroundVideo(id, Options)
 		Options = typeof(Options) == "table" and Options or {}
+		ClearDetachedBackgroundMedia("Video")
 		local Video = CreateVideoBackground()
 		Window.Background = "video:" .. tostring(id or "")
+		Window.BackgroundGradient = nil
 		Video.Video = ResolveBackgroundAsset(id, "Video")
 		Video.Visible = true
 		Video.Looped = Options.Looped ~= false
@@ -1484,7 +1507,9 @@ return function(Config)
 	end
 
 	function Window:SetBackgroundGradient(Gradient, Transparency)
+		ClearDetachedBackgroundMedia("Gradient")
 		Window.BackgroundGradient = Gradient
+		Window.Background = nil
 		Window.BackgroundOverlayTransparency = GetBackgroundTransparency(Transparency, Window.BackgroundOverlayTransparency)
 		local GradientFrame = SetBackgroundGradientObject(Gradient, 1)
 		if GradientFrame then
@@ -1522,9 +1547,14 @@ return function(Config)
 	function Window:SetBackground(Value, Options)
 		if Value == nil or Value == false then
 			Window.Background = nil
+			Window.BackgroundGradient = nil
 			if BGImage then
 				BGImage:Destroy()
 				BGImage = nil
+			end
+			if Window.UIElements.BackgroundGradient then
+				Window.UIElements.BackgroundGradient:Destroy()
+				Window.UIElements.BackgroundGradient = nil
 			end
 			return nil
 		end

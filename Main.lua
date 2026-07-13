@@ -24034,7 +24034,24 @@ ay.UIElements.BackgroundGradient=H
 return H
 end
 
+local function ClearDetachedBackgroundMedia(KeepKind)
+if KeepKind~="Image" and m and m:IsA"ImageLabel"then
+m:Destroy()
+m=nil
+elseif KeepKind~="Video" and m and m:IsA"VideoFrame"then
+m:Destroy()
+m=nil
+end
+
+if KeepKind~="Gradient" and ay.UIElements.BackgroundGradient then
+ay.UIElements.BackgroundGradient:Destroy()
+ay.UIElements.BackgroundGradient=nil
+end
+end
+
 local function CreateImageBackground()
+ClearDetachedBackgroundMedia("Image")
+
 if m and m:IsA"ImageLabel"then
 return m
 end
@@ -24061,6 +24078,8 @@ return m
 end
 
 local function CreateVideoBackground()
+ClearDetachedBackgroundMedia("Video")
+
 if m then
 m:Destroy()
 end
@@ -24200,8 +24219,10 @@ end
 
 function ay.SetBackgroundImage(F,G,H)
 H=typeof(H)=="table"and H or{Transparency=H}
+ClearDetachedBackgroundMedia("Image")
 local J=CreateImageBackground()
 ay.Background=G
+ay.BackgroundGradient=nil
 ay.BackgroundScaleType=H.ScaleType or ay.BackgroundScaleType
 ay.BackgroundImageTransparency=GetBackgroundTransparency(
 H.Transparency or H.ImageTransparency,
@@ -24223,8 +24244,10 @@ end
 
 function ay.SetBackgroundVideo(F,G,H)
 H=typeof(H)=="table"and H or{}
+ClearDetachedBackgroundMedia("Video")
 local J=CreateVideoBackground()
 ay.Background="video:"..tostring(G or"")
+ay.BackgroundGradient=nil
 J.Video=ResolveBackgroundAsset(G,"Video")
 J.Visible=true
 J.Looped=H.Looped~=false
@@ -24234,7 +24257,9 @@ return J
 end
 
 function ay.SetBackgroundGradient(F,G,H)
+ClearDetachedBackgroundMedia("Gradient")
 ay.BackgroundGradient=G
+ay.Background=nil
 ay.BackgroundOverlayTransparency=GetBackgroundTransparency(H,ay.BackgroundOverlayTransparency)
 local J=SetBackgroundGradientObject(G,1)
 if J then
@@ -24272,9 +24297,14 @@ end
 function ay.SetBackground(F,G,H)
 if G==nil or G==false then
 ay.Background=nil
+ay.BackgroundGradient=nil
 if m then
 m:Destroy()
 m=nil
+end
+if ay.UIElements.BackgroundGradient then
+ay.UIElements.BackgroundGradient:Destroy()
+ay.UIElements.BackgroundGradient=nil
 end
 return nil
 end
