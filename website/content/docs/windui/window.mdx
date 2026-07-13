@@ -343,6 +343,24 @@ Window:SetBackground({
 Window:SetBackground("customasset:WindUI/MyHub/assets/background.png")
 ```
 
+## Loading API
+
+Use the standalone loading API when the loading screen should live outside `CreateWindow`.
+`LoadingScreen` in the window config still works for older scripts.
+
+```luau
+local Loader = WindUI:LoadingCreate({
+    Title = "WindUI",
+    Desc = "Preparing interface",
+    Icon = "sparkles",
+    Steps = { "Theme", "Motion", "Elements" },
+})
+
+WindUI:LoadingSet(0.35, "Loading theme")
+WindUI:LoadingSet({ Step = 2, Progress = 0.7, Status = "Building UI" })
+WindUI:LoadingSet({ Progress = 1, Status = "Ready", Close = true, Delay = 0.15 })
+```
+
 ## Window Methods
 
 <TypeTable 

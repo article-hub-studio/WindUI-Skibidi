@@ -1235,6 +1235,43 @@ end)
 return u
 end
 
+function r.DefaultCornerMap()
+return{
+TopLeft=true,
+TopRight=true,
+BottomLeft=true,
+BottomRight=true,
+}
+end
+
+function r.GetLinkedCornerDirection(u,v)
+local x=v or(u and u.__type)
+
+if x=="Group"then
+return true
+end
+
+if x=="HStack"then
+if u and u.IsStacked==true then
+return false
+end
+
+local z=u and u.ElementFrame
+local A=z and z:FindFirstChildWhichIsA"UIListLayout"
+if A then
+return A.FillDirection==Enum.FillDirection.Horizontal
+end
+
+return true
+end
+
+return false
+end
+
+function r.GetLinkedCornerShape(u,v,x,z)
+return r:GetElementPosition(u,v,r.GetLinkedCornerDirection(x,z))
+end
+
 
 
 
@@ -1635,19 +1672,18 @@ end
 
 function r.GetElementPosition(x,z,A,B)
 if type(A)~="number"or A~=math.floor(A)then
-return nil,1
+return"Squircle",r.DefaultCornerMap()
 end
 
-
-
-
-
-
-local C=#z
-
+local C=0
+for F in next,z or{}do
+if type(F)=="number"and F>C then
+C=F
+end
+end
 
 if C==0 or A<1 or A>C then
-return nil,2
+return"Squircle",r.DefaultCornerMap()
 end
 
 local function isDelimiter(F)
@@ -1659,7 +1695,7 @@ return G=="Divider"or G=="Space"or G=="Section"
 end
 
 if isDelimiter(z[A])then
-return nil,3
+return"Squircle",r.DefaultCornerMap()
 end
 
 local function calculate(F,G)
@@ -1713,29 +1749,40 @@ BottomRight=false,
 }
 end
 
-local F=1
-local G=0
-
-for H=1,C do
-local J=z[H]
-if isDelimiter(J)then
-if A>=F and A<=H-1 then
-local L=A-F+1
-return calculate(L,G)
+local F={}
+local function flush()
+if#F==0 then
+return nil
 end
-F=H+1
-G=0
+
+for G,H in ipairs(F)do
+if H==A then
+return calculate(G,#F)
+end
+end
+
+table.clear(F)
+return nil
+end
+
+for G=1,C do
+local H=z[G]
+if isDelimiter(H)then
+local J,L=flush()
+if J then
+return J,L
+end
 else
-G=G+1
+table.insert(F,G)
 end
 end
 
-if A>=F and A<=C then
-local H=A-F+1
-return calculate(H,G)
+local G,H=flush()
+if G then
+return G,H
 end
 
-return nil,4
+return"Squircle",r.DefaultCornerMap()
 end
 
 return r end function a.e()
@@ -3714,15 +3761,46 @@ TextWrapped=true,
 })
 end
 
-local g=ab.NewRoundFrame(999,"Squircle",{
+local g=ad("UIGradient",{
+Name="FillGradient",
+Rotation=0,
+Offset=Vector2.new(-0.2,0),
+Transparency=NumberSequence.new{
+NumberSequenceKeypoint.new(0,0.08),
+NumberSequenceKeypoint.new(0.45,0),
+NumberSequenceKeypoint.new(1,0.2),
+},
+})
+local h=ab.NewRoundFrame(999,"Squircle",{
 Name="Fill",
 Size=UDim2.new(0.18,0,1,0),
-ImageTransparency=0.06,
+ClipsDescendants=true,
+ImageTransparency=0.02,
+ZIndex=3,
 ThemeTag={
 ImageColor3="Primary",
 },
+},{
+g,
+ab.NewRoundFrame(999,"SquircleGlass",{
+Name="LiquidSheen",
+Size=UDim2.new(0.42,0,1,0),
+Position=UDim2.new(0.18,0,0,0),
+ImageColor3=Color3.new(1,1,1),
+ImageTransparency=0.7,
+ZIndex=4,
+},{
+ad("UIGradient",{
+Rotation=0,
+Transparency=NumberSequence.new{
+NumberSequenceKeypoint.new(0,1),
+NumberSequenceKeypoint.new(0.48,0.22),
+NumberSequenceKeypoint.new(1,1),
+},
+}),
+}),
 })
-local h=ad("TextLabel",{
+local i=ad("TextLabel",{
 Size=UDim2.new(1,0,0,16),
 BackgroundTransparency=1,
 Text="Access check ready",
@@ -3734,7 +3812,34 @@ ThemeTag={
 TextColor3="Text",
 },
 })
-local i=ad("Frame",{
+local l=ab.NewRoundFrame(999,"Squircle",{
+Name="ProgressTrack",
+Size=UDim2.new(1,0,0,10),
+ClipsDescendants=true,
+ImageTransparency=0.84,
+ThemeTag={
+ImageColor3="ElementBackground",
+},
+},{
+ab.NewRoundFrame(999,"SquircleGlass",{
+Name="TrackGlass",
+Size=UDim2.new(1,0,1,0),
+ImageColor3=Color3.new(1,1,1),
+ImageTransparency=0.92,
+ZIndex=2,
+}),
+h,
+ab.NewRoundFrame(999,"SquircleOutline",{
+Name="TrackOutline",
+Size=UDim2.new(1,0,1,0),
+ImageTransparency=0.72,
+ZIndex=5,
+ThemeTag={
+ImageColor3="Outline",
+},
+}),
+})
+local m=ad("Frame",{
 Size=UDim2.new(1,0,0,30),
 BackgroundTransparency=1,
 },{
@@ -3742,36 +3847,36 @@ ad("UIListLayout",{
 FillDirection="Vertical",
 Padding=UDim.new(0,6),
 }),
-h,
-ab.NewRoundFrame(999,"Squircle",{
-Size=UDim2.new(1,0,0,8),
-ImageTransparency=0.86,
-ThemeTag={
-ImageColor3="ElementBackground",
-},
-},{
-g,
-}),
+i,
+l,
 })
 
-local function SetState(l,m,p)
-az.Text=tostring(l or az.Text)
-h.Text=tostring(l or h.Text)
-if p then
+local function SetState(p,r,u)
+az.Text=tostring(p or az.Text)
+i.Text=tostring(p or i.Text)
+if u then
 aA.Dot.ImageColor3=Color3.fromRGB(255,94,94)
+h.ImageColor3=Color3.fromRGB(255,94,94)
 else
 ab.SetThemeTag(aA.Dot,{
 ImageColor3="Primary",
 },0.12)
+ab.SetThemeTag(h,{
+ImageColor3="Primary",
+},0.12)
 end
-if m~=nil then
-ac.Play(g,"Switch",{
-Size=UDim2.new(math.clamp(tonumber(m)or 0,0,1),0,1,0),
+if r~=nil then
+g.Offset=Vector2.new(-0.2,0)
+ac.Play(h,"Switch",{
+Size=UDim2.new(math.clamp(tonumber(r)or 0,0,1),0,1,0),
 },nil,nil,"KeySystemProgress")
+ac.Play(g,"Background",{
+Offset=Vector2.new(0.45,0),
+},Enum.EasingStyle.Sine,Enum.EasingDirection.Out,"KeySystemProgressSheen")
 end
 end
 
-local l=ad("Frame",{
+local p=ad("Frame",{
 Size=UDim2.new(1,0,0,42),
 BackgroundTransparency=1,
 },{
@@ -3787,11 +3892,11 @@ FillDirection="Horizontal",
 }),
 })
 
-local m
+local r
 if ar then
-local p
+local u
 if ah.KeySystem.Thumbnail.Title then
-p=ad("TextLabel",{
+u=ad("TextLabel",{
 Text=ah.KeySystem.Thumbnail.Title,
 ThemeTag={
 TextColor3="Text",
@@ -3804,7 +3909,7 @@ AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
 })
 end
-m=ad("ImageLabel",{
+r=ad("ImageLabel",{
 Image=ah.KeySystem.Thumbnail.Image,
 BackgroundTransparency=1,
 Size=UDim2.new(0,as,1,-12),
@@ -3812,7 +3917,7 @@ Position=UDim2.new(0,6,0,6),
 Parent=am.UIElements.Main,
 ScaleType="Crop",
 },{
-p,
+u,
 ad("UICorner",{
 CornerRadius=UDim.new(0,20),
 }),
@@ -3821,8 +3926,8 @@ end
 
 ad("Frame",{
 
-Size=UDim2.new(1,m and-as or 0,1,0),
-Position=UDim2.new(0,m and as or 0,0,0),
+Size=UDim2.new(1,r and-as or 0,1,0),
+Position=UDim2.new(0,r and as or 0,0,0),
 BackgroundTransparency=1,
 Parent=am.UIElements.Main,
 },{
@@ -3838,8 +3943,8 @@ FillDirection="Vertical",
 b,
 f,
 d,
-i,
-l,
+m,
+p,
 ad("UIPadding",{
 PaddingTop=UDim.new(0,16),
 PaddingLeft=UDim.new(0,16),
@@ -3853,15 +3958,15 @@ PaddingBottom=UDim.new(0,16),
 
 
 
-local p=af("Exit","log-out",function()
+local u=af("Exit","log-out",function()
 am:Close()()
-end,"Tertiary",l.Frame)
+end,"Tertiary",p.Frame)
 
-if m then
-p.Parent=m
-p.Size=UDim2.new(0,0,0,42)
-p.Position=UDim2.new(0,10,1,-10)
-p.AnchorPoint=Vector2.new(0,1)
+if r then
+u.Parent=r
+u.Size=UDim2.new(0,0,0,42)
+u.Position=UDim2.new(0,10,1,-10)
+u.AnchorPoint=Vector2.new(0,1)
 end
 
 if ah.KeySystem.URL then
@@ -3870,7 +3975,7 @@ if setclipboard then
 setclipboard(ah.KeySystem.URL)
 end
 SetState("Key link copied",0.36)
-end,"Secondary",l.Frame)
+end,"Secondary",p.Frame)
 end
 
 if ah.KeySystem.API then
@@ -3882,11 +3987,11 @@ if ah.KeySystem.API then
 
 
 
-local r=math.min(240,math.max(190,at-42))
-local u=false
-local v=af("Get key","key",nil,"Secondary",l.Frame)
+local v=math.min(240,math.max(190,at-42))
+local x=false
+local z=af("Get key","key",nil,"Secondary",p.Frame)
 
-local x=ab.NewRoundFrame(99,"Squircle",{
+local A=ab.NewRoundFrame(99,"Squircle",{
 Size=UDim2.new(0,1,1,0),
 ThemeTag={
 ImageColor3="Text",
@@ -3898,28 +4003,28 @@ ad("Frame",{
 BackgroundTransparency=1,
 Size=UDim2.new(0,0,1,0),
 AutomaticSize="X",
-Parent=v.Frame,
+Parent=z.Frame,
 },{
-x,
+A,
 ad("UIPadding",{
 PaddingLeft=UDim.new(0,5),
 PaddingRight=UDim.new(0,5),
 }),
 })
 
-local z=ab.Image("chevron-down","chevron-down",0,"Temp","KeySystem",true)
+local B=ab.Image("chevron-down","chevron-down",0,"Temp","KeySystem",true)
 
-z.Size=UDim2.new(1,0,1,0)
+B.Size=UDim2.new(1,0,1,0)
 
 ad("Frame",{
 Size=UDim2.new(0,21,0,21),
-Parent=v.Frame,
+Parent=z.Frame,
 BackgroundTransparency=1,
 },{
-z,
+B,
 })
 
-local A=ab.NewRoundFrame(15,"Squircle",{
+local C=ab.NewRoundFrame(15,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 ThemeTag={
@@ -3938,15 +4043,15 @@ Padding=UDim.new(0,5),
 }),
 })
 
-local B=ad("Frame",{
+local F=ad("Frame",{
 BackgroundTransparency=1,
-Size=UDim2.new(0,r,0,0),
+Size=UDim2.new(0,v,0,0),
 ClipsDescendants=true,
 AnchorPoint=Vector2.new(1,0),
-Parent=v,
+Parent=z,
 Position=UDim2.new(1,0,1,15),
 },{
-A,
+C,
 })
 
 ad("TextLabel",{
@@ -3960,7 +4065,7 @@ Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 TextWrapped=true,
 TextXAlignment="Left",
-Parent=A,
+Parent=C,
 },{
 ad("UIPadding",{
 PaddingTop=UDim.new(0,10),
@@ -3970,27 +4075,27 @@ PaddingBottom=UDim.new(0,10),
 }),
 })
 
-for C,F in next,ah.KeySystem.API do
-local G=ah.WindUI.Services[F.Type]
-if G then
-local H={}
-for J,L in next,G.Args do
-table.insert(H,F[L])
+for G,H in next,ah.KeySystem.API do
+local J=ah.WindUI.Services[H.Type]
+if J then
+local L={}
+for M,N in next,J.Args do
+table.insert(L,H[N])
 end
 
-local J=G.New(table.unpack(H))
-J.Type=F.Type
-table.insert(an,J)
+local M=J.New(table.unpack(L))
+M.Type=H.Type
+table.insert(an,M)
 
-local L=F.Icon or G.Icon or"key-round"
-local M=ab.Image(L,L,0,"Temp","KeySystem",true)
-M.Size=UDim2.new(0,24,0,24)
+local N=H.Icon or J.Icon or"key-round"
+local O=ab.Image(N,N,0,"Temp","KeySystem",true)
+O.Size=UDim2.new(0,24,0,24)
 
-local N=ab.NewRoundFrame(10,"Squircle",{
+local P=ab.NewRoundFrame(10,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 ThemeTag={ImageColor3="Text"},
 ImageTransparency=1,
-Parent=A,
+Parent=C,
 AutomaticSize="Y",
 },{
 ad("UIListLayout",{
@@ -3998,7 +4103,7 @@ FillDirection="Horizontal",
 Padding=UDim.new(0,10),
 VerticalAlignment="Center",
 }),
-M,
+O,
 ad("UIPadding",{
 PaddingTop=UDim.new(0,10),
 PaddingLeft=UDim.new(0,10),
@@ -4016,7 +4121,7 @@ Padding=UDim.new(0,5),
 HorizontalAlignment="Center",
 }),
 ad("TextLabel",{
-Text=F.Title or G.Name,
+Text=H.Title or J.Name,
 BackgroundTransparency=1,
 FontFace=Font.new(ab.Font,Enum.FontWeight.Medium),
 ThemeTag={TextColor3="Text"},
@@ -4028,7 +4133,7 @@ TextWrapped=true,
 TextXAlignment="Left",
 }),
 ad("TextLabel",{
-Text=F.Desc or"",
+Text=H.Desc or"",
 BackgroundTransparency=1,
 FontFace=Font.new(ab.Font,Enum.FontWeight.Regular),
 ThemeTag={TextColor3="Text"},
@@ -4037,23 +4142,23 @@ TextSize=16,
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 TextWrapped=true,
-Visible=F.Desc and true or false,
+Visible=H.Desc and true or false,
 TextXAlignment="Left",
 }),
 }),
 },true)
 
-ab.AddSignal(N.MouseEnter,function()
-ac.Play(N,"Hover",{ImageTransparency=0.94},nil,nil,"ServiceHover")
+ab.AddSignal(P.MouseEnter,function()
+ac.Play(P,"Hover",{ImageTransparency=0.94},nil,nil,"ServiceHover")
 end)
-ab.AddSignal(N.InputEnded,function()
-ac.Play(N,"Hover",{ImageTransparency=1},nil,nil,"ServiceHover")
+ab.AddSignal(P.InputEnded,function()
+ac.Play(P,"Hover",{ImageTransparency=1},nil,nil,"ServiceHover")
 end)
-ac.AttachPress(N,ab,{
+ac.AttachPress(P,ab,{
 Amount=0.985,
 })
-ab.AddSignal(N.MouseButton1Click,function()
-J.Copy()
+ab.AddSignal(P.MouseButton1Click,function()
+M.Copy()
 SetState("Key link copied",0.36)
 ah.WindUI:Notify{
 Title="Key System",
@@ -4064,110 +4169,110 @@ end)
 end
 end
 
-ab.AddSignal(v.MouseButton1Click,function()
-if not u then
+ab.AddSignal(z.MouseButton1Click,function()
+if not x then
 ac.Play(
-B,
+F,
 "Expand",
-{Size=UDim2.new(0,r,0,A.AbsoluteSize.Y+1)},
+{Size=UDim2.new(0,v,0,C.AbsoluteSize.Y+1)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "KeyService"
 )
-ac.Play(z,"Expand",{Rotation=180},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
+ac.Play(B,"Expand",{Rotation=180},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
 else
 ac.Play(
-B,
+F,
 "Expand",
-{Size=UDim2.new(0,r,0,0)},
+{Size=UDim2.new(0,v,0,0)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "KeyService"
 )
-ac.Play(z,"Expand",{Rotation=0},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
+ac.Play(B,"Expand",{Rotation=0},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
 end
-u=not u
+x=not x
 end)
 end
 
-local function handleSuccess(r,u)
+local function handleSuccess(v,x)
 SetState("Access granted",1)
 am:Close()()
-if u and writefile then
+if x and writefile then
 pcall(function()
-writefile((ah.Folder or"Temp").."/"..ai..".key",tostring(r))
+writefile((ah.Folder or"Temp").."/"..ai..".key",tostring(v))
 end)
 end
 task.wait(0.35)
 aj(true)
 end
 
-local r=false
-local u=af("Submit","arrow-right",function()
-if r then
+local v=false
+local x=af("Submit","arrow-right",function()
+if v then
 return
 end
-r=true
+v=true
 SetState("Checking key",0.72)
 
-local u=tostring(ao or"empty")
-local function Reject(v)
-r=false
+local x=tostring(ao or"empty")
+local function Reject(z)
+v=false
 SetState("Invalid key",0.08,true)
 ah.WindUI:Notify{
 Title="Key System",
-Content=v or"Invalid key.",
+Content=z or"Invalid key.",
 Icon="triangle-alert",
 }
 end
 
 if ah.KeySystem.KeyValidator then
-local v,x,z=pcall(ah.KeySystem.KeyValidator,u)
-if not v then
-Reject(tostring(x))
+local z,A,B=pcall(ah.KeySystem.KeyValidator,x)
+if not z then
+Reject(tostring(A))
 return
 end
 
-if x then
-handleSuccess(u,ah.KeySystem.SaveKey)
+if A then
+handleSuccess(x,ah.KeySystem.SaveKey)
 else
-Reject(z or"Invalid key.")
+Reject(B or"Invalid key.")
 end
 elseif not ah.KeySystem.API then
-local v=type(ah.KeySystem.Key)=="table"and table.find(ah.KeySystem.Key,u)
-or ah.KeySystem.Key==u
+local z=type(ah.KeySystem.Key)=="table"and table.find(ah.KeySystem.Key,x)
+or ah.KeySystem.Key==x
 
-if v then
-handleSuccess(u,ah.KeySystem.SaveKey)
+if z then
+handleSuccess(x,ah.KeySystem.SaveKey)
 else
 Reject"Invalid key."
 end
 else
-local v,x
-for z,A in next,an do
-local B,C,F=pcall(A.Verify,u)
-if not B then
-local G=C
-C=false
-F=tostring(G)
+local z,A
+for B,C in next,an do
+local F,G,H=pcall(C.Verify,x)
+if not F then
+local J=G
+G=false
+H=tostring(J)
 end
-if C then
-v,x=true,F
+if G then
+z,A=true,H
 break
 end
-x=F
+A=H
 end
 
-if v then
-handleSuccess(u,ah.KeySystem.SaveKey~=false)
+if z then
+handleSuccess(x,ah.KeySystem.SaveKey~=false)
 else
-Reject(x or"Invalid key.")
+Reject(A or"Invalid key.")
 end
 end
-end,"Primary",l)
+end,"Primary",p)
 
-u.AnchorPoint=Vector2.new(1,0.5)
-u.Position=UDim2.new(1,0,0.5,0)
+x.AnchorPoint=Vector2.new(1,0.5)
+x.Position=UDim2.new(1,0,0.5,0)
 
 
 
@@ -10247,10 +10352,11 @@ BottomRight=true,
 }
 
 if z then
-A,B=aa:GetElementPosition(
+A,B=aa.GetLinkedCornerShape(
 v.Elements,
 ai.Index,
-x=="HStack"or x=="Group"
+v,
+x
 )
 end
 
@@ -14020,10 +14126,11 @@ local aq=al.Window.ElementConfig.LinkCorners or al.LinkCorners==true
 local ar="Squircle"
 
 if aq then
-ar=aa:GetElementPosition(
+ar=aa.GetLinkedCornerShape(
 ap.Elements,
 am.Index,
-al.ParentType=="HStack"or al.ParentType=="Group"
+ap,
+al.ParentType
 )
 end
 
@@ -18977,6 +19084,10 @@ local function PointToUDim2(an)
 return UDim2.new(an.X,0,an.Y,0)
 end
 
+local function PixelToUDim2(an)
+return UDim2.fromOffset(an.X,an.Y)
+end
+
 local function GetAngle(an,ao)
 if math.atan2 then
 return math.atan2(an,ao)
@@ -19002,6 +19113,7 @@ Points=NormalizePoints(ao.Points or ao.Path),
 Labels=ao.Labels or{},
 Height=math.max(ak.ToFiniteNumber(ao.Height)or 156,96),
 Thickness=math.max(ak.ToFiniteNumber(ao.Thickness)or 4,2),
+Padding=math.max(ak.ToFiniteNumber(ao.PathPadding or ao.Padding)or 20,0),
 Duration=math.max(ak.ToFiniteNumber(ao.Duration)or 1.2,0.18),
 StepDelay=math.max(ak.ToFiniteNumber(ao.StepDelay)or 0.055,0),
 Loop=ao.Loop==true,
@@ -19070,7 +19182,16 @@ return Vector2.new(aq.X/ao.UIScale,aq.Y/ao.UIScale)
 end
 
 local function GetPixelPoint(aq,ar)
-return Vector2.new(aq.X*ar.X,aq.Y*ar.Y)
+local as=math.min(ap.Padding,math.max(ar.X,ar.Y)/3)
+local at=Vector2.new(
+math.max(ar.X-(as*2),1),
+math.max(ar.Y-(as*2),1)
+)
+
+return Vector2.new(
+as+(aq.X*at.X),
+as+(aq.Y*at.Y)
+)
 end
 
 function ap.Render(aq,ar)
@@ -19079,38 +19200,41 @@ if as.X<=0 or as.Y<=0 then
 return
 end
 
+local at=ar~=false and ap.AutoPlay
 ap.PlayToken=ap.PlayToken+1
 ap.HasRendered=true
 ClearObjects()
 
-for at,au in next,ap.Points do
-local av=aa.NewRoundFrame(999,"Circle",{
-Name="Point"..tostring(at),
-Size=UDim2.new(0,at==1 and 12 or 9,0,at==1 and 12 or 9),
-Position=PointToUDim2(au),
+for au,av in next,ap.Points do
+local aw=GetPixelPoint(av,as)
+local ax=aa.NewRoundFrame(999,"Circle",{
+Name="Point"..tostring(au),
+Size=UDim2.new(0,au==1 and 12 or 9,0,au==1 and 12 or 9),
+Position=PixelToUDim2(aw),
 AnchorPoint=Vector2.new(0.5,0.5),
-ImageTransparency=0.35,
+ImageTransparency=at and 0.35 or 0.16,
 Parent=ap.UIElements.Canvas,
 ThemeTag={
-ImageColor3=at==#ap.Points and"Path2DMarker"or"Path2DLine",
+ImageColor3=au==#ap.Points and"Path2DMarker"or"Path2DLine",
 },
 })
-table.insert(ap.Dots,av)
+table.insert(ap.Dots,ax)
 end
 
-for at=1,#ap.Points-1 do
-local au=GetPixelPoint(ap.Points[at],as)
-local av=GetPixelPoint(ap.Points[at+1],as)
-local aw=av-au
-local ax=aw.Magnitude
-local ay=math.deg(GetAngle(aw.Y,aw.X))
+for au=1,#ap.Points-1 do
+local av=GetPixelPoint(ap.Points[au],as)
+local aw=GetPixelPoint(ap.Points[au+1],as)
+local ax=aw-av
+local ay=ax.Magnitude
+local az=math.deg(GetAngle(ax.Y,ax.X))
+local aA=(av+aw)/2
 
-local az=aa.NewRoundFrame(999,"Squircle",{
-Name="Segment"..tostring(at),
-Size=UDim2.new(0,ax,0,ap.Thickness),
-Position=UDim2.fromOffset(au.X,au.Y),
-AnchorPoint=Vector2.new(0,0.5),
-Rotation=ay,
+local aB=aa.NewRoundFrame(999,"Squircle",{
+Name="Segment"..tostring(au),
+Size=UDim2.new(0,ay,0,ap.Thickness),
+Position=PixelToUDim2(aA),
+AnchorPoint=Vector2.new(0.5,0.5),
+Rotation=az,
 ImageTransparency=0.84,
 Parent=ap.UIElements.Canvas,
 ThemeTag={
@@ -19118,39 +19242,42 @@ ImageColor3="Path2DTrack",
 },
 })
 
-local aA=aa.NewRoundFrame(999,"Squircle",{
+local b=aa.NewRoundFrame(999,"Squircle",{
 Name="Fill",
-Size=UDim2.new(0,ar==false and ax or 0,1,0),
+Size=UDim2.new(0,at and 0 or ay,1,0),
 ImageTransparency=0,
-Parent=az,
+Parent=aB,
 ThemeTag={
 ImageColor3="Path2DLine",
 },
 })
 
 table.insert(ap.Segments,{
-Track=az,
-Fill=aA,
-Length=ax,
-From=ap.Points[at],
-To=ap.Points[at+1],
+Track=aB,
+Fill=b,
+Length=ay,
+From=ap.Points[au],
+To=ap.Points[au+1],
+FromPosition=PixelToUDim2(av),
+ToPosition=PixelToUDim2(aw),
 })
 end
 
-for at,au in next,ap.Labels do
-if typeof(au)~="table"then
-au={
-Text=tostring(au),
+for au,av in next,ap.Labels do
+if typeof(av)~="table"then
+av={
+Text=tostring(av),
 }
 end
-local av=math.clamp(math.floor(ak.ToFiniteNumber(au.Point or au.Index)or 1),1,#ap.Points)
-local aw=ai("TextLabel",{
+local aw=math.clamp(math.floor(ak.ToFiniteNumber(av.Point or av.Index)or 1),1,#ap.Points)
+local ax=GetPixelPoint(ap.Points[aw],as)
+local ay=ai("TextLabel",{
 Name="PathLabel",
 Size=UDim2.new(0,86,0,20),
-Position=PointToUDim2(ap.Points[av]),
-AnchorPoint=Vector2.new(0.5,au.Above==false and 0 or 1),
+Position=PixelToUDim2(ax),
+AnchorPoint=Vector2.new(0.5,av.Above==false and 0 or 1),
 BackgroundTransparency=1,
-Text=tostring(au.Text or au.Title or av),
+Text=tostring(av.Text or av.Title or aw),
 TextSize=12,
 TextTransparency=0.22,
 TextXAlignment="Center",
@@ -19160,13 +19287,14 @@ ThemeTag={
 TextColor3="Path2DLabel",
 },
 })
-table.insert(ap.LabelObjects,aw)
+table.insert(ap.LabelObjects,ay)
 end
 
-local at=aa.NewRoundFrame(999,"Circle",{
+local au=aa.NewRoundFrame(999,"Circle",{
 Name="Marker",
 Size=UDim2.new(0,16,0,16),
-Position=PointToUDim2(ap.Points[1]),
+Position=at and ap.Segments[1]and ap.Segments[1].FromPosition
+or PixelToUDim2(GetPixelPoint(ap.Points[#ap.Points],as)),
 AnchorPoint=Vector2.new(0.5,0.5),
 ImageTransparency=0,
 Parent=ap.UIElements.Canvas,
@@ -19182,9 +19310,9 @@ AnchorPoint=Vector2.new(0.5,0.5),
 ImageColor3=Color3.new(1,1,1),
 }),
 })
-ap.UIElements.Marker=at
+ap.UIElements.Marker=au
 
-if ar~=false and ap.AutoPlay then
+if at then
 ap:Play()
 end
 end
@@ -19195,7 +19323,8 @@ local ar=ap.PlayToken
 local as=ap.Duration/math.max(#ap.Segments,1)
 
 if ap.UIElements.Marker then
-ap.UIElements.Marker.Position=PointToUDim2(ap.Points[1])
+ap.UIElements.Marker.Position=ap.Segments[1]and ap.Segments[1].FromPosition
+or PointToUDim2(ap.Points[1])
 end
 for at,au in next,ap.Dots do
 au.ImageTransparency=0.72
@@ -19226,7 +19355,7 @@ if ap.UIElements.Marker then
 af.Play(
 ap.UIElements.Marker,
 as,
-{Position=PointToUDim2(au.To)},
+{Position=au.ToPosition},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Path"
@@ -19765,10 +19894,11 @@ and an.ParentConfig.ParentTable
 and an.ParentConfig.ParentTable.__type
 or an.ParentType
 or(an.ParentTable and an.ParentTable.__type)
-d,b=aa:GetElementPosition(
+d,b=aa.GetLinkedCornerShape(
 aA.Elements,
 ao.Index,
-f=="HStack"or f=="Group"
+aA,
+f
 )
 end
 
@@ -20357,6 +20487,7 @@ Elements={},
 ElementFrame=nil,
 LinkCorners=al.LinkCorners==true,
 MinChildWidth=math.max(tonumber(al.MinChildWidth)or 128,40),
+IsStacked=false,
 }
 
 local an=af("Frame",{
@@ -20402,29 +20533,35 @@ end
 local av=aq*(au-1)
 local aw=at-av-as
 local ax=at>0 and aw/au<am.MinChildWidth
-local ay=ax and 1 or(1/au)
-local az=ax and 0 or-(av+as)
-local aA=math.floor(az/au)
-local aB=az-(aA*au)
+local ay=am.IsStacked~=ax
+am.IsStacked=ax
+local az=ax and 1 or(1/au)
+local aA=ax and 0 or-(av+as)
+local aB=math.floor(aA/au)
+local b=aA-(aB*au)
 
 an.UIListLayout.FillDirection=ax and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
 an.UIListLayout.HorizontalAlignment=ax and Enum.HorizontalAlignment.Left or Enum.HorizontalAlignment.Center
 
-for b,d in next,ar do
-local f=ax and 0 or aA
-if not ax and b<=math.abs(aB)then
-f=f-1
+for d,f in next,ar do
+local g=ax and 0 or aB
+if not ax and d<=math.abs(b)then
+g=g-1
 end
 
-if d.ElementFrame then
-local g=d.ElementFrame.Size
-d.ElementFrame.Size=UDim2.new(
-ay,
-f,
-g.Y.Scale==1 and 0 or g.Y.Scale,
-g.Y.Scale==1 and 0 or g.Y.Offset
+if f.ElementFrame then
+local h=f.ElementFrame.Size
+f.ElementFrame.Size=UDim2.new(
+az,
+g,
+h.Y.Scale==1 and 0 or h.Y.Scale,
+h.Y.Scale==1 and 0 or h.Y.Offset
 )
 end
+end
+
+if ay and am.UpdateAllElementShapes then
+am:UpdateAllElementShapes(am)
 end
 end
 
@@ -25486,6 +25623,52 @@ end
 
 function aa.LoadingScreen(aA,aB)
 return as.new(aa,aB)
+end
+
+function aa.LoadingCreate(aA,aB)
+if aa.ActiveLoading and not aa.ActiveLoading.Closed then
+aa.ActiveLoading:Close(0)
+end
+
+aa.ActiveLoading=as.new(aa,aB)
+return aa.ActiveLoading
+end
+
+function aa.LoadingSet(aA,aB,b)
+local d=aa.ActiveLoading
+if not d or d.Closed then
+d=aa:LoadingCreate{}
+end
+
+if typeof(aB)=="table"then
+if aB.Status or aB.Text or aB.Title then
+d:SetStatus(aB.Status or aB.Text or aB.Title)
+end
+if aB.Progress~=nil or aB.Value~=nil then
+d:SetProgress(aB.Progress~=nil and aB.Progress or aB.Value)
+end
+if aB.Step then
+d:Step(aB.Step,aB.Status or aB.Text)
+end
+if aB.Close then
+d:Close(aB.Delay or aB.CloseDelay or 0)
+end
+return d
+end
+
+if typeof(aB)=="number"then
+d:SetProgress(aB)
+if b then
+d:SetStatus(b)
+end
+elseif aB~=nil then
+d:SetStatus(aB)
+if typeof(b)=="number"then
+d:SetProgress(b)
+end
+end
+
+return d
 end
 
 function aa.SetFont(aA,aB)

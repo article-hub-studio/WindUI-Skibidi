@@ -988,10 +988,11 @@ return function(Config)
 			}
 
 			if ShouldLinkCorners then
-				newShape, corners = Creator:GetElementPosition(
+				newShape, corners = Creator.GetLinkedCornerShape(
 					Tab.Elements,
 					Element.Index,
-					ParentType == "HStack" or ParentType == "Group"
+					Tab,
+					ParentType
 				)
 			end
 

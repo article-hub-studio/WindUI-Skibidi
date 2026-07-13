@@ -45,6 +45,10 @@ local function PointToUDim2(Point)
 	return UDim2.new(Point.X, 0, Point.Y, 0)
 end
 
+local function PixelToUDim2(Point)
+	return UDim2.fromOffset(Point.X, Point.Y)
+end
+
 local function GetAngle(Y, X)
 	if math.atan2 then
 		return math.atan2(Y, X)
@@ -70,6 +74,7 @@ function Element:New(Config)
 		Labels = Config.Labels or {},
 		Height = math.max(Utils.ToFiniteNumber(Config.Height) or 156, 96),
 		Thickness = math.max(Utils.ToFiniteNumber(Config.Thickness) or 4, 2),
+		Padding = math.max(Utils.ToFiniteNumber(Config.PathPadding or Config.Padding) or 20, 0),
 		Duration = math.max(Utils.ToFiniteNumber(Config.Duration) or 1.2, 0.18),
 		StepDelay = math.max(Utils.ToFiniteNumber(Config.StepDelay) or 0.055, 0),
 		Loop = Config.Loop == true,
@@ -138,7 +143,16 @@ function Element:New(Config)
 	end
 
 	local function GetPixelPoint(Point, CanvasSize)
-		return Vector2.new(Point.X * CanvasSize.X, Point.Y * CanvasSize.Y)
+		local Padding = math.min(Path2D.Padding, math.max(CanvasSize.X, CanvasSize.Y) / 3)
+		local UsableSize = Vector2.new(
+			math.max(CanvasSize.X - (Padding * 2), 1),
+			math.max(CanvasSize.Y - (Padding * 2), 1)
+		)
+
+		return Vector2.new(
+			Padding + (Point.X * UsableSize.X),
+			Padding + (Point.Y * UsableSize.Y)
+		)
 	end
 
 	function Path2D:Render(ShouldPlay)
@@ -147,17 +161,19 @@ function Element:New(Config)
 			return
 		end
 
+		local ShouldAnimate = ShouldPlay ~= false and Path2D.AutoPlay
 		Path2D.PlayToken = Path2D.PlayToken + 1
 		Path2D.HasRendered = true
 		ClearObjects()
 
 		for Index, Point in next, Path2D.Points do
+			local PixelPoint = GetPixelPoint(Point, CanvasSize)
 			local Dot = Creator.NewRoundFrame(999, "Circle", {
 				Name = "Point" .. tostring(Index),
 				Size = UDim2.new(0, Index == 1 and 12 or 9, 0, Index == 1 and 12 or 9),
-				Position = PointToUDim2(Point),
+				Position = PixelToUDim2(PixelPoint),
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				ImageTransparency = 0.35,
+				ImageTransparency = ShouldAnimate and 0.35 or 0.16,
 				Parent = Path2D.UIElements.Canvas,
 				ThemeTag = {
 					ImageColor3 = Index == #Path2D.Points and "Path2DMarker" or "Path2DLine",
@@ -172,12 +188,13 @@ function Element:New(Config)
 			local Delta = EndPoint - StartPoint
 			local Length = Delta.Magnitude
 			local Angle = math.deg(GetAngle(Delta.Y, Delta.X))
+			local MidPoint = (StartPoint + EndPoint) / 2
 
 			local Track = Creator.NewRoundFrame(999, "Squircle", {
 				Name = "Segment" .. tostring(Index),
 				Size = UDim2.new(0, Length, 0, Path2D.Thickness),
-				Position = UDim2.fromOffset(StartPoint.X, StartPoint.Y),
-				AnchorPoint = Vector2.new(0, 0.5),
+				Position = PixelToUDim2(MidPoint),
+				AnchorPoint = Vector2.new(0.5, 0.5),
 				Rotation = Angle,
 				ImageTransparency = 0.84,
 				Parent = Path2D.UIElements.Canvas,
@@ -188,7 +205,7 @@ function Element:New(Config)
 
 			local Fill = Creator.NewRoundFrame(999, "Squircle", {
 				Name = "Fill",
-				Size = UDim2.new(0, ShouldPlay == false and Length or 0, 1, 0),
+				Size = UDim2.new(0, ShouldAnimate and 0 or Length, 1, 0),
 				ImageTransparency = 0,
 				Parent = Track,
 				ThemeTag = {
@@ -202,6 +219,8 @@ function Element:New(Config)
 				Length = Length,
 				From = Path2D.Points[Index],
 				To = Path2D.Points[Index + 1],
+				FromPosition = PixelToUDim2(StartPoint),
+				ToPosition = PixelToUDim2(EndPoint),
 			})
 		end
 
@@ -212,10 +231,11 @@ function Element:New(Config)
 				}
 			end
 			local PointIndex = math.clamp(math.floor(Utils.ToFiniteNumber(LabelConfig.Point or LabelConfig.Index) or 1), 1, #Path2D.Points)
+			local PixelPoint = GetPixelPoint(Path2D.Points[PointIndex], CanvasSize)
 			local Label = New("TextLabel", {
 				Name = "PathLabel",
 				Size = UDim2.new(0, 86, 0, 20),
-				Position = PointToUDim2(Path2D.Points[PointIndex]),
+				Position = PixelToUDim2(PixelPoint),
 				AnchorPoint = Vector2.new(0.5, LabelConfig.Above == false and 0 or 1),
 				BackgroundTransparency = 1,
 				Text = tostring(LabelConfig.Text or LabelConfig.Title or PointIndex),
@@ -234,7 +254,8 @@ function Element:New(Config)
 		local Marker = Creator.NewRoundFrame(999, "Circle", {
 			Name = "Marker",
 			Size = UDim2.new(0, 16, 0, 16),
-			Position = PointToUDim2(Path2D.Points[1]),
+			Position = ShouldAnimate and Path2D.Segments[1] and Path2D.Segments[1].FromPosition
+				or PixelToUDim2(GetPixelPoint(Path2D.Points[#Path2D.Points], CanvasSize)),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			ImageTransparency = 0,
 			Parent = Path2D.UIElements.Canvas,
@@ -252,7 +273,7 @@ function Element:New(Config)
 		})
 		Path2D.UIElements.Marker = Marker
 
-		if ShouldPlay ~= false and Path2D.AutoPlay then
+		if ShouldAnimate then
 			Path2D:Play()
 		end
 	end
@@ -263,7 +284,8 @@ function Element:New(Config)
 		local SegmentDuration = Path2D.Duration / math.max(#Path2D.Segments, 1)
 
 		if Path2D.UIElements.Marker then
-			Path2D.UIElements.Marker.Position = PointToUDim2(Path2D.Points[1])
+			Path2D.UIElements.Marker.Position = Path2D.Segments[1] and Path2D.Segments[1].FromPosition
+				or PointToUDim2(Path2D.Points[1])
 		end
 		for _, Dot in next, Path2D.Dots do
 			Dot.ImageTransparency = 0.72
@@ -294,7 +316,7 @@ function Element:New(Config)
 					Motion.Play(
 						Path2D.UIElements.Marker,
 						SegmentDuration,
-						{ Position = PointToUDim2(Segment.To) },
+						{ Position = Segment.ToPosition },
 						Enum.EasingStyle.Quint,
 						Enum.EasingDirection.Out,
 						"Path"

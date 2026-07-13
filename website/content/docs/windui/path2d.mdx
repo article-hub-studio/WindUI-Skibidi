@@ -34,6 +34,7 @@ local Route = Tab:Path2D({
     Title = "Delivery Route",
     Desc = "Animated route drawing with a moving marker.",
     Height = 170,
+    PathPadding = 22,
     Thickness = 5,
     Duration = 1.4,
     StepDelay = 0.04,
@@ -63,6 +64,7 @@ local Route = Tab:Path2D({
         { name: "Points / Path", type: "table?", description: "Vector2 values or {x, y} tables from 0 to 1.", default: "default path" },
         { name: "Labels", type: "table?", description: "Labels attached to point indexes.", default: "{}" },
         { name: "Height", type: "number?", description: "Canvas height.", default: "156" },
+        { name: "PathPadding", type: "number?", description: "Inner canvas padding that keeps rotated lines, dots and labels away from clipped edges.", default: "20" },
         { name: "Thickness", type: "number?", description: "Line thickness.", default: "4" },
         { name: "Duration", type: "number?", description: "Total draw duration.", default: "1.2" },
         { name: "StepDelay", type: "number?", description: "Delay between segments.", default: "0.055" },
@@ -81,4 +83,3 @@ local Route = Tab:Path2D({
         ':Destroy': { type: 'function', description: 'Remove the element.', args: {} },
     }}
 />
-

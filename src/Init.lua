@@ -187,6 +187,52 @@ function WindUI:LoadingScreen(Config)
 	return LoadingScreen.new(WindUI, Config)
 end
 
+function WindUI:LoadingCreate(Config)
+	if WindUI.ActiveLoading and not WindUI.ActiveLoading.Closed then
+		WindUI.ActiveLoading:Close(0)
+	end
+
+	WindUI.ActiveLoading = LoadingScreen.new(WindUI, Config)
+	return WindUI.ActiveLoading
+end
+
+function WindUI:LoadingSet(Value, Status)
+	local Loader = WindUI.ActiveLoading
+	if not Loader or Loader.Closed then
+		Loader = WindUI:LoadingCreate({})
+	end
+
+	if typeof(Value) == "table" then
+		if Value.Status or Value.Text or Value.Title then
+			Loader:SetStatus(Value.Status or Value.Text or Value.Title)
+		end
+		if Value.Progress ~= nil or Value.Value ~= nil then
+			Loader:SetProgress(Value.Progress ~= nil and Value.Progress or Value.Value)
+		end
+		if Value.Step then
+			Loader:Step(Value.Step, Value.Status or Value.Text)
+		end
+		if Value.Close then
+			Loader:Close(Value.Delay or Value.CloseDelay or 0)
+		end
+		return Loader
+	end
+
+	if typeof(Value) == "number" then
+		Loader:SetProgress(Value)
+		if Status then
+			Loader:SetStatus(Status)
+		end
+	elseif Value ~= nil then
+		Loader:SetStatus(Value)
+		if typeof(Status) == "number" then
+			Loader:SetProgress(Status)
+		end
+	end
+
+	return Loader
+end
+
 function WindUI:SetFont(FontId)
 	Creator.UpdateFont(FontId)
 end

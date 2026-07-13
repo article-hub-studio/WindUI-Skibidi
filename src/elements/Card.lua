@@ -475,10 +475,11 @@ function Element:New(Config)
 					and Config.ParentConfig.ParentTable.__type
 				or Config.ParentType
 				or (Config.ParentTable and Config.ParentTable.__type)
-			newShape, corners = Creator:GetElementPosition(
+			newShape, corners = Creator.GetLinkedCornerShape(
 				Container.Elements,
 				Card.Index,
-				ParentType == "HStack" or ParentType == "Group"
+				Container,
+				ParentType
 			)
 		end
 

@@ -79,10 +79,11 @@ function Element:New(Config)
 			local newShape = "Squircle"
 
 			if ShouldLinkCorners then
-				newShape = Creator:GetElementPosition(
+				newShape = Creator.GetLinkedCornerShape(
 					Tab.Elements,
 					Code.Index,
-					Config.ParentType == "HStack" or Config.ParentType == "Group"
+					Tab,
+					Config.ParentType
 				)
 			end
 

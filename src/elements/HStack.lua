@@ -11,6 +11,7 @@ function Element:New(Config)
 		ElementFrame = nil,
 		LinkCorners = Config.LinkCorners == true,
 		MinChildWidth = math.max(tonumber(Config.MinChildWidth) or 128, 40),
+		IsStacked = false,
 	}
 
 	local HStackFrame = New("Frame", {
@@ -56,6 +57,8 @@ function Element:New(Config)
 		local TotalGapWidth = Gap * (StretchCount - 1)
 		local AvailableWidth = ParentWidth - TotalGapWidth - TotalFixedWidth
 		local ShouldStack = ParentWidth > 0 and AvailableWidth / StretchCount < HStackModule.MinChildWidth
+		local OrientationChanged = HStackModule.IsStacked ~= ShouldStack
+		HStackModule.IsStacked = ShouldStack
 		local ElementWidthScale = ShouldStack and 1 or (1 / StretchCount)
 		local TotalOffset = ShouldStack and 0 or -(TotalGapWidth + TotalFixedWidth)
 		local BaseOffset = math.floor(TotalOffset / StretchCount)
@@ -79,6 +82,10 @@ function Element:New(Config)
 					CurrentSize.Y.Scale == 1 and 0 or CurrentSize.Y.Offset
 				)
 			end
+		end
+
+		if OrientationChanged and HStackModule.UpdateAllElementShapes then
+			HStackModule:UpdateAllElementShapes(HStackModule)
 		end
 	end
 

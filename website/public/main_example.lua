@@ -2,25 +2,28 @@ local WindUI = loadstring(game:HttpGet("https://article-hub-studio.github.io/Win
 
 WindUI:SetMotionPreset("Liquid")
 
+WindUI:LoadingCreate({
+	Title = "WindUI Full Example",
+	Desc = "Preparing liquid UI kit",
+	Icon = "sparkles",
+	Width = 350,
+	Steps = { "Theme", "Motion", "Elements" },
+	ScrimTransparency = 0.28,
+	CardTransparency = 0.14,
+})
+
+WindUI:LoadingSet(0.22, "Preparing theme")
+
 local Window = WindUI:CreateWindow({
 	Title = ".ftgs hub | WindUI Full Example",
 	Folder = "WindUIFullExample",
 	Icon = "sparkles",
+	Default = true,
 	NewElements = true,
 	ElementTransparency = 0.18,
 	ElementGap = 8,
 	LiquidGlass = true,
 	ToggleKey = Enum.KeyCode.RightShift,
-	LoadingScreen = {
-		Title = "WindUI Full Example",
-		Desc = "Preparing liquid UI kit",
-		Icon = "sparkles",
-		Width = 350,
-		Steps = { "Theme", "Motion", "Elements" },
-		ScrimTransparency = 0.28,
-		CardTransparency = 0.14,
-		CloseDelay = 0.12,
-	},
 	KeyBindMenu = {
 		DefaultKey = "RightShift",
 		QuickKeys = { "RightShift", "F", "LeftControl" },
@@ -77,6 +80,11 @@ local Window = WindUI:CreateWindow({
 	BackgroundOverlayTransparency = 0.47,
 })
 
+WindUI:LoadingSet({ Step = 2, Progress = 0.58, Status = "Building motion" })
+task.delay(0.2, function()
+	WindUI:LoadingSet({ Step = 3, Progress = 1, Status = "Ready", Close = true, Delay = 0.16 })
+end)
+
 local OverviewTab = Window:Tab({
 	Title = "Overview",
 	Icon = "home",
@@ -106,6 +114,7 @@ OverviewTab:Path2D({
 	Title = "Path 2D",
 	Desc = "Animated route drawing with a moving marker.",
 	Height = 132,
+	PathPadding = 22,
 	Duration = 1.15,
 	Points = {
 		{ 0.08, 0.68 },
@@ -128,6 +137,52 @@ OverviewTab:KeyValue({
 		{ Title = "Theme", Value = WindUI:GetCurrentTheme() },
 		{ Title = "Topbar", Value = "Mac + Settings Gear" },
 	},
+})
+
+local FeatureCard = OverviewTab:Card({
+	Title = "Card Navigation",
+	Desc = "Tap the card itself to open a dedicated page. Nested content remains optional.",
+	Icon = "panels-top-left",
+	Color = "#0EA5E9",
+	OpenTab = true,
+	TabTitle = "Card Detail",
+	TabIcon = "panels-top-left",
+	Build = function(Tab)
+		Tab:Callout({
+			Title = "Card Page",
+			Desc = "This page was opened by pressing the card, like a visual tab.",
+			Variant = "Success",
+		})
+		Tab:Card({
+			Title = "Dedicated Card Page",
+			Desc = "Use this pattern for premium cards, profile cards or feature dashboards.",
+			Icon = "sparkles",
+		})
+	end,
+})
+
+local FeatureCardStats = FeatureCard:HStack({
+	MinChildWidth = 150,
+})
+FeatureCardStats:Badge({
+	Title = "Default Preset",
+	Variant = "Info",
+})
+FeatureCardStats:Badge({
+	Title = "CardTab",
+	Variant = "Success",
+})
+
+FeatureCard:CardButton({
+	Title = "Notify From Card",
+	Icon = "bell",
+	Callback = function()
+		WindUI:Notify({
+			Title = "CardButton",
+			Content = "Card action callback fired.",
+			Icon = "check",
+		})
+	end,
 })
 
 local SettingsTab = Window:Tab({
@@ -176,6 +231,19 @@ SettingsTab:ChipList({
 	Title = "Theme Tags",
 	Options = { "Glass", "Mobile", "Motion" },
 	Value = { "Glass", "Mobile" },
+})
+
+SettingsTab:Button({
+	Title = "Apply Webm Background API",
+	Desc = "Demonstrates SetBackground with media resolver.",
+	Icon = "image",
+	Callback = function()
+		Window:SetBackground({
+			Image = "rbxassetid://120997033468887",
+			Transparency = 0.42,
+			ScaleType = Enum.ScaleType.Crop,
+		})
+	end,
 })
 
 SettingsTab:Dropdown({
@@ -302,6 +370,21 @@ LinkedTab:Toggle({
 	Title = "Middle Toggle",
 	Desc = "Middle element stays square while linked.",
 	Value = true,
+})
+
+LinkedTab:Card({
+	Title = "Linked Card Page",
+	Desc = "This card sits inside the linked stack and opens its own page.",
+	Icon = "panels-top-left",
+	OpenTab = true,
+	TabTitle = "Linked Card",
+	Build = function(Tab)
+		Tab:Callout({
+			Title = "Linked Card Page",
+			Desc = "Card corners follow the linked stack, while this page behaves like a normal tab.",
+			Variant = "Info",
+		})
+	end,
 })
 
 LinkedTab:Slider({
@@ -490,6 +573,7 @@ Controls:Path2D({
 	Title = "Control Path",
 	Desc = "Replayable 2D path animation.",
 	Height = 118,
+	PathPadding = 22,
 	Duration = 0.95,
 	Points = {
 		{ 0.1, 0.5 },

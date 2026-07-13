@@ -221,13 +221,44 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 		})
 	end
 
+	local ProgressFillGradient = New("UIGradient", {
+		Name = "FillGradient",
+		Rotation = 0,
+		Offset = Vector2.new(-0.2, 0),
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.08),
+			NumberSequenceKeypoint.new(0.45, 0),
+			NumberSequenceKeypoint.new(1, 0.2),
+		}),
+	})
 	local ProgressFill = Creator.NewRoundFrame(999, "Squircle", {
 		Name = "Fill",
 		Size = UDim2.new(0.18, 0, 1, 0),
-		ImageTransparency = 0.06,
+		ClipsDescendants = true,
+		ImageTransparency = 0.02,
+		ZIndex = 3,
 		ThemeTag = {
 			ImageColor3 = "Primary",
 		},
+	}, {
+		ProgressFillGradient,
+		Creator.NewRoundFrame(999, "SquircleGlass", {
+			Name = "LiquidSheen",
+			Size = UDim2.new(0.42, 0, 1, 0),
+			Position = UDim2.new(0.18, 0, 0, 0),
+			ImageColor3 = Color3.new(1, 1, 1),
+			ImageTransparency = 0.7,
+			ZIndex = 4,
+		}, {
+			New("UIGradient", {
+				Rotation = 0,
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.48, 0.22),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
+			}),
+		}),
 	})
 	local ProgressText = New("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 16),
@@ -241,6 +272,33 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 			TextColor3 = "Text",
 		},
 	})
+	local ProgressTrack = Creator.NewRoundFrame(999, "Squircle", {
+		Name = "ProgressTrack",
+		Size = UDim2.new(1, 0, 0, 10),
+		ClipsDescendants = true,
+		ImageTransparency = 0.84,
+		ThemeTag = {
+			ImageColor3 = "ElementBackground",
+		},
+	}, {
+		Creator.NewRoundFrame(999, "SquircleGlass", {
+			Name = "TrackGlass",
+			Size = UDim2.new(1, 0, 1, 0),
+			ImageColor3 = Color3.new(1, 1, 1),
+			ImageTransparency = 0.92,
+			ZIndex = 2,
+		}),
+		ProgressFill,
+		Creator.NewRoundFrame(999, "SquircleOutline", {
+			Name = "TrackOutline",
+			Size = UDim2.new(1, 0, 1, 0),
+			ImageTransparency = 0.72,
+			ZIndex = 5,
+			ThemeTag = {
+				ImageColor3 = "Outline",
+			},
+		}),
+	})
 	local ProgressCard = New("Frame", {
 		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundTransparency = 1,
@@ -250,15 +308,7 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 			Padding = UDim.new(0, 6),
 		}),
 		ProgressText,
-		Creator.NewRoundFrame(999, "Squircle", {
-			Size = UDim2.new(1, 0, 0, 8),
-			ImageTransparency = 0.86,
-			ThemeTag = {
-				ImageColor3 = "ElementBackground",
-			},
-		}, {
-			ProgressFill,
-		}),
+		ProgressTrack,
 	})
 
 	local function SetState(Text, Progress, IsError)
@@ -266,15 +316,23 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 		ProgressText.Text = tostring(Text or ProgressText.Text)
 		if IsError then
 			StatusPill.Dot.ImageColor3 = Color3.fromRGB(255, 94, 94)
+			ProgressFill.ImageColor3 = Color3.fromRGB(255, 94, 94)
 		else
 			Creator.SetThemeTag(StatusPill.Dot, {
 				ImageColor3 = "Primary",
 			}, 0.12)
+			Creator.SetThemeTag(ProgressFill, {
+				ImageColor3 = "Primary",
+			}, 0.12)
 		end
 		if Progress ~= nil then
+			ProgressFillGradient.Offset = Vector2.new(-0.2, 0)
 			Motion.Play(ProgressFill, "Switch", {
 				Size = UDim2.new(math.clamp(tonumber(Progress) or 0, 0, 1), 0, 1, 0),
 			}, nil, nil, "KeySystemProgress")
+			Motion.Play(ProgressFillGradient, "Background", {
+				Offset = Vector2.new(0.45, 0),
+			}, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, "KeySystemProgressSheen")
 		end
 	end
 

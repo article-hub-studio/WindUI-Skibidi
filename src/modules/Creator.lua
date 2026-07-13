@@ -589,6 +589,43 @@ function Creator.ApplyCornerRadii(Corner, Radius, Corners)
 	return Corner
 end
 
+function Creator.DefaultCornerMap()
+	return {
+		TopLeft = true,
+		TopRight = true,
+		BottomLeft = true,
+		BottomRight = true,
+	}
+end
+
+function Creator.GetLinkedCornerDirection(ParentTable, ParentType)
+	local TypeName = ParentType or (ParentTable and ParentTable.__type)
+
+	if TypeName == "Group" then
+		return true
+	end
+
+	if TypeName == "HStack" then
+		if ParentTable and ParentTable.IsStacked == true then
+			return false
+		end
+
+		local Frame = ParentTable and ParentTable.ElementFrame
+		local Layout = Frame and Frame:FindFirstChildWhichIsA("UIListLayout")
+		if Layout then
+			return Layout.FillDirection == Enum.FillDirection.Horizontal
+		end
+
+		return true
+	end
+
+	return false
+end
+
+function Creator.GetLinkedCornerShape(elements, targetIndex, ParentTable, ParentType)
+	return Creator:GetElementPosition(elements, targetIndex, Creator.GetLinkedCornerDirection(ParentTable, ParentType))
+end
+
 --[[function Creator.NewRoundFrame(Radius, Type, Properties, Children, isButton, ReturnTable)
 	local function getImageForType(shapeType)
 		return Creator.Shapes[shapeType]
@@ -989,19 +1026,18 @@ end
 
 function Creator:GetElementPosition(elements, targetIndex, isHStack)
 	if type(targetIndex) ~= "number" or targetIndex ~= math.floor(targetIndex) then
-		return nil, 1
+		return "Squircle", Creator.DefaultCornerMap()
 	end
 
-	-- local maxIndex = 0
-	-- for k,_ in next, elements do
-	--     if type(k) == "number" and k > maxIndex then maxIndex = k end
-	-- end
-
-	local maxIndex = #elements
-	--print(maxIndex)
+	local maxIndex = 0
+	for index in next, elements or {} do
+		if type(index) == "number" and index > maxIndex then
+			maxIndex = index
+		end
+	end
 
 	if maxIndex == 0 or targetIndex < 1 or targetIndex > maxIndex then
-		return nil, 2
+		return "Squircle", Creator.DefaultCornerMap()
 	end
 
 	local function isDelimiter(el)
@@ -1013,7 +1049,7 @@ function Creator:GetElementPosition(elements, targetIndex, isHStack)
 	end
 
 	if isDelimiter(elements[targetIndex]) then
-		return nil, 3
+		return "Squircle", Creator.DefaultCornerMap()
 	end
 
 	local function calculate(pos, size)
@@ -1067,29 +1103,40 @@ function Creator:GetElementPosition(elements, targetIndex, isHStack)
 		}
 	end
 
-	local groupStart = 1
-	local groupCount = 0
+	local group = {}
+	local function flush()
+		if #group == 0 then
+			return nil
+		end
+
+		for pos, index in ipairs(group) do
+			if index == targetIndex then
+				return calculate(pos, #group)
+			end
+		end
+
+		table.clear(group)
+		return nil
+	end
 
 	for i = 1, maxIndex do
 		local el = elements[i]
 		if isDelimiter(el) then
-			if targetIndex >= groupStart and targetIndex <= i - 1 then
-				local pos = targetIndex - groupStart + 1
-				return calculate(pos, groupCount)
+			local shape, corners = flush()
+			if shape then
+				return shape, corners
 			end
-			groupStart = i + 1
-			groupCount = 0
 		else
-			groupCount = groupCount + 1
+			table.insert(group, i)
 		end
 	end
 
-	if targetIndex >= groupStart and targetIndex <= maxIndex then
-		local pos = targetIndex - groupStart + 1
-		return calculate(pos, groupCount)
+	local shape, corners = flush()
+	if shape then
+		return shape, corners
 	end
 
-	return nil, 4
+	return "Squircle", Creator.DefaultCornerMap()
 end
 
 return Creator

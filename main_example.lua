@@ -2,6 +2,18 @@ local WindUI = loadstring(game:HttpGet("https://article-hub-studio.github.io/Win
 
 WindUI:SetMotionPreset("Liquid")
 
+WindUI:LoadingCreate({
+	Title = "WindUI Full Example",
+	Desc = "Preparing liquid UI kit",
+	Icon = "sparkles",
+	Width = 350,
+	Steps = { "Theme", "Motion", "Elements" },
+	ScrimTransparency = 0.28,
+	CardTransparency = 0.14,
+})
+
+WindUI:LoadingSet(0.22, "Preparing theme")
+
 local Window = WindUI:CreateWindow({
 	Title = ".ftgs hub | WindUI Full Example",
 	Folder = "WindUIFullExample",
@@ -12,16 +24,6 @@ local Window = WindUI:CreateWindow({
 	ElementGap = 8,
 	LiquidGlass = true,
 	ToggleKey = Enum.KeyCode.RightShift,
-	LoadingScreen = {
-		Title = "WindUI Full Example",
-		Desc = "Preparing liquid UI kit",
-		Icon = "sparkles",
-		Width = 350,
-		Steps = { "Theme", "Motion", "Elements" },
-		ScrimTransparency = 0.28,
-		CardTransparency = 0.14,
-		CloseDelay = 0.12,
-	},
 	KeyBindMenu = {
 		DefaultKey = "RightShift",
 		QuickKeys = { "RightShift", "F", "LeftControl" },
@@ -78,6 +80,11 @@ local Window = WindUI:CreateWindow({
 	BackgroundOverlayTransparency = 0.47,
 })
 
+WindUI:LoadingSet({ Step = 2, Progress = 0.58, Status = "Building motion" })
+task.delay(0.2, function()
+	WindUI:LoadingSet({ Step = 3, Progress = 1, Status = "Ready", Close = true, Delay = 0.16 })
+end)
+
 local OverviewTab = Window:Tab({
 	Title = "Overview",
 	Icon = "home",
@@ -107,6 +114,7 @@ OverviewTab:Path2D({
 	Title = "Path 2D",
 	Desc = "Animated route drawing with a moving marker.",
 	Height = 132,
+	PathPadding = 22,
 	Duration = 1.15,
 	Points = {
 		{ 0.08, 0.68 },
@@ -565,6 +573,7 @@ Controls:Path2D({
 	Title = "Control Path",
 	Desc = "Replayable 2D path animation.",
 	Height = 118,
+	PathPadding = 22,
 	Duration = 0.95,
 	Points = {
 		{ 0.1, 0.5 },
