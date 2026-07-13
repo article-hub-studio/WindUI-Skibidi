@@ -429,112 +429,76 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 		ExitButton.AnchorPoint = Vector2.new(0, 1)
 	end
 
-	if Config.KeySystem.URL then
-		CreateButton("Get key", "key", function()
-			if setclipboard then
-				setclipboard(Config.KeySystem.URL)
-			end
+	local function NotifyKeySystem(Content, Icon)
+		if Config.WindUI and Config.WindUI.Notify then
+			Config.WindUI:Notify({
+				Title = "Key System",
+				Content = Content,
+				Icon = Icon or "key",
+			})
+		end
+	end
+
+	local function CopyRawLink(Link)
+		Link = Link and tostring(Link) or ""
+		if Link == "" then
+			return false, "No key link configured."
+		end
+
+		local Clipboard = setclipboard or toclipboard
+		if not Clipboard then
+			return false, "Clipboard is not available on this executor."
+		end
+
+		Clipboard(Link)
+		return true
+	end
+
+	local function PickServiceLink(ServiceConfig)
+		return ServiceConfig.Discord
+			or ServiceConfig.URL
+			or ServiceConfig.Url
+			or ServiceConfig.url
+			or ServiceConfig.Link
+			or ServiceConfig.link
+	end
+
+	local function CopyServiceLink(ServiceEntry)
+		local Link = PickServiceLink(ServiceEntry.Config)
+		local CopyOk, CopyResult
+
+		if Link then
+			CopyOk, CopyResult = CopyRawLink(Link)
+		elseif ServiceEntry.Instance and type(ServiceEntry.Instance.Copy) == "function" then
+			CopyOk, CopyResult = pcall(ServiceEntry.Instance.Copy)
+		else
+			CopyOk, CopyResult = false, ServiceEntry.Error or "Service link is not ready."
+		end
+
+		if CopyOk then
 			SetState("Key link copied", 0.36)
+			NotifyKeySystem("Key link copied to clipboard.", "key")
+		else
+			SetState("Copy unavailable", 0.08, true)
+			NotifyKeySystem(tostring(CopyResult or "Unable to copy key link."), "triangle-alert")
+		end
+	end
+
+	if Config.KeySystem.URL and not Config.KeySystem.API then
+		CreateButton("Get key", "key", function()
+			local CopyOk, CopyResult = CopyRawLink(Config.KeySystem.URL)
+			if CopyOk then
+				SetState("Key link copied", 0.36)
+				NotifyKeySystem("Key link copied to clipboard.", "key")
+			else
+				SetState("Copy unavailable", 0.08, true)
+				NotifyKeySystem(tostring(CopyResult), "triangle-alert")
+			end
 		end, "Secondary", ButtonsContainer.Frame)
 	end
 
 	if Config.KeySystem.API then
-		-- local Icons = {
-		--     platoboost = "rbxassetid://75920162824531",
-		--     pandadevelopment = "panda",
-		-- }
-		-- local Names = {
-		--     platoboost = "Platoboost",
-		--     pandadevelopment = "Panda Development",
-		-- }
-		local Width = math.min(240, math.max(190, UISize - 42))
-		local Opened = false
-		local ButtonFrame = CreateButton("Get key", "key", nil, "Secondary", ButtonsContainer.Frame)
-
-		local Divider = Creator.NewRoundFrame(99, "Squircle", {
-			Size = UDim2.new(0, 1, 1, 0),
-			ThemeTag = {
-				ImageColor3 = "Text",
-			},
-			ImageTransparency = 0.9,
-		})
-
-		local DividerContainer = New("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(0, 0, 1, 0),
-			AutomaticSize = "X",
-			Parent = ButtonFrame.Frame,
-		}, {
-			Divider,
-			New("UIPadding", {
-				PaddingLeft = UDim.new(0, 5),
-				PaddingRight = UDim.new(0, 5),
-			}),
-		})
-
-		local ChevronDown = Creator.Image("chevron-down", "chevron-down", 0, "Temp", "KeySystem", true)
-
-		ChevronDown.Size = UDim2.new(1, 0, 1, 0)
-
-		local IconContainer = New("Frame", {
-			Size = UDim2.new(0, 24 - 3, 0, 24 - 3),
-			Parent = ButtonFrame.Frame,
-			BackgroundTransparency = 1,
-		}, {
-			ChevronDown,
-		})
-
-		local DropdownFrame = Creator.NewRoundFrame(15, "Squircle", {
-			Size = UDim2.new(1, 0, 0, 0),
-			AutomaticSize = "Y",
-			ThemeTag = {
-				ImageColor3 = "Background",
-			},
-		}, {
-			New("UIPadding", {
-				PaddingTop = UDim.new(0, 10 / 2),
-				PaddingLeft = UDim.new(0, 10 / 2),
-				PaddingRight = UDim.new(0, 10 / 2),
-				PaddingBottom = UDim.new(0, 10 / 2),
-			}),
-			New("UIListLayout", {
-				FillDirection = "Vertical",
-				Padding = UDim.new(0, 10 / 2),
-			}),
-		})
-
-		local DropdownContainer = New("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(0, Width, 0, 0),
-			ClipsDescendants = true,
-			AnchorPoint = Vector2.new(1, 0),
-			Parent = ButtonFrame,
-			Position = UDim2.new(1, 0, 1, 15),
-		}, {
-			DropdownFrame,
-		})
-
-		New("TextLabel", {
-			Text = "Select Service",
-			BackgroundTransparency = 1,
-			FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
-			ThemeTag = { TextColor3 = "Text" },
-			TextTransparency = 0.2,
-			TextSize = 16,
-			Size = UDim2.new(1, 0, 0, 0),
-			AutomaticSize = "Y",
-			TextWrapped = true,
-			TextXAlignment = "Left",
-			Parent = DropdownFrame,
-		}, {
-			New("UIPadding", {
-				PaddingTop = UDim.new(0, 10),
-				PaddingLeft = UDim.new(0, 10),
-				PaddingRight = UDim.new(0, 10),
-				PaddingBottom = UDim.new(0, 10),
-			}),
-		})
-
+		local ServiceEntries = {}
 		for _, i in next, Config.KeySystem.API do
 			local serviceDef = Config.WindUI.Services[i.Type]
 			if serviceDef then
@@ -543,13 +507,133 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 					table.insert(args, i[argName])
 				end
 
-				local serviceInstance = serviceDef.New(table.unpack(args))
-				serviceInstance.Type = i.Type
-				table.insert(Services, serviceInstance)
+				local CreateOk, serviceInstance = pcall(function()
+					return serviceDef.New(table.unpack(args))
+				end)
 
+				local Entry = {
+					Config = i,
+					Definition = serviceDef,
+					Instance = nil,
+					Error = nil,
+				}
+
+				if CreateOk and serviceInstance then
+					serviceInstance.Type = i.Type
+					Entry.Instance = serviceInstance
+					table.insert(Services, serviceInstance)
+				else
+					Entry.Error = serviceInstance
+				end
+
+				table.insert(ServiceEntries, Entry)
+			end
+		end
+
+		local Width = math.min(240, math.max(190, UISize - 42))
+		local Opened = false
+
+		if #ServiceEntries == 1 then
+			CreateButton("Get key", "key", function()
+				CopyServiceLink(ServiceEntries[1])
+			end, "Secondary", ButtonsContainer.Frame)
+		elseif #ServiceEntries > 1 then
+			local ButtonFrame = CreateButton("Get key", "key", nil, "Secondary", ButtonsContainer.Frame)
+
+			local Divider = Creator.NewRoundFrame(99, "Squircle", {
+				Size = UDim2.new(0, 1, 1, 0),
+				ThemeTag = {
+					ImageColor3 = "Text",
+				},
+				ImageTransparency = 0.9,
+			})
+
+			New("Frame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0, 0, 1, 0),
+				AutomaticSize = "X",
+				Parent = ButtonFrame.Frame,
+			}, {
+				Divider,
+				New("UIPadding", {
+					PaddingLeft = UDim.new(0, 5),
+					PaddingRight = UDim.new(0, 5),
+				}),
+			})
+
+			local ChevronDown = Creator.Image("chevron-down", "chevron-down", 0, "Temp", "KeySystem", true)
+
+			ChevronDown.Size = UDim2.new(1, 0, 1, 0)
+
+			New("Frame", {
+				Size = UDim2.new(0, 24 - 3, 0, 24 - 3),
+				Parent = ButtonFrame.Frame,
+				BackgroundTransparency = 1,
+			}, {
+				ChevronDown,
+			})
+
+			local DropdownFrame = Creator.NewRoundFrame(15, "Squircle", {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = "Y",
+				ZIndex = 99999,
+				ThemeTag = {
+					ImageColor3 = "Background",
+				},
+			}, {
+				New("UIPadding", {
+					PaddingTop = UDim.new(0, 10 / 2),
+					PaddingLeft = UDim.new(0, 10 / 2),
+					PaddingRight = UDim.new(0, 10 / 2),
+					PaddingBottom = UDim.new(0, 10 / 2),
+				}),
+				New("UIListLayout", {
+					FillDirection = "Vertical",
+					Padding = UDim.new(0, 10 / 2),
+				}),
+			})
+
+			local DropdownContainer = New("Frame", {
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0, Width, 0, 0),
+				ClipsDescendants = true,
+				AnchorPoint = Vector2.new(1, 0),
+				Parent = ButtonFrame,
+				Position = UDim2.new(1, 0, 1, 10),
+				ZIndex = 99999,
+			}, {
+				DropdownFrame,
+			})
+
+			New("TextLabel", {
+				Text = "Select Service",
+				BackgroundTransparency = 1,
+				FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
+				ThemeTag = { TextColor3 = "Text" },
+				TextTransparency = 0.2,
+				TextSize = 15,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = "Y",
+				TextWrapped = true,
+				TextXAlignment = "Left",
+				Parent = DropdownFrame,
+				ZIndex = 100000,
+			}, {
+				New("UIPadding", {
+					PaddingTop = UDim.new(0, 8),
+					PaddingLeft = UDim.new(0, 10),
+					PaddingRight = UDim.new(0, 10),
+					PaddingBottom = UDim.new(0, 8),
+				}),
+			})
+
+			for _, ServiceEntry in next, ServiceEntries do
+				local i = ServiceEntry.Config
+				local serviceDef = ServiceEntry.Definition
 				local ServiceIcon = i.Icon or serviceDef.Icon or "key-round"
 				local IconFrame = Creator.Image(ServiceIcon, ServiceIcon, 0, "Temp", "KeySystem", true)
-				IconFrame.Size = UDim2.new(0, 24, 0, 24)
+				IconFrame.Size = UDim2.new(0, 20, 0, 20)
+				IconFrame.ZIndex = 100000
 
 				local APIFrame = Creator.NewRoundFrame(10, "Squircle", {
 					Size = UDim2.new(1, 0, 0, 0),
@@ -557,23 +641,25 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 					ImageTransparency = 1,
 					Parent = DropdownFrame,
 					AutomaticSize = "Y",
+					ZIndex = 100000,
 				}, {
 					New("UIListLayout", {
 						FillDirection = "Horizontal",
-						Padding = UDim.new(0, 10),
+						Padding = UDim.new(0, 8),
 						VerticalAlignment = "Center",
 					}),
 					IconFrame,
 					New("UIPadding", {
-						PaddingTop = UDim.new(0, 10),
+						PaddingTop = UDim.new(0, 9),
 						PaddingLeft = UDim.new(0, 10),
 						PaddingRight = UDim.new(0, 10),
-						PaddingBottom = UDim.new(0, 10),
+						PaddingBottom = UDim.new(0, 9),
 					}),
 					New("Frame", {
 						BackgroundTransparency = 1,
-						Size = UDim2.new(1, -24 - 10, 0, 0),
+						Size = UDim2.new(1, -28, 0, 0),
 						AutomaticSize = "Y",
+						ZIndex = 100000,
 					}, {
 						New("UIListLayout", {
 							FillDirection = "Vertical",
@@ -591,6 +677,7 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 							AutomaticSize = "Y",
 							TextWrapped = true,
 							TextXAlignment = "Left",
+							ZIndex = 100001,
 						}),
 						New("TextLabel", {
 							Text = i.Desc or "",
@@ -604,6 +691,7 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 							TextWrapped = true,
 							Visible = i.Desc and true or false,
 							TextXAlignment = "Left",
+							ZIndex = 100001,
 						}),
 					}),
 				}, true)
@@ -618,41 +706,35 @@ function KeySystem.new(Config, Filename, func, keyValidator)
 					Amount = 0.985,
 				})
 				Creator.AddSignal(APIFrame.MouseButton1Click, function()
-					serviceInstance.Copy()
-					SetState("Key link copied", 0.36)
-					Config.WindUI:Notify({
-						Title = "Key System",
-						Content = "Key link copied to clipboard.",
-						Icon = "key",
-					})
+					CopyServiceLink(ServiceEntry)
 				end)
 			end
-		end
 
-		Creator.AddSignal(ButtonFrame.MouseButton1Click, function()
-			if not Opened then
-				Motion.Play(
-					DropdownContainer,
-					"Expand",
-					{ Size = UDim2.new(0, Width, 0, DropdownFrame.AbsoluteSize.Y + 1) },
-					Enum.EasingStyle.Quint,
-					Enum.EasingDirection.Out,
-					"KeyService"
-				)
-				Motion.Play(ChevronDown, "Expand", { Rotation = 180 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "KeyServiceChevron")
-			else
-				Motion.Play(
-					DropdownContainer,
-					"Expand",
-					{ Size = UDim2.new(0, Width, 0, 0) },
-					Enum.EasingStyle.Quint,
-					Enum.EasingDirection.Out,
-					"KeyService"
-				)
-				Motion.Play(ChevronDown, "Expand", { Rotation = 0 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "KeyServiceChevron")
-			end
-			Opened = not Opened
-		end)
+			Creator.AddSignal(ButtonFrame.MouseButton1Click, function()
+				if not Opened then
+					Motion.Play(
+						DropdownContainer,
+						"Expand",
+						{ Size = UDim2.new(0, Width, 0, DropdownFrame.AbsoluteSize.Y + 1) },
+						Enum.EasingStyle.Quint,
+						Enum.EasingDirection.Out,
+						"KeyService"
+					)
+					Motion.Play(ChevronDown, "Expand", { Rotation = 180 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "KeyServiceChevron")
+				else
+					Motion.Play(
+						DropdownContainer,
+						"Expand",
+						{ Size = UDim2.new(0, Width, 0, 0) },
+						Enum.EasingStyle.Quint,
+						Enum.EasingDirection.Out,
+						"KeyService"
+					)
+					Motion.Play(ChevronDown, "Expand", { Rotation = 0 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "KeyServiceChevron")
+				end
+				Opened = not Opened
+			end)
+		end
 	end
 
 	local function handleSuccess(key, ShouldSave)

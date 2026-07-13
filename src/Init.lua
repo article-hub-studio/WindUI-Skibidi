@@ -576,9 +576,9 @@ function WindUI:CreateWindow(Config)
 		if Config.KeySystem.KeyValidator then
 			if Config.KeySystem.SaveKey and isfile(keyPath) then
 				local savedKey = readfile(keyPath)
-				local isValid = Config.KeySystem.KeyValidator(savedKey)
+				local ValidatorOk, isValid = pcall(Config.KeySystem.KeyValidator, savedKey)
 
-				if isValid then
+				if ValidatorOk and isValid then
 					CanLoadWindow = true
 				else
 					loadKeysystem()
@@ -613,9 +613,14 @@ function WindUI:CreateWindow(Config)
 							table.insert(args, i[argName])
 						end
 
-						local service = serviceData.New(table.unpack(args))
-						local success = service.Verify(fileKey)
-						if success then
+						local CreateOk, service = pcall(function()
+							return serviceData.New(table.unpack(args))
+						end)
+						local VerifyOk, success = false, false
+						if CreateOk and service and type(service.Verify) == "function" then
+							VerifyOk, success = pcall(service.Verify, fileKey)
+						end
+						if VerifyOk and success then
 							isSuccess = true
 							break
 						end

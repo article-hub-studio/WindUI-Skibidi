@@ -3969,29 +3969,118 @@ u.Position=UDim2.new(0,10,1,-10)
 u.AnchorPoint=Vector2.new(0,1)
 end
 
-if ah.KeySystem.URL then
-af("Get key","key",function()
-if setclipboard then
-setclipboard(ah.KeySystem.URL)
+local function NotifyKeySystem(v,x)
+if ah.WindUI and ah.WindUI.Notify then
+ah.WindUI:Notify{
+Title="Key System",
+Content=v,
+Icon=x or"key",
+}
 end
+end
+
+local function CopyRawLink(v)
+v=v and tostring(v)or""
+if v==""then
+return false,"No key link configured."
+end
+
+local x=setclipboard or toclipboard
+if not x then
+return false,"Clipboard is not available on this executor."
+end
+
+x(v)
+return true
+end
+
+local function PickServiceLink(v)
+return v.Discord
+or v.URL
+or v.Url
+or v.url
+or v.Link
+or v.link
+end
+
+local function CopyServiceLink(v)
+local x=PickServiceLink(v.Config)
+local z,A
+
+if x then
+z,A=CopyRawLink(x)
+elseif v.Instance and type(v.Instance.Copy)=="function"then
+z,A=pcall(v.Instance.Copy)
+else
+z,A=false,v.Error or"Service link is not ready."
+end
+
+if z then
 SetState("Key link copied",0.36)
+NotifyKeySystem("Key link copied to clipboard.","key")
+else
+SetState("Copy unavailable",0.08,true)
+NotifyKeySystem(tostring(A or"Unable to copy key link."),"triangle-alert")
+end
+end
+
+if ah.KeySystem.URL and not ah.KeySystem.API then
+af("Get key","key",function()
+local v,x=CopyRawLink(ah.KeySystem.URL)
+if v then
+SetState("Key link copied",0.36)
+NotifyKeySystem("Key link copied to clipboard.","key")
+else
+SetState("Copy unavailable",0.08,true)
+NotifyKeySystem(tostring(x),"triangle-alert")
+end
 end,"Secondary",p.Frame)
 end
 
 if ah.KeySystem.API then
+local v={}
+for x,z in next,ah.KeySystem.API do
+local A=ah.WindUI.Services[z.Type]
+if A then
+local B={}
+for C,F in next,A.Args do
+table.insert(B,z[F])
+end
 
+local C,F=pcall(function()
+return A.New(table.unpack(B))
+end)
 
+local G={
+Config=z,
+Definition=A,
+Instance=nil,
+Error=nil,
+}
 
+if C and F then
+F.Type=z.Type
+G.Instance=F
+table.insert(an,F)
+else
+G.Error=F
+end
 
+table.insert(v,G)
+end
+end
 
+local x=math.min(240,math.max(190,at-42))
+local z=false
 
+if#v==1 then
+af("Get key","key",function()
+CopyServiceLink(v[1])
+end,"Secondary",p.Frame)
+elseif#v>1 then
+local A=af("Get key","key",nil,"Secondary",p.Frame)
 
-
-local v=math.min(240,math.max(190,at-42))
-local x=false
-local z=af("Get key","key",nil,"Secondary",p.Frame)
-
-local A=ab.NewRoundFrame(99,"Squircle",{
+local B=ab.NewRoundFrame(99,"Squircle",{
 Size=UDim2.new(0,1,1,0),
 ThemeTag={
 ImageColor3="Text",
@@ -4003,30 +4092,31 @@ ad("Frame",{
 BackgroundTransparency=1,
 Size=UDim2.new(0,0,1,0),
 AutomaticSize="X",
-Parent=z.Frame,
+Parent=A.Frame,
 },{
-A,
+B,
 ad("UIPadding",{
 PaddingLeft=UDim.new(0,5),
 PaddingRight=UDim.new(0,5),
 }),
 })
 
-local B=ab.Image("chevron-down","chevron-down",0,"Temp","KeySystem",true)
+local C=ab.Image("chevron-down","chevron-down",0,"Temp","KeySystem",true)
 
-B.Size=UDim2.new(1,0,1,0)
+C.Size=UDim2.new(1,0,1,0)
 
 ad("Frame",{
 Size=UDim2.new(0,21,0,21),
-Parent=z.Frame,
+Parent=A.Frame,
 BackgroundTransparency=1,
 },{
-B,
+C,
 })
 
-local C=ab.NewRoundFrame(15,"Squircle",{
+local F=ab.NewRoundFrame(15,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
+ZIndex=99999,
 ThemeTag={
 ImageColor3="Background",
 },
@@ -4043,15 +4133,16 @@ Padding=UDim.new(0,5),
 }),
 })
 
-local F=ad("Frame",{
+local G=ad("Frame",{
 BackgroundTransparency=1,
-Size=UDim2.new(0,v,0,0),
+Size=UDim2.new(0,x,0,0),
 ClipsDescendants=true,
 AnchorPoint=Vector2.new(1,0),
-Parent=z,
-Position=UDim2.new(1,0,1,15),
+Parent=A,
+Position=UDim2.new(1,0,1,10),
+ZIndex=99999,
 },{
-C,
+F,
 })
 
 ad("TextLabel",{
@@ -4060,60 +4151,55 @@ BackgroundTransparency=1,
 FontFace=Font.new(ab.Font,Enum.FontWeight.Medium),
 ThemeTag={TextColor3="Text"},
 TextTransparency=0.2,
-TextSize=16,
+TextSize=15,
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 TextWrapped=true,
 TextXAlignment="Left",
-Parent=C,
+Parent=F,
+ZIndex=100000,
 },{
 ad("UIPadding",{
-PaddingTop=UDim.new(0,10),
+PaddingTop=UDim.new(0,8),
 PaddingLeft=UDim.new(0,10),
 PaddingRight=UDim.new(0,10),
-PaddingBottom=UDim.new(0,10),
+PaddingBottom=UDim.new(0,8),
 }),
 })
 
-for G,H in next,ah.KeySystem.API do
-local J=ah.WindUI.Services[H.Type]
-if J then
-local L={}
-for M,N in next,J.Args do
-table.insert(L,H[N])
-end
-
-local M=J.New(table.unpack(L))
-M.Type=H.Type
-table.insert(an,M)
-
-local N=H.Icon or J.Icon or"key-round"
+for H,J in next,v do
+local L=J.Config
+local M=J.Definition
+local N=L.Icon or M.Icon or"key-round"
 local O=ab.Image(N,N,0,"Temp","KeySystem",true)
-O.Size=UDim2.new(0,24,0,24)
+O.Size=UDim2.new(0,20,0,20)
+O.ZIndex=100000
 
 local P=ab.NewRoundFrame(10,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 ThemeTag={ImageColor3="Text"},
 ImageTransparency=1,
-Parent=C,
+Parent=F,
 AutomaticSize="Y",
+ZIndex=100000,
 },{
 ad("UIListLayout",{
 FillDirection="Horizontal",
-Padding=UDim.new(0,10),
+Padding=UDim.new(0,8),
 VerticalAlignment="Center",
 }),
 O,
 ad("UIPadding",{
-PaddingTop=UDim.new(0,10),
+PaddingTop=UDim.new(0,9),
 PaddingLeft=UDim.new(0,10),
 PaddingRight=UDim.new(0,10),
-PaddingBottom=UDim.new(0,10),
+PaddingBottom=UDim.new(0,9),
 }),
 ad("Frame",{
 BackgroundTransparency=1,
-Size=UDim2.new(1,-34,0,0),
+Size=UDim2.new(1,-28,0,0),
 AutomaticSize="Y",
+ZIndex=100000,
 },{
 ad("UIListLayout",{
 FillDirection="Vertical",
@@ -4121,7 +4207,7 @@ Padding=UDim.new(0,5),
 HorizontalAlignment="Center",
 }),
 ad("TextLabel",{
-Text=H.Title or J.Name,
+Text=L.Title or M.Name,
 BackgroundTransparency=1,
 FontFace=Font.new(ab.Font,Enum.FontWeight.Medium),
 ThemeTag={TextColor3="Text"},
@@ -4131,9 +4217,10 @@ Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 TextWrapped=true,
 TextXAlignment="Left",
+ZIndex=100001,
 }),
 ad("TextLabel",{
-Text=H.Desc or"",
+Text=L.Desc or"",
 BackgroundTransparency=1,
 FontFace=Font.new(ab.Font,Enum.FontWeight.Regular),
 ThemeTag={TextColor3="Text"},
@@ -4142,8 +4229,9 @@ TextSize=16,
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 TextWrapped=true,
-Visible=H.Desc and true or false,
+Visible=L.Desc and true or false,
 TextXAlignment="Left",
+ZIndex=100001,
 }),
 }),
 },true)
@@ -4158,41 +4246,35 @@ ac.AttachPress(P,ab,{
 Amount=0.985,
 })
 ab.AddSignal(P.MouseButton1Click,function()
-M.Copy()
-SetState("Key link copied",0.36)
-ah.WindUI:Notify{
-Title="Key System",
-Content="Key link copied to clipboard.",
-Icon="key",
-}
+CopyServiceLink(J)
 end)
-end
 end
 
-ab.AddSignal(z.MouseButton1Click,function()
-if not x then
+ab.AddSignal(A.MouseButton1Click,function()
+if not z then
 ac.Play(
-F,
+G,
 "Expand",
-{Size=UDim2.new(0,v,0,C.AbsoluteSize.Y+1)},
+{Size=UDim2.new(0,x,0,F.AbsoluteSize.Y+1)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "KeyService"
 )
-ac.Play(B,"Expand",{Rotation=180},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
+ac.Play(C,"Expand",{Rotation=180},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
 else
 ac.Play(
-F,
+G,
 "Expand",
-{Size=UDim2.new(0,v,0,0)},
+{Size=UDim2.new(0,x,0,0)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "KeyService"
 )
-ac.Play(B,"Expand",{Rotation=0},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
+ac.Play(C,"Expand",{Rotation=0},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"KeyServiceChevron")
 end
-x=not x
+z=not z
 end)
+end
 end
 
 local function handleSuccess(v,x)
@@ -26137,9 +26219,9 @@ local m=(aB.Folder or"Temp").."/"..l..".key"
 if aB.KeySystem.KeyValidator then
 if aB.KeySystem.SaveKey and isfile(m)then
 local p=readfile(m)
-local r=aB.KeySystem.KeyValidator(p)
+local r,u=pcall(aB.KeySystem.KeyValidator,p)
 
-if r then
+if r and u then
 d=true
 else
 loadKeysystem()
@@ -26174,9 +26256,14 @@ for A,B in next,x.Args do
 table.insert(z,v[B])
 end
 
-local A=x.New(table.unpack(z))
-local B=A.Verify(p)
-if B then
+local A,B=pcall(function()
+return x.New(table.unpack(z))
+end)
+local C,F=false,false
+if A and B and type(B.Verify)=="function"then
+C,F=pcall(B.Verify,p)
+end
+if C and F then
 r=true
 break
 end
