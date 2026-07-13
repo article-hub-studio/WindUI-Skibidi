@@ -8168,25 +8168,87 @@ end
 return av~=""
 end
 
+local function GetBackgroundKind(av)
+if av==nil or av==false then
+return nil,nil,{}
+end
+
+if typeof(av)=="table"then
+local aw=av.Type or av.Kind or av.Mode
+if av.Video or aw=="Video"or aw=="video"then
+return"Video",av.Video or av.Url or av.URL or av.Source or av.Asset or av.Path,av
+end
+if av.Image or av.Url or av.URL or av.Asset or av.Path or aw=="Image"or aw=="image"then
+return"Image",av.Image or av.Url or av.URL or av.Asset or av.Path or av.Source,av
+end
+if av.Gradient then
+return"Gradient",av.Gradient,av
+end
+if aw=="Gradient"or aw=="gradient"or av.Rotation~=nil or av.Offset~=nil then
+return"Gradient",av,av
+end
+if typeof(av.Color)=="ColorSequence"or typeof(av.Transparency)=="NumberSequence"then
+return"Gradient",av,av
+end
+return nil,nil,av
+end
+
+if typeof(av)=="string"then
+local aw=string.match(av,"^video:(.+)")
+local ax=av:match"^([^?#]+)"or av
+if aw or string.match(ax:lower(),"%.webm$")then
+return"Video",aw or av,{}
+end
+if IsImageBackground(av)then
+return"Image",av,{}
+end
+end
+
+return nil,nil,{}
+end
+
+local function FindWindowBackgroundVideo()
+local av=ag.UIElements and ag.UIElements.Main
+local aw=av and av:FindFirstChild"Background"
+local ax=aw and aw:FindFirstChild"BackgroundVideo"
+if ax and ax:IsA"VideoFrame"then
+return ax.Video
+end
+return nil
+end
+
+local function ApplyGradientProperty(av,aw,ax)
+if aw=="Transparency"and typeof(ax)=="number"then
+return
+end
+pcall(function()
+av[aw]=ax
+end)
+end
+
 local function ApplyBackgroundMedia()
 if aj.UseWindowBackground==false then
 return
 end
 
-local av=aj.BackgroundGradient
-or(typeof(aj.Background)=="table"and aj.Background)
+local av,aw=GetBackgroundKind(aj.Background)
+local ax,ay=GetBackgroundKind(ag.Background)
+local az=aj.BackgroundGradient
+or(av=="Gradient"and aw)
 or ag.BackgroundGradient
-or(typeof(ag.Background)=="table"and ag.Background)
-local aw=aj.BackgroundImage
-or(IsImageBackground(aj.Background)and aj.Background)
-or(IsImageBackground(ag.Background)and ag.Background)
+or(ax=="Gradient"and ay)
+local aA=aj.BackgroundImage
+or(av=="Image"and aw)
+or(ax=="Image"and ay)
+local aB=(av=="Video"and aw)
+or(ax=="Video"and(FindWindowBackgroundVideo()or ay))
 
-if aw then
+if aA then
 ar.UIElements.BackgroundImage=ae("ImageLabel",{
 Name="BackgroundImage",
 Size=UDim2.new(1,0,1,0),
 BackgroundTransparency=1,
-Image=tostring(aw),
+Image=tostring(aA),
 ImageTransparency=aj.BackgroundImageTransparency or ag.BackgroundImageTransparency or 0.46,
 ScaleType=aj.BackgroundScaleType or ag.BackgroundScaleType or"Crop",
 ZIndex=10019,
@@ -8198,10 +8260,28 @@ CornerRadius=UDim.new(0,ag.ElementConfig.UICorner),
 })
 end
 
-if av then
-local ax=ae"UIGradient"
-for ay,az in next,av do
-ax[ay]=az
+if aB then
+ar.UIElements.BackgroundVideo=ae("VideoFrame",{
+Name="BackgroundVideo",
+Size=UDim2.new(1,0,1,0),
+BackgroundTransparency=1,
+Video=tostring(aB),
+Looped=true,
+Volume=0,
+ZIndex=10019,
+Parent=as,
+},{
+ae("UICorner",{
+CornerRadius=UDim.new(0,ag.ElementConfig.UICorner),
+}),
+})
+ar.UIElements.BackgroundVideo:Play()
+end
+
+if az then
+local b=ae"UIGradient"
+for d,f in next,az do
+ApplyGradientProperty(b,d,f)
 end
 
 ar.UIElements.BackgroundGradient=ac.NewRoundFrame(ag.ElementConfig.UICorner,"Squircle",{
@@ -8214,7 +8294,7 @@ or 0.55,
 ZIndex=10019,
 Parent=as,
 },{
-ax,
+b,
 })
 end
 end

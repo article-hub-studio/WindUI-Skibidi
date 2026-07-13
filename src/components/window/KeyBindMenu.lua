@@ -193,18 +193,80 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		return Value ~= ""
 	end
 
+	local function GetBackgroundKind(Value)
+		if Value == nil or Value == false then
+			return nil, nil, {}
+		end
+
+		if typeof(Value) == "table" then
+			local Kind = Value.Type or Value.Kind or Value.Mode
+			if Value.Video or Kind == "Video" or Kind == "video" then
+				return "Video", Value.Video or Value.Url or Value.URL or Value.Source or Value.Asset or Value.Path, Value
+			end
+			if Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Kind == "Image" or Kind == "image" then
+				return "Image", Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Value.Source, Value
+			end
+			if Value.Gradient then
+				return "Gradient", Value.Gradient, Value
+			end
+			if Kind == "Gradient" or Kind == "gradient" or Value.Rotation ~= nil or Value.Offset ~= nil then
+				return "Gradient", Value, Value
+			end
+			if typeof(Value.Color) == "ColorSequence" or typeof(Value.Transparency) == "NumberSequence" then
+				return "Gradient", Value, Value
+			end
+			return nil, nil, Value
+		end
+
+		if typeof(Value) == "string" then
+			local Video = string.match(Value, "^video:(.+)")
+			local CleanUrl = Value:match("^([^?#]+)") or Value
+			if Video or string.match(CleanUrl:lower(), "%.webm$") then
+				return "Video", Video or Value, {}
+			end
+			if IsImageBackground(Value) then
+				return "Image", Value, {}
+			end
+		end
+
+		return nil, nil, {}
+	end
+
+	local function FindWindowBackgroundVideo()
+		local Main = Window.UIElements and Window.UIElements.Main
+		local Background = Main and Main:FindFirstChild("Background")
+		local Video = Background and Background:FindFirstChild("BackgroundVideo")
+		if Video and Video:IsA("VideoFrame") then
+			return Video.Video
+		end
+		return nil
+	end
+
+	local function ApplyGradientProperty(UIGradient, Key, Value)
+		if Key == "Transparency" and typeof(Value) == "number" then
+			return
+		end
+		pcall(function()
+			UIGradient[Key] = Value
+		end)
+	end
+
 	local function ApplyBackgroundMedia()
 		if MenuConfig.UseWindowBackground == false then
 			return
 		end
 
+		local MenuBackgroundKind, MenuBackgroundSource = GetBackgroundKind(MenuConfig.Background)
+		local WindowBackgroundKind, WindowBackgroundSource = GetBackgroundKind(Window.Background)
 		local Gradient = MenuConfig.BackgroundGradient
-			or (typeof(MenuConfig.Background) == "table" and MenuConfig.Background)
+			or (MenuBackgroundKind == "Gradient" and MenuBackgroundSource)
 			or Window.BackgroundGradient
-			or (typeof(Window.Background) == "table" and Window.Background)
+			or (WindowBackgroundKind == "Gradient" and WindowBackgroundSource)
 		local Image = MenuConfig.BackgroundImage
-			or (IsImageBackground(MenuConfig.Background) and MenuConfig.Background)
-			or (IsImageBackground(Window.Background) and Window.Background)
+			or (MenuBackgroundKind == "Image" and MenuBackgroundSource)
+			or (WindowBackgroundKind == "Image" and WindowBackgroundSource)
+		local Video = (MenuBackgroundKind == "Video" and MenuBackgroundSource)
+			or (WindowBackgroundKind == "Video" and (FindWindowBackgroundVideo() or WindowBackgroundSource))
 
 		if Image then
 			Menu.UIElements.BackgroundImage = New("ImageLabel", {
@@ -223,10 +285,28 @@ function KeyBindMenu.New(Window, WindUI, Config)
 			})
 		end
 
+		if Video then
+			Menu.UIElements.BackgroundVideo = New("VideoFrame", {
+				Name = "BackgroundVideo",
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				Video = tostring(Video),
+				Looped = true,
+				Volume = 0,
+				ZIndex = 10019,
+				Parent = Root,
+			}, {
+				New("UICorner", {
+					CornerRadius = UDim.new(0, Window.ElementConfig.UICorner),
+				}),
+			})
+			Menu.UIElements.BackgroundVideo:Play()
+		end
+
 		if Gradient then
 			local UIGradient = New("UIGradient")
 			for Key, Value in next, Gradient do
-				UIGradient[Key] = Value
+				ApplyGradientProperty(UIGradient, Key, Value)
 			end
 
 			Menu.UIElements.BackgroundGradient = Creator.NewRoundFrame(Window.ElementConfig.UICorner, "Squircle", {
