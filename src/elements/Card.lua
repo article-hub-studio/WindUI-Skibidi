@@ -29,7 +29,11 @@ function Element:New(Config)
 		Elements = {},
 		UIElements = {},
 		ElementFrame = nil,
-		LinkCorners = Config.LinkCorners == true,
+		LinkCorners = Config.LinkCorners,
+		CornerGroup = Config.CornerGroup or Config.LinkCornerGroup,
+		CornerBreak = Config.CornerBreak,
+		CornerBreakBefore = Config.CornerBreakBefore,
+		CornerBreakAfter = Config.CornerBreakAfter,
 	}
 
 	local Radius = Config.Radius or Config.Window.ElementConfig.UICorner
@@ -479,7 +483,10 @@ function Element:New(Config)
 				Container.Elements,
 				Card.Index,
 				Container,
-				ParentType
+				ParentType,
+				Config.CornerLink
+					or (Config.ParentConfig and Config.ParentConfig.CornerLink)
+					or Config.Window.ElementConfig.CornerLink
 			)
 		end
 

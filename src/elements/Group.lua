@@ -9,6 +9,7 @@ function Element:New(Config)
         Elements = {},
         ElementFrame = nil,
         LinkCorners = Config.LinkCorners == true,
+        CornerLink = Config.CornerLink,
     }
     
     local GroupFrame = New("Frame", {

@@ -513,11 +513,38 @@ function Creator.SetLanguage(lang)
 end
 
 function Creator.Icon(Icon, formatdefault)
-	return Icons.Icon2(Icon, nil, formatdefault ~= false)
+	return Icons.Icon(Icon, nil, formatdefault ~= false)
 end
 
 function Creator.AddIcons(packName, iconsData)
 	return Icons.AddIcons(packName, iconsData)
+end
+
+function Creator.AddIcon(packName, iconName, iconValue)
+	return Icons.AddIcon(packName, iconName, iconValue)
+end
+
+function Creator.RegisterIconSource(source, provider, options)
+	return Icons.RegisterIconSource(source, provider, options)
+end
+
+Creator.RegisterIconPack = Creator.AddIcons
+Creator.AddIconSource = Creator.RegisterIconSource
+
+function Creator.AddIconSourceAlias(alias, source)
+	return Icons.AddSourceAlias(alias, source)
+end
+
+function Creator.SetIconSource(source)
+	return Icons.SetIconsType(source)
+end
+
+function Creator.GetIconSources()
+	return Icons.GetIconSources()
+end
+
+function Creator.HasIcon(icon, source)
+	return Icons.HasIcon(icon, source)
 end
 
 function Creator.New(Name, Properties, Children)
@@ -586,21 +613,33 @@ function Creator.ApplyCornerRadii(Corner, Radius, Corners)
 	end
 
 	local Rounded = Creator.ToUDimRadius(Radius, Corner.CornerRadius)
-	local Flat = UDim.new(0, 0)
-	local ActiveCorners = Corners or {
-		TopLeft = true,
-		TopRight = true,
-		BottomLeft = true,
-		BottomRight = true,
-	}
+	local ActiveCorners = Corners
+		or {
+			TopLeft = true,
+			TopRight = true,
+			BottomLeft = true,
+			BottomRight = true,
+		}
+	local function ResolveCorner(Value)
+		if Value == false then
+			return UDim.new(0, 0)
+		end
+		if typeof(Value) == "UDim" then
+			return Value
+		end
+		if type(Value) == "number" then
+			return UDim.new(0, math.max(Value, 0))
+		end
+		return Rounded
+	end
 
 	Corner.CornerRadius = Rounded
 
 	pcall(function()
-		Corner.TopLeftRadius = ActiveCorners.TopLeft ~= false and Rounded or Flat
-		Corner.TopRightRadius = ActiveCorners.TopRight ~= false and Rounded or Flat
-		Corner.BottomRightRadius = ActiveCorners.BottomRight ~= false and Rounded or Flat
-		Corner.BottomLeftRadius = ActiveCorners.BottomLeft ~= false and Rounded or Flat
+		Corner.TopLeftRadius = ResolveCorner(ActiveCorners.TopLeft)
+		Corner.TopRightRadius = ResolveCorner(ActiveCorners.TopRight)
+		Corner.BottomRightRadius = ResolveCorner(ActiveCorners.BottomRight)
+		Corner.BottomLeftRadius = ResolveCorner(ActiveCorners.BottomLeft)
 	end)
 
 	return Corner
@@ -615,7 +654,16 @@ function Creator.DefaultCornerMap()
 	}
 end
 
-function Creator.GetLinkedCornerDirection(ParentTable, ParentType)
+function Creator.GetLinkedCornerDirection(ParentTable, ParentType, Options)
+	if typeof(Options) == "table" then
+		local Orientation = tostring(Options.Orientation or Options.Direction or ""):lower()
+		if Orientation == "horizontal" or Orientation == "row" or Orientation == "x" then
+			return true
+		elseif Orientation == "vertical" or Orientation == "column" or Orientation == "y" then
+			return false
+		end
+	end
+
 	local TypeName = ParentType or (ParentTable and ParentTable.__type)
 
 	if TypeName == "Group" then
@@ -639,8 +687,13 @@ function Creator.GetLinkedCornerDirection(ParentTable, ParentType)
 	return false
 end
 
-function Creator.GetLinkedCornerShape(elements, targetIndex, ParentTable, ParentType)
-	return Creator:GetElementPosition(elements, targetIndex, Creator.GetLinkedCornerDirection(ParentTable, ParentType))
+function Creator.GetLinkedCornerShape(elements, targetIndex, ParentTable, ParentType, Options)
+	return Creator:GetElementPosition(
+		elements,
+		targetIndex,
+		Creator.GetLinkedCornerDirection(ParentTable, ParentType, Options),
+		Options
+	)
 end
 
 --[[function Creator.NewRoundFrame(Radius, Type, Properties, Children, isButton, ReturnTable)
@@ -852,83 +905,93 @@ function Creator.SanitizeFilename(url)
 end
 
 function Creator.Image(Img, Name, Corner, Folder, Type, IsThemeTag, Themed, ThemeTagName)
-	Folder = Folder or "Temp"
-	Name = Creator.SanitizeFilename(Name)
+	local FolderName = if typeof(Folder) == "table" then Folder.Folder else Folder
+	FolderName = tostring(FolderName or "Temp")
+	Name = Creator.SanitizeFilename(tostring(Name or "Image"))
+	Type = tostring(Type or "Image")
+
+	local IsExternalURL = type(Img) == "string"
+		and Img:match("^https?://") ~= nil
+		and Img:find("roblox.com", 1, true) == nil
+	local ResolvedIcon = if IsExternalURL or typeof(Img) == "Instance" then nil else Creator.Icon(Img)
+	local ImageThemeTag = (ResolvedIcon or Themed) and IsThemeTag and (ThemeTagName or "Icon") or nil
 
 	local ImageFrame = New("Frame", {
 		Size = UDim2.new(0, 0, 0, 0),
 		BackgroundTransparency = 1,
 	}, {
 		New("ImageLabel", {
-			Size = UDim2.new(1, 0, 1, 0),
+			Name = "ImageLabel",
+			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			ScaleType = "Crop",
-			ThemeTag = (Creator.Icon(Img) or Themed) and {
-				ImageColor3 = IsThemeTag and (ThemeTagName or "Icon") or nil,
+			ScaleType = Enum.ScaleType.Crop,
+			ThemeTag = ImageThemeTag and {
+				ImageColor3 = ImageThemeTag,
 			} or nil,
 		}, {
 			New("UICorner", {
-				CornerRadius = UDim.new(0, Corner),
+				CornerRadius = UDim.new(0, tonumber(Corner) or 0),
 			}),
 		}),
 	})
-	if Creator.Icon(Img) then
-		ImageFrame.ImageLabel:Destroy()
 
+	if typeof(Img) == "Instance" then
+		ImageFrame.ImageLabel:Destroy()
+		local Clone = Img:Clone()
+		Clone.Name = "ImageLabel"
+		if Clone:IsA("GuiObject") then
+			Clone.Size = UDim2.fromScale(1, 1)
+			Clone.Position = UDim2.fromScale(0.5, 0.5)
+			Clone.AnchorPoint = Vector2.new(0.5, 0.5)
+		end
+		Clone.Parent = ImageFrame
+	elseif ResolvedIcon then
+		ImageFrame.ImageLabel:Destroy()
 		local IconLabel = Icons.Image({
 			Icon = Img,
-			Size = UDim2.new(1, 0, 1, 0),
+			Size = UDim2.fromScale(1, 1),
 			Colors = {
-				(IsThemeTag and (ThemeTagName or "Icon") or false),
+				ImageThemeTag or false,
 				"Button",
 			},
 		}).IconFrame
 		IconLabel.Parent = ImageFrame
-	elseif string.find(Img, "http") and not string.find(Img, "roblox.com") then
-		local FileName = "WindUI/" .. Folder .. "/assets/." .. Type .. "-" .. Name .. ".png"
-		local success, response = pcall(function()
+	elseif IsExternalURL then
+		local FileName = "WindUI/" .. FolderName .. "/assets/." .. Type .. "-" .. Name .. ".png"
+		local Success, ErrorMessage = pcall(function()
 			task.spawn(function()
-				local response = Creator.Request
-						and Creator.Request({
-							Url = Img,
-							Method = "GET",
-						}).Body
-					or {}
+				local Response = Creator.Request and Creator.Request({
+					Url = Img,
+					Method = "GET",
+				}) or nil
+				local Body = typeof(Response) == "table" and Response.Body or Response
 
-				if not RunService:IsStudio() and writefile then
-					writefile(FileName, response)
+				if Body and writefile then
+					writefile(FileName, Body)
 				end
-				--ImageFrame.ImageLabel.Image = getcustomasset(FileName)
 
-				local assetSuccess, asset = pcall(getcustomasset, FileName)
-				if assetSuccess then
-					ImageFrame.ImageLabel.Image = asset
-				else
-					warn(
-						string.format(
-							"[ WindUI.Creator ] Failed to load custom asset '%s': %s",
-							FileName,
-							tostring(asset)
-						)
-					)
-					ImageFrame:Destroy()
-
-					return
+				local AssetSuccess, Asset = pcall(getcustomasset, FileName)
+				if AssetSuccess then
+					ImageFrame.ImageLabel.Image = Asset
+				elseif not AssetSuccess then
+					warn(string.format("[ WindUI.Creator ] Failed to load '%s': %s", FileName, tostring(Asset)))
 				end
 			end)
 		end)
-		if not success then
-			warn(
-				"[ WindUI.Creator ]  '" .. identifyexecutor()
-					or "Studio" .. "' doesnt support the URL Images. Error: " .. response
-			)
 
-			ImageFrame:Destroy()
+		if not Success then
+			warn(string.format("[ WindUI.Creator ] URL image is unavailable: %s", tostring(ErrorMessage)))
+			ImageFrame.Visible = false
 		end
-	elseif Img == "" then
+	elseif Img == nil or Img == "" then
 		ImageFrame.Visible = false
-	else
+	elseif type(Img) == "number" then
+		ImageFrame.ImageLabel.Image = "rbxassetid://" .. tostring(Img)
+	elseif type(Img) == "string" then
 		ImageFrame.ImageLabel.Image = Img
+	else
+		warn(string.format("[ WindUI.Creator ] Unsupported image value: %s", typeof(Img)))
+		ImageFrame.Visible = false
 	end
 
 	return ImageFrame
@@ -1041,119 +1104,208 @@ function Creator:AddColor(base, add, weight)
 	end
 end
 
-function Creator:GetElementPosition(elements, targetIndex, isHStack)
+function Creator:GetElementPosition(elements, targetIndex, isHStack, Options)
+	Options = if typeof(Options) == "table" then Options else {}
 	if type(targetIndex) ~= "number" or targetIndex ~= math.floor(targetIndex) then
-		return "Squircle", Creator.DefaultCornerMap()
+		return "Squircle", Creator.DefaultCornerMap(), { Position = "Single", Count = 1 }
 	end
 
-	local maxIndex = 0
-	for index in next, elements or {} do
-		if type(index) == "number" and index > maxIndex then
-			maxIndex = index
-		end
+	local Target = elements and elements[targetIndex]
+	if Target == nil then
+		return "Squircle", Creator.DefaultCornerMap(), { Position = "Single", Count = 1 }
 	end
 
-	if maxIndex == 0 or targetIndex < 1 or targetIndex > maxIndex then
-		return "Squircle", Creator.DefaultCornerMap()
-	end
-
-	local function isDelimiter(el)
-		if el == nil then
-			return true
-		end
-		local t = el.__type
-		return t == "Divider" or t == "Space" or t == "Section"
-	end
-
-	if isDelimiter(elements[targetIndex]) then
-		return "Squircle", Creator.DefaultCornerMap()
-	end
-
-	local function calculate(pos, size)
-		if size == 1 then
-			return "Squircle", {
-				TopLeft = true,
-				TopRight = true,
-				BottomLeft = true,
-				BottomRight = true,
-			}
-		end
-		if pos == 1 then
-			if isHStack then
-				return "Squircle-TL-BL", {
-					TopLeft = true,
-					TopRight = false,
-					BottomLeft = true,
-					BottomRight = false,
-				}
-			end
-
-			return "Squircle-TL-TR", {
-				TopLeft = true,
-				TopRight = true,
-				BottomLeft = false,
-				BottomRight = false,
-			}
-		end
-		if pos == size then
-			if isHStack then
-				return "Squircle-TR-BR", {
-					TopLeft = false,
-					TopRight = true,
-					BottomLeft = false,
-					BottomRight = true,
-				}
-			end
-
-			return "Squircle-BL-BR", {
-				TopLeft = false,
-				TopRight = false,
-				BottomLeft = true,
-				BottomRight = true,
-			}
-		end
-		return "Square", {
-			TopLeft = false,
-			TopRight = false,
-			BottomLeft = false,
-			BottomRight = false,
+	local BreakTypes = if Options.IncludeDefaultBreaks == false
+		then {}
+		else {
+			Divider = true,
+			Space = true,
+			Section = true,
 		}
-	end
-
-	local group = {}
-	local function flush()
-		if #group == 0 then
-			return nil
-		end
-
-		for pos, index in ipairs(group) do
-			if index == targetIndex then
-				return calculate(pos, #group)
+	if typeof(Options.BreakTypes) == "table" then
+		for Key, Value in Options.BreakTypes do
+			if type(Key) == "number" then
+				BreakTypes[tostring(Value)] = true
+			else
+				BreakTypes[tostring(Key)] = Value == true
 			end
 		end
-
-		table.clear(group)
-		return nil
 	end
 
-	for i = 1, maxIndex do
-		local el = elements[i]
-		if isDelimiter(el) then
-			local shape, corners = flush()
-			if shape then
-				return shape, corners
+	local function GetFrame(Element)
+		return Element and (Element.ElementFrame or (Element.UIElements and Element.UIElements.Main))
+	end
+
+	local function IsHidden(Element)
+		if Options.IgnoreHidden == false then
+			return false
+		end
+		local Frame = GetFrame(Element)
+		return typeof(Frame) == "Instance" and Frame:IsA("GuiObject") and Frame.Visible == false
+	end
+
+	local function IsDelimiter(Element)
+		return Element == nil
+			or Element.CornerBreak == true
+			or Element.LinkCornerBreak == true
+			or BreakTypes[tostring(Element.__type)] == true
+	end
+
+	local function GetGroup(Element)
+		if typeof(Options.GroupBy) == "function" then
+			local Success, Group = pcall(Options.GroupBy, Element)
+			if Success then
+				return Group
 			end
+		elseif type(Options.GroupBy) == "string" then
+			return Element[Options.GroupBy]
+		end
+
+		return Element.CornerGroup or Element.LinkCornerGroup or Element.LinkedCornerGroup
+	end
+
+	if IsDelimiter(Target) or IsHidden(Target) then
+		return "Squircle", Creator.DefaultCornerMap(), { Position = "Single", Count = 1 }
+	end
+
+	local Indices = {}
+	for Index, Element in elements or {} do
+		if type(Index) == "number" and Element ~= nil then
+			table.insert(Indices, Index)
+		end
+	end
+	table.sort(Indices)
+
+	local Groups = {}
+	local Current = {}
+	local PreviousElement
+	local PreviousIndex
+
+	local function Flush()
+		if #Current > 0 then
+			table.insert(Groups, Current)
+			Current = {}
+		end
+		PreviousElement = nil
+		PreviousIndex = nil
+	end
+
+	for _, Index in Indices do
+		local Element = elements[Index]
+		if IsHidden(Element) then
+			if Options.BridgeHidden ~= true then
+				Flush()
+			else
+				PreviousIndex = Index
+			end
+		elseif IsDelimiter(Element) then
+			Flush()
 		else
-			table.insert(group, i)
+			local BreakBefore = Element.CornerBreakBefore == true or Element.LinkCornerBreakBefore == true
+			local SparseBreak = PreviousIndex ~= nil and Index - PreviousIndex > 1 and Options.BridgeSparse ~= true
+			local GroupBreak = PreviousElement ~= nil and GetGroup(PreviousElement) ~= GetGroup(Element)
+			local PreviousBreak = PreviousElement
+				and (PreviousElement.CornerBreakAfter == true or PreviousElement.LinkCornerBreakAfter == true)
+
+			if #Current > 0 and (BreakBefore or SparseBreak or GroupBreak or PreviousBreak) then
+				Flush()
+			end
+
+			table.insert(Current, Index)
+			PreviousElement = Element
+			PreviousIndex = Index
+
+			if Element.LinkCorners == false or Element.LinkCorner == false then
+				Flush()
+			end
+		end
+	end
+	Flush()
+
+	local TargetGroup
+	local TargetPosition
+	for _, Group in Groups do
+		for Position, Index in Group do
+			if Index == targetIndex then
+				TargetGroup = Group
+				TargetPosition = Position
+				break
+			end
+		end
+		if TargetGroup then
+			break
 		end
 	end
 
-	local shape, corners = flush()
-	if shape then
-		return shape, corners
+	if not TargetGroup or not TargetPosition then
+		return "Squircle", Creator.DefaultCornerMap(), { Position = "Single", Count = 1 }
 	end
 
-	return "Squircle", Creator.DefaultCornerMap()
+	local Count = #TargetGroup
+	local Position = if Options.Reverse == true then Count - TargetPosition + 1 else TargetPosition
+	local Inner = if Options.InnerRadius ~= nil
+		then Creator.ToUDimRadius(Options.InnerRadius, UDim.new(0, 0))
+		else false
+	local Shape = "Squircle"
+	local Corners = Creator.DefaultCornerMap()
+	local PositionName = "Single"
+
+	if Count > 1 and Position == 1 then
+		PositionName = "First"
+		if isHStack then
+			Shape = "Squircle-TL-BL"
+			Corners.TopRight = Inner
+			Corners.BottomRight = Inner
+		else
+			Shape = "Squircle-TL-TR"
+			Corners.BottomLeft = Inner
+			Corners.BottomRight = Inner
+		end
+	elseif Count > 1 and Position == Count then
+		PositionName = "Last"
+		if isHStack then
+			Shape = "Squircle-TR-BR"
+			Corners.TopLeft = Inner
+			Corners.BottomLeft = Inner
+		else
+			Shape = "Squircle-BL-BR"
+			Corners.TopLeft = Inner
+			Corners.TopRight = Inner
+		end
+	elseif Count > 1 then
+		PositionName = "Middle"
+		Shape = "Square"
+		if isHStack then
+			Corners.TopLeft = Inner
+			Corners.TopRight = Inner
+			Corners.BottomLeft = Inner
+			Corners.BottomRight = Inner
+		else
+			Corners.TopLeft = Inner
+			Corners.TopRight = Inner
+			Corners.BottomLeft = Inner
+			Corners.BottomRight = Inner
+		end
+	end
+
+	local Metadata = {
+		Position = PositionName,
+		Index = Position,
+		Count = Count,
+		Horizontal = isHStack == true,
+		SourceIndex = targetIndex,
+		Group = GetGroup(Target),
+	}
+
+	if typeof(Options.Resolver) == "function" then
+		local Success, CustomShape, CustomCorners = pcall(Options.Resolver, Metadata, Shape, Corners, Target)
+		if Success then
+			Shape = CustomShape or Shape
+			Corners = CustomCorners or Corners
+		end
+	end
+
+	return Shape, Corners, Metadata
 end
 
 return Creator

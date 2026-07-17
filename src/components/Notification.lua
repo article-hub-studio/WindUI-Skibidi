@@ -7,23 +7,25 @@ local Tween = Creator.Tween
 local HOLDER_SIDE_MARGIN = 16
 local HOLDER_TOP = 56
 local HOLDER_BOTTOM = 100
-local HOLDER_MAX_WIDTH = 384
+local HOLDER_MAX_WIDTH = 404
 local HOLDER_MIN_WIDTH = 220
-local CARD_RADIUS = 16
-local CARD_PADDING = 14
+local CARD_RADIUS = 22
+local CARD_PADDING = 12
 local CARD_GAP = 10
-local ICON_SIZE = 36
+local ICON_SIZE = 34
+local AVATAR_SIZE = 46
 local CLOSE_SIZE = 44
-local CLOSE_SURFACE_SIZE = 30
+local CLOSE_SURFACE_SIZE = 28
+local CLOSE_RESERVED = 36
 local ACTION_HEIGHT = 44
 local MAX_ACTIONS = 2
 local MAX_TITLE_HEIGHT = 42
 local MAX_CONTENT_HEIGHT = 72
-local PROGRESS_HEIGHT = 3
+local PROGRESS_HEIGHT = 2
 local MAX_VISIBLE = 5
 local ENTER_OFFSET = 24
 local EXIT_OFFSET = 18
-local SHADOW_OFFSET = 3
+local SHADOW_OFFSET = 2
 
 local NOTIFICATION_STYLES = {
 	Info = {
@@ -71,6 +73,18 @@ local STYLE_ALIASES = {
 	neutral = "Neutral",
 }
 
+local APPEARANCE_ALIASES = {
+	default = "Compact",
+	compact = "Compact",
+	minimal = "Compact",
+	pill = "Compact",
+	capsule = "Compact",
+	card = "Card",
+	avatar = "Card",
+	glass = "Glass",
+	legacy = "Glass",
+}
+
 local NotificationModule = {
 	Holder = nil,
 	NotificationIndex = 0,
@@ -97,6 +111,14 @@ local function NormalizeStyleName(Value)
 	return STYLE_ALIASES[Key] or "Info"
 end
 
+local function NormalizeAppearance(Value, Config)
+	if Value == nil and (Config.Avatar ~= nil or Config.Timestamp ~= nil or Config.Time ~= nil) then
+		return "Card"
+	end
+	local Key = tostring(Value or "Compact"):lower():gsub("%s+", "")
+	return APPEARANCE_ALIASES[Key] or "Compact"
+end
+
 local function ResolveDuration(Value)
 	if Value == false then
 		return false
@@ -115,6 +137,9 @@ local function NormalizeIcon(Value)
 		return "rbxassetid://" .. tostring(Value)
 	end
 	if typeof(Value) == "string" then
+		return Value
+	end
+	if typeof(Value) == "table" or typeof(Value) == "Instance" then
 		return Value
 	end
 	return nil
@@ -231,23 +256,39 @@ function NotificationModule.New(Config)
 	Config = if typeof(Config) == "table" then Config else {}
 
 	local StyleName = NormalizeStyleName(Config.Style or Config.Type or Config.Variant)
+	local Appearance = NormalizeAppearance(Config.Appearance or Config.Layout, Config)
 	local Style = NOTIFICATION_STYLES[StyleName] or NOTIFICATION_STYLES.Info
 	local AccentColor = ResolveColor(Config.AccentColor or Config.Color, Style.Color)
 	local IconValue
-	if Config.Icon == false or Config.Icon == "" then
+	local RequestedIcon = if Config.Avatar ~= nil then Config.Avatar else Config.Icon
+	if RequestedIcon == false or RequestedIcon == "" then
 		IconValue = nil
-	elseif Config.Icon ~= nil then
-		IconValue = NormalizeIcon(Config.Icon)
+	elseif RequestedIcon ~= nil then
+		IconValue = NormalizeIcon(RequestedIcon)
 	else
 		IconValue = Style.Icon
 	end
+	local Decorated = Config.Decorated == true or Config.Accented == true or Appearance == "Glass"
 
 	local Notification = {
 		Title = tostring(Config.Title or "Notification"),
 		Content = Config.Content ~= nil and tostring(Config.Content) or nil,
 		Icon = IconValue,
+		IsAvatar = Config.Avatar ~= nil,
 		IconThemed = Config.IconThemed,
+		IconColor = ResolveColor(
+			Config.IconColor,
+			if Decorated
+					or Config.AccentColor ~= nil
+					or Config.Color ~= nil
+				then AccentColor
+				else Color3.fromHex("#A1A1AA")
+		),
 		Style = StyleName,
+		Appearance = Appearance,
+		Decorated = Decorated,
+		Timestamp = Config.Timestamp ~= nil and tostring(Config.Timestamp)
+			or (Config.Time ~= nil and tostring(Config.Time) or nil),
 		AccentColor = AccentColor,
 		ProgressColor = ResolveColor(Config.ProgressColor, AccentColor),
 		Background = Config.Background,
@@ -270,9 +311,14 @@ function NotificationModule.New(Config)
 	local Holder = Config.Holder or NotificationModule.Holder
 	assert(Holder, "Notification holder is not initialized")
 
+	local IsCard = Notification.Appearance == "Card"
+	local CardPadding = if IsCard then 14 else CARD_PADDING
+	local CardRadius = math.max(tonumber(Config.Radius) or (IsCard and 24 or CARD_RADIUS), 8)
+	local IconSize = if IsCard then AVATAR_SIZE else ICON_SIZE
+	local TimestampWidth = if Notification.Timestamp then 82 else 0
 	local HasTimer = typeof(Notification.Duration) == "number" and Notification.Duration > 0
-	local LeftSpace = Notification.Icon and (ICON_SIZE + 10) or 0
-	local RightSpace = Notification.CanClose and (CLOSE_SIZE + 6) or 0
+	local LeftSpace = Notification.Icon and (IconSize + 10) or 0
+	local RightSpace = (Notification.CanClose and CLOSE_RESERVED or 0) + TimestampWidth
 	local ProgressTween
 	local TimerToken = 0
 	local TimerRemaining = if HasTimer then Notification.Duration else 0
@@ -373,19 +419,19 @@ function NotificationModule.New(Config)
 	local Shadow = New("Frame", {
 		Name = "Shadow",
 		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.74,
+		BackgroundTransparency = 0.66,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, -2, 1, -SHADOW_OFFSET),
 		Position = UDim2.new(0, 1, 0, SHADOW_OFFSET),
 		ZIndex = 101,
 		Parent = Main,
 	}, {
-		CreateCorner(CARD_RADIUS),
+		CreateCorner(CardRadius),
 	})
 
 	local CardStroke = New("UIStroke", {
 		Color = Color3.new(1, 1, 1),
-		Transparency = 0.75,
+		Transparency = 0.8,
 		Thickness = 1,
 		ThemeTag = {
 			Color = "NotificationBorder",
@@ -395,8 +441,8 @@ function NotificationModule.New(Config)
 
 	local Card = New("Frame", {
 		Name = "Notification",
-		BackgroundColor3 = Color3.fromRGB(16, 18, 24),
-		BackgroundTransparency = 0.05,
+		BackgroundColor3 = Color3.fromRGB(9, 10, 13),
+		BackgroundTransparency = 0.04,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 1, -SHADOW_OFFSET),
 		ClipsDescendants = true,
@@ -406,15 +452,16 @@ function NotificationModule.New(Config)
 		},
 		Parent = Main,
 	}, {
-		CreateCorner(CARD_RADIUS),
+		CreateCorner(CardRadius),
 		CardStroke,
 	})
+	Card:SetAttribute("Appearance", Notification.Appearance)
 
-	New("Frame", {
-		Name = "Surface",
+	local CapsuleSurface = New("Frame", {
+		Name = "CapsuleSurface",
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
-		BackgroundTransparency = 0.94,
+		BackgroundTransparency = if Notification.Appearance == "Glass" then 0.94 else 0.975,
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 103,
 		ThemeTag = {
@@ -423,7 +470,7 @@ function NotificationModule.New(Config)
 		},
 		Parent = Card,
 	}, {
-		CreateCorner(CARD_RADIUS),
+		CreateCorner(CardRadius),
 	})
 
 	if typeof(Notification.Background) == "string" and Notification.Background ~= "" then
@@ -437,20 +484,21 @@ function NotificationModule.New(Config)
 			ZIndex = 104,
 			Parent = Card,
 		}, {
-			CreateCorner(CARD_RADIUS),
+			CreateCorner(CardRadius),
 		})
 	end
 
-	New("Frame", {
+	local ToneWash = New("Frame", {
 		Name = "ToneWash",
 		BackgroundColor3 = Notification.AccentColor,
-		BackgroundTransparency = 0.82,
+		BackgroundTransparency = 0.9,
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
+		Visible = Notification.Decorated,
 		ZIndex = 105,
 		Parent = Card,
 	}, {
-		CreateCorner(CARD_RADIUS),
+		CreateCorner(CardRadius),
 		New("UIGradient", {
 			Rotation = 18,
 			Transparency = NumberSequence.new({
@@ -461,13 +509,14 @@ function NotificationModule.New(Config)
 		}),
 	})
 
-	New("Frame", {
+	local AccentLine = New("Frame", {
 		Name = "AccentLine",
 		BackgroundColor3 = Notification.AccentColor,
-		BackgroundTransparency = 0.04,
+		BackgroundTransparency = 0.16,
 		BorderSizePixel = 0,
 		Size = UDim2.new(0.55, 0, 0, 2),
 		Position = UDim2.fromOffset(0, 0),
+		Visible = Notification.Decorated,
 		ZIndex = 106,
 		Parent = Card,
 	}, {
@@ -480,10 +529,10 @@ function NotificationModule.New(Config)
 		}),
 	})
 
-	New("Frame", {
+	local TopHighlight = New("Frame", {
 		Name = "TopHighlight",
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.86,
+		BackgroundTransparency = 0.92,
 		BorderSizePixel = 0,
 		Size = UDim2.new(0.72, 0, 0, 1),
 		Position = UDim2.new(0.14, 0, 0, 0),
@@ -502,8 +551,8 @@ function NotificationModule.New(Config)
 	local Body = New("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -(CARD_PADDING * 2), 0, 0),
-		Position = UDim2.fromOffset(CARD_PADDING, CARD_PADDING),
+		Size = UDim2.new(1, -(CardPadding * 2), 0, 0),
+		Position = UDim2.fromOffset(CardPadding, CardPadding),
 		ZIndex = 107,
 		Parent = Card,
 	})
@@ -517,16 +566,34 @@ function NotificationModule.New(Config)
 	local HeaderRow = New("Frame", {
 		Name = "Header",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(
-			1,
-			0,
-			0,
-			math.max(Notification.Icon and ICON_SIZE or 0, Notification.CanClose and CLOSE_SIZE or 0, 20)
-		),
+		Size = UDim2.new(1, 0, 0, math.max(Notification.Icon and IconSize or 0, 20)),
 		LayoutOrder = 1,
 		ZIndex = 107,
 		Parent = Body,
 	})
+
+	local Timestamp
+	if Notification.Timestamp then
+		Timestamp = New("TextLabel", {
+			Name = "Timestamp",
+			Text = Notification.Timestamp,
+			TextSize = 12,
+			FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(TimestampWidth, 18),
+			Position = UDim2.new(1, -(Notification.CanClose and CLOSE_RESERVED or 0), 0, 1),
+			AnchorPoint = Vector2.new(1, 0),
+			TextTransparency = 0.22,
+			ZIndex = 109,
+			ThemeTag = {
+				TextColor3 = "NotificationContent",
+			},
+			Parent = HeaderRow,
+		})
+	end
 
 	local TextContainer = New("Frame", {
 		Name = "TextContainer",
@@ -554,7 +621,7 @@ function NotificationModule.New(Config)
 		RichText = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
-		TextSize = 15,
+		TextSize = if IsCard then 16 else 15,
 		LineHeight = 1.05,
 		FontFace = Font.new(Creator.Font, Enum.FontWeight.SemiBold),
 		LayoutOrder = 1,
@@ -602,36 +669,48 @@ function NotificationModule.New(Config)
 
 	local IconBubble
 	if Notification.Icon then
+		local IconIsGlyph = not Notification.IsAvatar
+			and (
+				type(Notification.Icon) ~= "string"
+				or (Notification.Icon:match("^rbxassetid://") == nil and Notification.Icon:match("^https?://") == nil)
+			)
 		local Icon = Creator.Image(
 			Notification.Icon,
 			Notification.Title .. ":" .. tostring(Notification.Icon),
-			0,
-			Config.Window,
+			Notification.IsAvatar and IconSize / 2 or 0,
+			Config.Window and Config.Window.Folder,
 			"Notification",
+			true,
 			Notification.IconThemed
 		)
 		Icon.Name = "Icon"
-		Icon.Size = UDim2.fromOffset(20, 20)
+		Icon.Size = if Notification.IsAvatar
+			then UDim2.fromScale(1, 1)
+			else UDim2.fromOffset(if IsCard then 24 else 20, if IsCard then 24 else 20)
 		Icon.Position = UDim2.fromScale(0.5, 0.5)
 		Icon.AnchorPoint = Vector2.new(0.5, 0.5)
 		Icon.ZIndex = 110
-		if Creator.Icon(Notification.Icon) and Notification.IconThemed ~= true then
-			PaintIcon(Icon, Notification.AccentColor, 0)
+		if IconIsGlyph and Creator.Icon(Notification.Icon) and Notification.IconThemed ~= true then
+			PaintIcon(Icon, Notification.IconColor, 0)
 		end
 
 		IconBubble = New("Frame", {
 			Name = "IconBubble",
-			BackgroundColor3 = Notification.AccentColor,
-			BackgroundTransparency = 0.84,
+			BackgroundColor3 = if Notification.IsAvatar then Color3.new(1, 1, 1) else Notification.IconColor,
+			BackgroundTransparency = if Notification.IsAvatar
+				then 0.88
+				elseif Notification.Decorated then 0.86
+				else 0.94,
 			BorderSizePixel = 0,
-			Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE),
+			Size = UDim2.fromOffset(IconSize, IconSize),
+			ClipsDescendants = true,
 			ZIndex = 109,
 			Parent = HeaderRow,
 		}, {
-			CreateCorner(12),
+			CreateCorner(IconSize / 2),
 			New("UIStroke", {
-				Color = Notification.AccentColor,
-				Transparency = 0.62,
+				Color = Notification.IconColor,
+				Transparency = if Notification.Decorated then 0.7 else 0.86,
 				Thickness = 1,
 			}),
 			New("UIGradient", {
@@ -652,7 +731,7 @@ function NotificationModule.New(Config)
 		CloseSurface = New("Frame", {
 			Name = "Surface",
 			BackgroundColor3 = Color3.new(1, 1, 1),
-			BackgroundTransparency = 0.92,
+			BackgroundTransparency = 0.96,
 			BorderSizePixel = 0,
 			Size = UDim2.fromOffset(CLOSE_SURFACE_SIZE, CLOSE_SURFACE_SIZE),
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -662,7 +741,7 @@ function NotificationModule.New(Config)
 				BackgroundColor3 = "Notification2",
 			},
 		}, {
-			CreateCorner(10),
+			CreateCorner(CLOSE_SURFACE_SIZE / 2),
 			New("ImageLabel", {
 				Name = "Icon",
 				Image = CloseIconData and CloseIconData[1] or "",
@@ -673,7 +752,7 @@ function NotificationModule.New(Config)
 				Size = UDim2.fromOffset(14, 14),
 				Position = UDim2.fromScale(0.5, 0.5),
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				ImageTransparency = 0.28,
+				ImageTransparency = 0.52,
 				ZIndex = 110,
 				ThemeTag = {
 					ImageColor3 = "NotificationTitle",
@@ -688,15 +767,15 @@ function NotificationModule.New(Config)
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Size = UDim2.fromOffset(CLOSE_SIZE, CLOSE_SIZE),
-			Position = UDim2.new(1, 0, 0, 0),
-			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 4, 0.5, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
 			ZIndex = 109,
 			Parent = HeaderRow,
 		}, {
 			CloseSurface,
 		})
 		AttachPress(CloseButton, 0.96)
-		AttachHover(CloseButton, CloseSurface, 0.84, 0.92)
+		AttachHover(CloseButton, CloseSurface, 0.88, 0.96)
 	end
 
 	local ActionRow
@@ -818,7 +897,7 @@ function NotificationModule.New(Config)
 
 	local function UpdateContainerHeight(Animate)
 		local BodyHeight = math.max(math.ceil(BodyLayout.AbsoluteContentSize.Y), HeaderRow.Size.Y.Offset)
-		TargetHeight = CARD_PADDING + BodyHeight + CARD_PADDING + SHADOW_OFFSET
+		TargetHeight = CardPadding + BodyHeight + CardPadding + SHADOW_OFFSET
 		Notification.LayoutHeight = TargetHeight
 		Main.Size = UDim2.new(1, 0, 0, TargetHeight)
 
@@ -846,12 +925,7 @@ function NotificationModule.New(Config)
 	local function UpdateTextHeight()
 		local TextHeight = math.max(math.ceil(TextLayout.AbsoluteContentSize.Y), 20)
 		TextContainer.Size = UDim2.new(1, -(LeftSpace + RightSpace), 0, TextHeight)
-		HeaderRow.Size = UDim2.new(
-			1,
-			0,
-			0,
-			math.max(TextHeight, Notification.Icon and ICON_SIZE or 0, Notification.CanClose and CLOSE_SIZE or 0)
-		)
+		HeaderRow.Size = UDim2.new(1, 0, 0, math.max(TextHeight, Notification.Icon and IconSize or 0, 20))
 		UpdateContainerHeight(Opened)
 	end
 
@@ -1065,11 +1139,16 @@ function NotificationModule.New(Config)
 		TransitionScale = MainScale,
 		Shadow = Shadow,
 		Stroke = CardStroke,
+		Surface = CapsuleSurface,
+		ToneWash = ToneWash,
+		AccentLine = AccentLine,
+		TopHighlight = TopHighlight,
 		Body = Body,
 		Header = HeaderRow,
 		TextContainer = TextContainer,
 		Title = Title,
 		Content = Content,
+		Timestamp = Timestamp,
 		IconBubble = IconBubble,
 		CloseButton = CloseButton,
 		CloseSurface = CloseSurface,

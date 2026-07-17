@@ -146,6 +146,14 @@ local Window = WindUI:CreateWindow({
             type: 'boolean',
             description: 'Opt-in modern preset. Enables NewElements, LiquidGlass, linked corners, Mac topbar, visible search and tighter mobile-friendly spacing unless you override those fields.',
         },
+		'LinkElementCorners': {
+			type: 'boolean | table',
+			description: 'Link adjacent element corners. A table also enables the feature and acts as the advanced CornerLink options.',
+		},
+		'CornerLink': {
+			type: 'table',
+			description: 'Advanced linked-corner policy: InnerRadius, BreakTypes, BridgeHidden, BridgeSparse, Orientation, Reverse, GroupBy, or Resolver.',
+		},
         'Resizable': {
             type: 'boolean',
             description: 'Allow users to resize the window by dragging. Default is true.',
@@ -249,11 +257,17 @@ local Window = WindUI:CreateWindow({
                     <p>Customize the button that appears when the window is closed on mobile devices.</p>
                     <DynamicCodeBlock 
                         lang="luau" 
-                        code={`OpenButton = {
+code={`OpenButton = {
     Title = "Open Example UI",
     Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
-    StrokeThickness = 2,
+    Content = "Ready",
+    State = "Compact", -- Collapsed, Compact, Expanded
+    CornerRadius = UDim.new(1, 0),
+    ExpandedHeight = 68,
+    ExpandedWidth = 240,
+    MaxWidth = 380,
+    AutoCollapse = 3,
+    StrokeThickness = 1,
     Color = ColorSequence.new( -- only gradient 
         Color3.fromHex("FF0F7B"), 
         Color3.fromHex("F89B29")
@@ -308,6 +322,65 @@ local Window = WindUI:CreateWindow({
         },
     }}
 />
+
+## Dynamic Island Open Button
+
+`EditOpenButton` now returns a controller. Its width, height, icon, title, and content animate between three states without recreating the UI.
+
+```luau
+local Island = Window:EditOpenButton({
+    Title = "WindUI",
+    Icon = "geist:sparkles",
+    State = "Compact",
+    OnlyMobile = false,
+})
+
+Island:Expand({
+    Title = "Download complete",
+    Content = "All files are ready",
+    Icon = "solar:check-circle-bold",
+}, 3) -- returns to Compact after 3 seconds
+
+Island:Collapse()       -- icon-only circle
+Island:Compact()        -- icon + title pill
+Island:ToggleExpanded()
+Island:Push({ Title = "Saved", Content = "Config updated" }, 2)
+print(Island:GetState())
+```
+
+The same operations are available directly on the window:
+
+```luau
+Window:ExpandOpenButton({ Title = "Working", Content = "Please wait" })
+Window:CompactOpenButton()
+Window:CollapseOpenButton()
+Window:SetOpenButtonState("Expanded", { Content = "Custom state" })
+```
+
+## Advanced Linked Corners
+
+Linked corners can use a soft inner radius and can split a sequence by group or explicit breaks. Hidden and sparse elements are handled deterministically, and HStack automatically switches linking direction when it stacks vertically.
+
+```luau
+local Window = WindUI:CreateWindow({
+    Title = "Linked UI",
+    NewElements = true,
+    LinkElementCorners = true,
+    CornerLink = {
+        InnerRadius = 6,
+        BridgeHidden = true,
+        BridgeSparse = false,
+        BreakTypes = { "Divider", "Space", "Section" },
+    },
+})
+
+Tab:Button({ Title = "First", CornerGroup = "account" })
+Tab:Button({ Title = "Middle", CornerGroup = "account" })
+Tab:Button({ Title = "Last", CornerGroup = "account", CornerBreakAfter = true })
+Tab:Button({ Title = "Separate", LinkCorners = false })
+```
+
+Containers such as `Group`, `HStack`, and `VStack` may define their own `CornerLink` table. Individual elements support `CornerGroup`, `CornerBreak`, `CornerBreakBefore`, `CornerBreakAfter`, and `LinkCorners = false`.
 
 ## Background API
 

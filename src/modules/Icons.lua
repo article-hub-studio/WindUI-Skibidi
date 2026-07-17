@@ -1,224 +1,500 @@
-local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local cloneref = (cloneref or clonereference or function(instance)
+	return instance
+end)
 
-local IconModule = cloneref(game:GetService("ReplicatedStorage"):WaitForChild("GetIcons", 99999):InvokeServer())
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local RemoteIcons = ReplicatedStorage:WaitForChild("GetIcons", 99999):InvokeServer()
+local IconModule = if typeof(RemoteIcons) == "table" then RemoteIcons else {}
 
-local function parseIconString(iconString)  
-    if type(iconString) == "string" then  
-        local splitIndex = iconString:find(":")  
-        if splitIndex then  
-            local iconType = iconString:sub(1, splitIndex - 1)  
-            local iconName = iconString:sub(splitIndex + 1)  
-            return iconType, iconName  
-        end  
-    end  
-    return nil, iconString  
-end  
+local DEFAULT_SOURCE_ALIASES = {
+	lucidev = "lucide",
+	lucideicons = "lucide",
+	sf = "sfsymbols",
+	sfsymbol = "sfsymbols",
+	sf_symbols = "sfsymbols",
+	gravityui = "gravity",
+	gravity_ui = "gravity",
+}
 
-function IconModule.AddIcons(packName, iconsData)
-    if type(packName) ~= "string" or type(iconsData) ~= "table" then
-        error("AddIcons: packName must be string, iconsData must be table")
-        return
-    end
-    
-    if not IconModule.Icons[packName] then
-        IconModule.Icons[packName] = {
-            Icons = {},
-            Spritesheets = {}
-        }
-    end
-    
-    for iconName, iconValue in pairs(iconsData) do
-        if type(iconValue) == "number" or (type(iconValue) == "string" and iconValue:match("^rbxassetid://")) then
-            local imageId = iconValue
-            if type(iconValue) == "number" then
-                imageId = "rbxassetid://" .. tostring(iconValue)
-            end
-            
-            IconModule.Icons[packName].Icons[iconName] = {
-                Image = imageId,
-                ImageRectSize = Vector2.new(0, 0),
-                ImageRectPosition = Vector2.new(0, 0),
-                Parts = nil
-            }
-            IconModule.Icons[packName].Spritesheets[imageId] = imageId
-            
-        elseif type(iconValue) == "table" then
-            if iconValue.Image and iconValue.ImageRectSize and iconValue.ImageRectPosition then
-                local imageId = iconValue.Image
-                if type(imageId) == "number" then
-                    imageId = "rbxassetid://" .. tostring(imageId)
-                end
-                
-                IconModule.Icons[packName].Icons[iconName] = {
-                    Image = imageId,
-                    ImageRectSize = iconValue.ImageRectSize,
-                    ImageRectPosition = iconValue.ImageRectPosition,
-                    Parts = iconValue.Parts
-                }
-                
-                if not IconModule.Icons[packName].Spritesheets[imageId] then
-                    IconModule.Icons[packName].Spritesheets[imageId] = imageId
-                end
-            else
-                warn("AddIcons: Invalid spritesheet data format for icon '" .. iconName .. "'")
-            end
-        else
-            warn("AddIcons: Unsupported data type for icon '" .. iconName .. "': " .. type(iconValue))
-        end
-    end
+IconModule.Icons = if typeof(IconModule.Icons) == "table" then IconModule.Icons else {}
+IconModule.IconsType = IconModule.IconsType or "lucide"
+IconModule.SourceAliases = if typeof(IconModule.SourceAliases) == "table" then IconModule.SourceAliases else {}
+IconModule.Resolvers = if typeof(IconModule.Resolvers) == "table" then IconModule.Resolvers else {}
+IconModule.FallbackAcrossSources = IconModule.FallbackAcrossSources ~= false
+
+for Alias, Source in DEFAULT_SOURCE_ALIASES do
+	if IconModule.SourceAliases[Alias] == nil then
+		IconModule.SourceAliases[Alias] = Source
+	end
 end
-  
-function IconModule.SetIconsType(iconType)  
-    IconModule.IconsType = iconType  
-end  
-  
-local New 
-function IconModule.Init(_New, IconThemeTag)  
-    IconModule.New = _New  
-    IconModule.IconThemeTag = IconThemeTag  
-      
-    New = _New
-    return IconModule  
-end  
+
+local New
+
+local function NormalizeSourceName(Value)
+	if type(Value) ~= "string" then
+		return nil
+	end
+
+	local Normalized = Value:lower():gsub("%s+", ""):gsub("[^%w_%-]", "")
+	if Normalized == "" then
+		return nil
+	end
+	return Normalized
+end
+
+local function ResolveSourceAlias(Value)
+	local Source = NormalizeSourceName(Value)
+	local Seen = {}
+
+	for _ = 1, 8 do
+		if not Source or Seen[Source] then
+			break
+		end
+		Seen[Source] = true
+
+		local Alias = IconModule.SourceAliases[Source]
+		if not Alias then
+			break
+		end
+		Source = NormalizeSourceName(Alias)
+	end
+
+	return Source
+end
+
+local function NormalizeImage(Value)
+	if type(Value) == "number" then
+		return "rbxassetid://" .. tostring(Value)
+	end
+	if type(Value) ~= "string" then
+		return nil
+	end
+
+	if Value:match("^%d+$") then
+		return "rbxassetid://" .. Value
+	end
+	return Value
+end
+
+local function IsDirectImage(Value)
+	if type(Value) == "number" then
+		return true
+	end
+	if type(Value) ~= "string" then
+		return false
+	end
+
+	return Value:match("^%d+$") ~= nil
+		or Value:match("^rbxassetid://") ~= nil
+		or Value:match("^rbxthumb://") ~= nil
+		or Value:match("^rbxgameasset://") ~= nil
+		or Value:match("^https?://") ~= nil
+end
+
+local function NormalizeVector2(Value)
+	if typeof(Value) == "Vector2" then
+		return Value
+	end
+	if typeof(Value) == "table" then
+		return Vector2.new(tonumber(Value.X or Value.x or Value[1]) or 0, tonumber(Value.Y or Value.y or Value[2]) or 0)
+	end
+	return Vector2.zero
+end
+
+local function NormalizeDescriptor(Value)
+	if IsDirectImage(Value) then
+		return {
+			Image = NormalizeImage(Value),
+			ImageRectSize = Vector2.zero,
+			ImageRectPosition = Vector2.zero,
+			Parts = nil,
+		}
+	end
+
+	if typeof(Value) ~= "table" then
+		return nil
+	end
+
+	local Image = Value.Image or Value.Asset or Value.AssetId or Value.Id or Value.URL or Value.Url
+	if not IsDirectImage(Image) then
+		return nil
+	end
+
+	return {
+		Image = NormalizeImage(Image),
+		ImageRectSize = NormalizeVector2(Value.ImageRectSize or Value.RectSize or Value.Size),
+		ImageRectPosition = NormalizeVector2(
+			Value.ImageRectPosition or Value.ImageRectOffset or Value.RectPosition or Value.Offset
+		),
+		Parts = Value.Parts,
+	}
+end
+
+local function ParseIconReference(Value)
+	if typeof(Value) == "table" then
+		return Value.Source or Value.Pack or Value.Library or Value.Type, Value.Name or Value.Icon or Value.Key, Value
+	end
+
+	if type(Value) ~= "string" or IsDirectImage(Value) then
+		return nil, Value, Value
+	end
+
+	local Source, Name = Value:match("^@([%w_%-]+)/(.+)$")
+	if not Source then
+		Source, Name = Value:match("^([%w_%-]+):(.+)$")
+	end
+	if not Source then
+		Source, Name = Value:match("^([%w_%-]+)/(.+)$")
+	end
+
+	return Source, Name or Value, Value
+end
+
+local function FindSource(SourceName)
+	local Source = ResolveSourceAlias(SourceName)
+	if not Source then
+		return nil, nil
+	end
+
+	if IconModule.Icons[Source] then
+		return IconModule.Icons[Source], Source
+	end
+
+	for Name, Pack in IconModule.Icons do
+		if NormalizeSourceName(Name) == Source then
+			return Pack, Name
+		end
+	end
+
+	return nil, Source
+end
+
+local function GetSourceNames()
+	local Sources = {}
+	for Name in IconModule.Icons do
+		table.insert(Sources, tostring(Name))
+	end
+	table.sort(Sources, function(A, B)
+		return A:lower() < B:lower()
+	end)
+	return Sources
+end
+
+local ResolveIcon
+
+local function ResolvePackIcon(Pack, Name, Depth)
+	if typeof(Pack) ~= "table" or Name == nil then
+		return nil
+	end
+
+	local Icons = if typeof(Pack.Icons) == "table" then Pack.Icons else Pack
+	local Value = Icons[Name]
+	if Value == nil then
+		local LowerName = tostring(Name):lower()
+		for IconName, IconValue in Icons do
+			if tostring(IconName):lower() == LowerName then
+				Value = IconValue
+				break
+			end
+		end
+	end
+
+	if typeof(Value) == "table" and Value.Alias then
+		return ResolveIcon(Value.Alias, nil, (Depth or 0) + 1)
+	end
+
+	local RawImage = typeof(Value) == "table"
+			and (Value.Image or Value.Asset or Value.AssetId or Value.Id or Value.URL or Value.Url)
+		or Value
+	local Descriptor = NormalizeDescriptor(Value)
+	if not Descriptor then
+		return nil
+	end
+
+	if typeof(Pack.Spritesheets) == "table" then
+		Descriptor.Image = Pack.Spritesheets[RawImage]
+			or Pack.Spritesheets[tostring(RawImage)]
+			or Pack.Spritesheets[Descriptor.Image]
+			or Pack.Spritesheets[tostring(Descriptor.Image)]
+			or Descriptor.Image
+	end
+
+	return Descriptor
+end
+
+local function ResolveProviderIcon(Source, Name)
+	local Provider = IconModule.Resolvers[ResolveSourceAlias(Source)]
+	if typeof(Provider) ~= "function" then
+		return nil
+	end
+
+	local Success, Value = pcall(Provider, Name, Source)
+	if not Success then
+		warn(string.format("[ WindUI.Icons ] Source '%s' failed: %s", tostring(Source), tostring(Value)))
+		return nil
+	end
+
+	return NormalizeDescriptor(Value)
+end
+
+ResolveIcon = function(Value, Type, Depth)
+	if (Depth or 0) > 8 then
+		return nil
+	end
+
+	local Direct = NormalizeDescriptor(Value)
+	if Direct then
+		return Direct
+	end
+
+	local Source, Name, Original = ParseIconReference(Value)
+	if typeof(Original) == "table" and Original.Alias then
+		return ResolveIcon(Original.Alias, Type, (Depth or 0) + 1)
+	end
+
+	local PreferredSource = ResolveSourceAlias(Source or Type or IconModule.IconsType)
+	if PreferredSource then
+		local Pack = FindSource(PreferredSource)
+		local Descriptor = ResolvePackIcon(Pack, Name, Depth) or ResolveProviderIcon(PreferredSource, Name)
+		if Descriptor then
+			return Descriptor
+		end
+	end
+
+	if Source or not IconModule.FallbackAcrossSources then
+		return nil
+	end
+
+	for _, Candidate in GetSourceNames() do
+		if ResolveSourceAlias(Candidate) ~= PreferredSource then
+			local Descriptor = ResolvePackIcon(IconModule.Icons[Candidate], Name, Depth)
+			if Descriptor then
+				return Descriptor
+			end
+		end
+	end
+
+	for Candidate, Provider in IconModule.Resolvers do
+		if Candidate ~= PreferredSource and typeof(Provider) == "function" then
+			local Descriptor = ResolveProviderIcon(Candidate, Name)
+			if Descriptor then
+				return Descriptor
+			end
+		end
+	end
+
+	return nil
+end
+
+local function FormatDescriptor(Descriptor, DefaultFormat)
+	if not Descriptor then
+		return nil
+	end
+
+	if DefaultFormat == false and Descriptor.ImageRectSize == Vector2.zero and not Descriptor.Parts then
+		return Descriptor.Image
+	end
+
+	return { Descriptor.Image, Descriptor }
+end
+
+function IconModule.AddSourceAlias(Alias, Source)
+	local AliasName = NormalizeSourceName(Alias)
+	local SourceName = NormalizeSourceName(Source)
+	assert(AliasName and SourceName, "AddSourceAlias: alias and source must be non-empty strings")
+	IconModule.SourceAliases[AliasName] = SourceName
+	return IconModule
+end
+
+function IconModule.RegisterIconSource(Source, Provider, Options)
+	local SourceName = NormalizeSourceName(Source)
+	assert(SourceName, "RegisterIconSource: source must be a non-empty string")
+
+	if typeof(Provider) == "function" then
+		IconModule.Resolvers[SourceName] = Provider
+	elseif typeof(Provider) == "table" then
+		IconModule.AddIcons(SourceName, Provider)
+	else
+		error("RegisterIconSource: provider must be a function or icon table")
+	end
+
+	if typeof(Options) == "table" then
+		for _, Alias in Options.Aliases or {} do
+			IconModule.AddSourceAlias(Alias, SourceName)
+		end
+	end
+
+	return IconModule
+end
+
+function IconModule.AddIcons(PackName, IconsData)
+	local Source = NormalizeSourceName(PackName)
+	assert(Source and typeof(IconsData) == "table", "AddIcons: packName must be string and iconsData must be table")
+
+	local Pack = IconModule.Icons[Source]
+	if typeof(Pack) ~= "table" or typeof(Pack.Icons) ~= "table" then
+		Pack = {
+			Icons = {},
+			Spritesheets = {},
+		}
+		IconModule.Icons[Source] = Pack
+	end
+
+	for IconName, IconValue in IconsData do
+		local Descriptor = NormalizeDescriptor(IconValue)
+		if Descriptor then
+			Pack.Icons[IconName] = Descriptor
+			Pack.Spritesheets[Descriptor.Image] = Descriptor.Image
+		elseif typeof(IconValue) == "table" and IconValue.Alias then
+			Pack.Icons[IconName] = { Alias = IconValue.Alias }
+		else
+			warn(string.format("[ WindUI.Icons ] Ignored invalid icon '%s:%s'", Source, tostring(IconName)))
+		end
+	end
+
+	return IconModule
+end
+
+IconModule.RegisterIconPack = IconModule.AddIcons
+IconModule.AddIconSource = IconModule.RegisterIconSource
+
+function IconModule.AddIcon(PackName, IconName, IconValue)
+	return IconModule.AddIcons(PackName, { [IconName] = IconValue })
+end
+
+function IconModule.SetIconsType(IconType)
+	local Source = ResolveSourceAlias(IconType)
+	assert(Source, "SetIconsType: icon type must be a non-empty string")
+	IconModule.IconsType = Source
+	return IconModule
+end
+
+function IconModule.GetIconSources()
+	local Sources = GetSourceNames()
+	for Source in IconModule.Resolvers do
+		if not table.find(Sources, Source) then
+			table.insert(Sources, Source)
+		end
+	end
+	table.sort(Sources)
+	return Sources
+end
+
+function IconModule.HasIcon(Icon, Type)
+	return ResolveIcon(Icon, Type, 0) ~= nil
+end
+
+function IconModule.Init(NewFunction, IconThemeTag)
+	IconModule.New = NewFunction
+	IconModule.IconThemeTag = IconThemeTag
+	New = NewFunction
+	return IconModule
+end
 
 function IconModule.Icon(Icon, Type, DefaultFormat)
-    DefaultFormat = DefaultFormat ~= false
-    local iconType, iconName = parseIconString(Icon)  
-    
-    local targetType = iconType or Type or IconModule.IconsType  
-    local targetName = iconName  
-      
-    local iconSet = IconModule.Icons[targetType]  
-      
-    if iconSet and iconSet.Icons and iconSet.Icons[targetName] then  
-        return {   
-            iconSet.Spritesheets[tostring(iconSet.Icons[targetName].Image)],   
-            iconSet.Icons[targetName],  
-        }  
-    elseif iconSet and iconSet[targetName] and string.find(iconSet[targetName], "rbxassetid://") then
-        return DefaultFormat and { 
-            iconSet[targetName], 
-            { ImageRectSize = Vector2.new(0,0), ImageRectPosition = Vector2.new(0,0) }
-        } or iconSet[targetName]
-    end  
-    return nil  
-end  
+	return FormatDescriptor(ResolveIcon(Icon, Type, 0), DefaultFormat ~= false)
+end
 
-function IconModule.GetIcon(Icon, Type)  
-    return IconModule.Icon(Icon, Type, false) 
-end  
-  
+function IconModule.GetIcon(Icon, Type)
+	return IconModule.Icon(Icon, Type, false)
+end
 
-function IconModule.Icon2(Icon, Type, DefaultFormat)  
-    return IconModule.Icon(Icon, Type, true)  
-end  
-  
-function IconModule.Image(IconConfig)  
-    local Icon = {  
-        Icon = IconConfig.Icon or nil,  
-        Type = IconConfig.Type,  
-        Colors = IconConfig.Colors or { ( IconModule.IconThemeTag or Color3.new(1,1,1) ), Color3.new(1,1,1) },  
-        Transparency = IconConfig.Transparency or { 0, 0 },
-        Size = IconConfig.Size or UDim2.new(0,24,0,24),  
-          
-        IconFrame = nil,  
-    }  
-      
-    local Colors = {}
-    local Transparencies = {}
+function IconModule.Icon2(Icon, Type)
+	return IconModule.Icon(Icon, Type, true)
+end
 
-    for i, v in next, Icon.Colors do
-        Colors[i] = {
-            ThemeTag = typeof(v) == "string" and v,
-            Color = typeof(v) == "Color3" and v,
-        }
-    end
+local function ResolveStyle(Values, Index, Fallback)
+	local Value = Values[Index]
+	if Value == nil then
+		Value = Values[1]
+	end
+	if Value == nil then
+		Value = Fallback
+	end
 
-    for i, v in next, Icon.Transparency do
-        Transparencies[i] = {
-            ThemeTag = typeof(v) == "string" and v,
-            Value = typeof(v) == "number" and v,
-        }
-    end
+	return {
+		ThemeTag = typeof(Value) == "string" and Value or nil,
+		Color = typeof(Value) == "Color3" and Value or nil,
+		Value = typeof(Value) == "number" and Value or nil,
+	}
+end
 
+local function CreateImageLabel(Properties)
+	if New then
+		return New("ImageLabel", Properties)
+	end
 
-    local IconLabel = IconModule.Icon2(Icon.Icon, Icon.Type)  
-    local isrbxassetid = typeof(IconLabel) == "string" and string.find(IconLabel, 'rbxassetid://')
-    
-    if IconModule.New then  
-        local New = New or IconModule.New  
-          
-          
-          
-        local IconFrame = New("ImageLabel", {  
-            Size = Icon.Size,  
-            BackgroundTransparency = 1,  
-            ImageColor3 = Colors[1].Color or nil,  
-            ImageTransparency = Transparencies[1].Value or nil,
-            ThemeTag = Colors[1].ThemeTag and {  
-                ImageColor3 = Colors[1].ThemeTag,
-                ImageTransparency = Transparencies[1].ThemeTag,
-            },  
-            Image = isrbxassetid and IconLabel or IconLabel[1],  
-            ImageRectSize = isrbxassetid and nil or IconLabel[2].ImageRectSize,  
-            ImageRectOffset = isrbxassetid and nil or IconLabel[2].ImageRectPosition,  
-        })  
-      
-      
-        if not isrbxassetid and IconLabel[2].Parts then  
-            for _, part in next, IconLabel[2].Parts do  
-                local IconPartLabel = IconModule.Icon(part, Icon.Type)  
-                  
-                local IconPart = New("ImageLabel", {  
-                    Size = UDim2.new(1,0,1,0),  
-                    BackgroundTransparency = 1,  
-                    ImageColor3 = Colors[1 + _].Color or nil,  
-                    ImageTransparency = Transparencies[1 + _].Value or nil,
-                    ThemeTag = Colors[1 + _].ThemeTag and {  
-                        ImageColor3 = Colors[1 + _].ThemeTag,
-                        ImageTransparency = Transparencies[1 + _].ThemeTag,
-                    },  
-                    Image = IconPartLabel[1],  
-                    ImageRectSize = IconPartLabel[2].ImageRectSize,  
-                    ImageRectOffset = IconPartLabel[2].ImageRectPosition,  
-                    Parent = IconFrame,  
-                })  
-            end  
-        end  
-          
-        Icon.IconFrame = IconFrame  
-    else  
-        local IconFrame = Instance.new("ImageLabel")  
-        IconFrame.Size = Icon.Size  
-        IconFrame.BackgroundTransparency = 1  
-        IconFrame.ImageColor3 = Colors[1].Color  
-        IconFrame.ImageTransparency = Transparencies[1].Value or nil
-        IconFrame.Image = isrbxassetid and IconLabel or IconLabel[1]  
-        IconFrame.ImageRectSize = isrbxassetid and nil or IconLabel[2].ImageRectSize  
-        IconFrame.ImageRectOffset = isrbxassetid and nil or IconLabel[2].ImageRectPosition  
-          
-          
-        if not isrbxassetid and IconLabel[2].Parts then  
-            for _, part in next, IconLabel[2].Parts do  
-                local IconPartLabel = IconModule.Icon(part, Icon.Type)  
-                  
-                local IconPart = Instance.New("ImageLabel")  
-                IconPart.Size = UDim2.new(1,0,1,0)  
-                IconPart.BackgroundTransparency = 1  
-                IconPart.ImageColor3 = Colors[1 + _].Color  
-                IconPart.ImageTransparency = Transparencies[1 + _].Value or nil
-                IconPart.Image = IconPartLabel[1]  
-                IconPart.ImageRectSize = IconPartLabel[2].ImageRectSize  
-                IconPart.ImageRectOffset = IconPartLabel[2].ImageRectPosition  
-                IconPart.Parent = IconFrame  
-            end  
-        end  
-          
-        Icon.IconFrame = IconFrame  
-    end  
-      
-      
-    return Icon  
-end  
-  
+	local ImageLabel = Instance.new("ImageLabel")
+	for Name, Value in Properties do
+		if Name ~= "ThemeTag" and Value ~= nil then
+			ImageLabel[Name] = Value
+		end
+	end
+	return ImageLabel
+end
+
+function IconModule.Image(IconConfig)
+	IconConfig = if typeof(IconConfig) == "table" then IconConfig else {}
+	local Icon = {
+		Icon = IconConfig.Icon,
+		Type = IconConfig.Type,
+		Colors = IconConfig.Colors or { IconModule.IconThemeTag or Color3.new(1, 1, 1) },
+		Transparency = IconConfig.Transparency or { 0 },
+		Size = IconConfig.Size or UDim2.fromOffset(24, 24),
+		IconFrame = nil,
+	}
+
+	local Resolved = IconModule.Icon2(Icon.Icon, Icon.Type)
+	local Image = Resolved and Resolved[1] or ""
+	local Descriptor = Resolved and Resolved[2]
+		or {
+			ImageRectSize = Vector2.zero,
+			ImageRectPosition = Vector2.zero,
+		}
+	local PrimaryColor = ResolveStyle(Icon.Colors, 1, IconModule.IconThemeTag or Color3.new(1, 1, 1))
+	local PrimaryTransparency = ResolveStyle(Icon.Transparency, 1, 0)
+
+	local IconFrame = CreateImageLabel({
+		Name = "Icon",
+		Size = Icon.Size,
+		BackgroundTransparency = 1,
+		ImageColor3 = PrimaryColor.Color,
+		ImageTransparency = PrimaryTransparency.Value,
+		ThemeTag = PrimaryColor.ThemeTag and {
+			ImageColor3 = PrimaryColor.ThemeTag,
+			ImageTransparency = PrimaryTransparency.ThemeTag,
+		} or nil,
+		Image = Image,
+		ImageRectSize = Descriptor.ImageRectSize,
+		ImageRectOffset = Descriptor.ImageRectPosition,
+	})
+
+	local Source = ParseIconReference(Icon.Icon)
+	for Index, Part in Descriptor.Parts or {} do
+		local PartInfo = IconModule.Icon2(Part, Source or Icon.Type)
+		if PartInfo then
+			local PartColor = ResolveStyle(Icon.Colors, Index + 1, PrimaryColor.Color or PrimaryColor.ThemeTag)
+			local PartTransparency = ResolveStyle(Icon.Transparency, Index + 1, PrimaryTransparency.Value or 0)
+			CreateImageLabel({
+				Name = "Part" .. tostring(Index),
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				ImageColor3 = PartColor.Color,
+				ImageTransparency = PartTransparency.Value,
+				ThemeTag = PartColor.ThemeTag and {
+					ImageColor3 = PartColor.ThemeTag,
+					ImageTransparency = PartTransparency.ThemeTag,
+				} or nil,
+				Image = PartInfo[1],
+				ImageRectSize = PartInfo[2].ImageRectSize,
+				ImageRectOffset = PartInfo[2].ImageRectPosition,
+				Parent = IconFrame,
+			})
+		end
+	end
+
+	Icon.IconFrame = IconFrame
+	return Icon
+end
+
 return IconModule

@@ -50,6 +50,14 @@ return function(Config)
 		Config.LiquidGlass = PickAlias(Config.LiquidGlass, Config.GlassLiquid, true)
 		Config.HideSearchBar = Pick(Config.HideSearchBar, false)
 		Config.LinkElementCorners = PickAlias(Config.LinkElementCorners, Config.ElementsLinkCorners, true)
+		Config.CornerLink = Config.CornerLink
+			or Config.LinkedCornerOptions
+			or (typeof(Config.LinkElementCorners) == "table" and Config.LinkElementCorners)
+			or (typeof(Config.ElementsLinkCorners) == "table" and Config.ElementsLinkCorners)
+			or {
+			InnerRadius = 6,
+			BridgeHidden = true,
+		}
 		Config.ElementGap = PickAlias(Config.ElementGap, Config.ElementsGap, 8)
 		Config.ElementTransparency = PickAlias(Config.ElementTransparency, Config.ElementsTransparency, 0.18)
 		Config.BackgroundOverlayTransparency = Pick(Config.BackgroundOverlayTransparency, 0.5)
@@ -98,7 +106,14 @@ return function(Config)
 		LiquidGlass = Config.LiquidGlass or Config.GlassLiquid or Config.ElementGlass or false,
 		ElementCornerStyle = Config.ElementCornerStyle or Config.ElementsCornerStyle or Config.CornerStyle,
 		ElementGap = Config.ElementGap or Config.ElementsGap,
-		LinkElementCorners = Config.LinkElementCorners == true or Config.ElementsLinkCorners == true,
+		LinkElementCorners = Config.LinkElementCorners == true
+			or Config.ElementsLinkCorners == true
+			or typeof(Config.LinkElementCorners) == "table"
+			or typeof(Config.ElementsLinkCorners) == "table",
+		ElementCornerLink = Config.CornerLink
+			or Config.LinkedCornerOptions
+			or (typeof(Config.LinkElementCorners) == "table" and Config.LinkElementCorners)
+			or (typeof(Config.ElementsLinkCorners) == "table" and Config.ElementsLinkCorners),
 		Watermark = Config.Watermark ~= nil and Config.Watermark or Config.WaterMark,
 		KeyBindMenu = Config.KeyBindMenu == false and false or (Config.KeyBindMenu or {}),
 		HideSearchBar = Config.HideSearchBar ~= false,
@@ -162,6 +177,7 @@ return function(Config)
 		LiquidGlass = Window.LiquidGlass,
 		CornerStyle = Window.ElementCornerStyle or (Window.NewElements and "Native" or "Shape"),
 		LinkCorners = Window.LinkElementCorners,
+		CornerLink = Window.ElementCornerLink,
 	}
 
 	local WindowSize = Window.Size or UDim2.new(0, 580, 0, 460)
@@ -1392,6 +1408,7 @@ return function(Config)
 	-- end
 
 	Window.OpenButtonMain = require("./Openbutton").New(Window)
+	Window.OpenButtonController = Window.OpenButtonMain
 	Window.WatermarkMain = require("./Watermark").New(Window, Config.WindUI)
 
 	function Window:SetWatermark(WatermarkConfig)
@@ -2174,6 +2191,30 @@ return function(Config)
 
 	function Window:EditOpenButton(OpenButtonConfig)
 		return Window.OpenButtonMain:Edit(OpenButtonConfig)
+	end
+
+	function Window:GetOpenButton()
+		return Window.OpenButtonMain
+	end
+
+	function Window:SetOpenButtonState(State, Changes, Animate)
+		return Window.OpenButtonMain:SetState(State, Changes, Animate)
+	end
+
+	function Window:ExpandOpenButton(Changes, Duration)
+		return Window.OpenButtonMain:Expand(Changes, Duration)
+	end
+
+	function Window:CollapseOpenButton(Changes)
+		return Window.OpenButtonMain:Collapse(Changes)
+	end
+
+	function Window:CompactOpenButton(Changes)
+		return Window.OpenButtonMain:Compact(Changes)
+	end
+
+	function Window:PushOpenButton(Changes, Duration)
+		return Window.OpenButtonMain:Push(Changes, Duration)
 	end
 
 	if Window.OpenButton and typeof(Window.OpenButton) == "table" then

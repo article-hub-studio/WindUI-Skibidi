@@ -17,6 +17,11 @@ function Element:New(Config)
 		Locked = false,
 		CanCopied = Config.CanCopied ~= false,
 		OnCopy = Config.OnCopy,
+		LinkCorners = Config.LinkCorners,
+		CornerGroup = Config.CornerGroup or Config.LinkCornerGroup,
+		CornerBreak = Config.CornerBreak,
+		CornerBreakBefore = Config.CornerBreakBefore,
+		CornerBreakAfter = Config.CornerBreakAfter,
 
 		Index = Config.Index,
 	}
@@ -84,7 +89,10 @@ function Element:New(Config)
 					Tab.Elements,
 					Code.Index,
 					Tab,
-					Config.ParentType
+					Config.ParentType,
+					Config.CornerLink
+						or (Config.ParentConfig and Config.ParentConfig.CornerLink)
+						or Config.Window.ElementConfig.CornerLink
 				)
 			end
 

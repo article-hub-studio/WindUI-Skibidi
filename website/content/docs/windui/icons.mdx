@@ -1,9 +1,7 @@
 ---
 title: Icons
-description: Available icon references for WindUI Modded elements
+description: Built-in and custom icon sources for WindUI elements
 ---
-
-import GithubInfo from "../../../components/GithubInfo.tsx";
 
 import {
     Table,
@@ -17,106 +15,126 @@ import {
 
 ## Icon System
 
-WindUI Modded supports icons from multiple sources:
+Every WindUI icon property uses the same resolver. It accepts built-in packs, user-registered packs, dynamic providers, Roblox assets, external image URLs, descriptor tables, and cloned image instances. A missing icon produces an empty image safely instead of breaking the element.
 
-1. **Built-In Icons** (recommended)
-2. **Roblox Asset IDs** - **Use** rbxassetid:// format
-3. **Image URLs** - External image RAW links
+The accepted source syntax is:
 
-## Built-In Icons
+```luau
+Icon = "save"                  -- default source, then safe cross-source fallback
+Icon = "solar:diskette-bold"  -- source:name
+Icon = "geist/bell"           -- source/name
+Icon = "@craft/home"          -- @source/name
+Icon = { Source = "gravity", Name = "gear" }
+```
 
-WindUI uses [Lucide](https://lucide.dev) icons by default. You can reference any Lucide icon by its name.
-
-### All Available Icon Sets
+## Bundled Sources
 
 <Table className="w-140">
-    <TableCaption>All Icon Sets</TableCaption>
+    <TableCaption>Icon packs available in the hosted bundle</TableCaption>
     <TableHeader>
         <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead>Prefix</TableHead>
         </TableRow>
     </TableHeader>
     <TableBody>
-        <TableRow>
-            <TableCell>[Lucide Icons](https://github.com/lucide-icons/lucide)</TableCell>
-            <TableCell>`lucide:`</TableCell>
-        </TableRow>
-        <TableRow>
-            <TableCell>[Craft Icons](https://www.figma.com/community/file/1415718327120418204)</TableCell>
-            <TableCell>`craft:`</TableCell>
-        </TableRow>
-        <TableRow>
-            <TableCell>[Geist Icons](https://vercel.com/geist/icons)</TableCell>
-            <TableCell>`geist:`</TableCell>
-        </TableRow>
-        <TableRow>
-            <TableCell>[Solar Icons](https://icones.js.org/collection/solar)</TableCell>
-            <TableCell>`solar:`</TableCell>
-        </TableRow>
-        <TableRow>
-            <TableCell>[SF Symbols](https://sf-symbols.pages.dev/)</TableCell>
-            <TableCell>`sfsymbols:`</TableCell>
-        </TableRow>
-        <TableRow>
-            <TableCell>[Gravity UI Icons](https://gravity-ui.com/ru/icons)</TableCell>
-            <TableCell>`gravity:`</TableCell>
-        </TableRow>
+        <TableRow><TableCell>Lucide</TableCell><TableCell>`lucide:`</TableCell></TableRow>
+        <TableRow><TableCell>Craft</TableCell><TableCell>`craft:`</TableCell></TableRow>
+        <TableRow><TableCell>Geist</TableCell><TableCell>`geist:`</TableCell></TableRow>
+        <TableRow><TableCell>Solar</TableCell><TableCell>`solar:`</TableCell></TableRow>
+        <TableRow><TableCell>SF Symbols</TableCell><TableCell>`sfsymbols:` or `sf:`</TableCell></TableRow>
+        <TableRow><TableCell>Gravity UI</TableCell><TableCell>`gravity:`</TableCell></TableRow>
     </TableBody>
 </Table>
 
+WindUI no longer hard-codes this list. Any source registered at runtime works with every element, including notifications and the Dynamic Island open button.
 
-### All Icons source
+## Register a Pack
 
-<GithubInfo owner="Footagesus" repo="Icons" />
+Values may be asset numbers, Roblox image strings, URLs, or spritesheet descriptors.
 
-## Using Icons
-
-### Built-In Icons
-
-Simply use the icon name:
-
-#### Lucide:
 ```luau
-Tab:Button({
-    Title = "Save",
-    Icon = "save" -- default Lucide icon
+WindUI:RegisterIconPack("myicons", {
+    rocket = 123456789,
+    cloud = "rbxassetid://987654321",
+    badge = {
+        Image = "rbxassetid://111222333",
+        ImageRectSize = Vector2.new(48, 48),
+        ImageRectPosition = Vector2.new(96, 0),
+    },
 })
-```
-#### Solar:
-```luau
+
 Tab:Button({
-    Title = "Edit",
-    Icon = "solar:pen-bold" -- Solar icon
+    Title = "Launch",
+    Icon = "myicons:rocket",
 })
 ```
 
-and others
-
-### Roblox Asset IDs
-
-Use `rbxassetid://` format:
+Add one icon or an alias without replacing the pack:
 
 ```luau
+WindUI:AddIcon("myicons", "settings", "rbxassetid://444555666")
+WindUI:AddIconSourceAlias("mine", "myicons")
+```
+
+## Register a Dynamic Source
+
+A provider is useful when another icon module already owns the data. The callback receives the requested name and returns a Roblox-usable image value or descriptor. WindUI does not require the provider to come from any specific website or library.
+
+```luau
+local OtherLibrary = require(path.To.OtherLibrary)
+
+WindUI:RegisterIconSource("other", function(Name)
+    return OtherLibrary:Get(Name)
+end, {
+    Aliases = { "external", "custom" },
+})
+
 Tab:Button({
-    Icon = "rbxassetid://123456789",
-    IconThemed = true -- optional, applies theme colors
+    Title = "From another source",
+    Icon = "other:star",
 })
 ```
 
-### Image URLs
-
-Provide direct image URLs:
+Provider return values can be:
 
 ```luau
-Tab:Button({
-    Icon = "https://example.com/my-icon.png"
-})
+123456789
+"rbxassetid://123456789"
+{
+    Image = "rbxassetid://123456789",
+    ImageRectSize = Vector2.new(32, 32),
+    ImageRectPosition = Vector2.new(64, 0),
+    Parts = { "other:star-fill" }, -- optional layered icon
+}
+```
+
+## Direct Images and Instances
+
+```luau
+Tab:Button({ Icon = "rbxassetid://123456789" })
+Tab:Button({ Icon = "https://example.com/icon.png" })
+Tab:Button({ Icon = existingImageLabel })
+```
+
+Use `IconThemed = true` when a monochrome asset should follow the active theme. Avatar and photo-like images should normally remain untinted.
+
+## Source Utilities
+
+```luau
+WindUI:SetIconSource("geist")
+
+print(WindUI:HasIcon("bell"))
+print(WindUI:HasIcon("solar:bell-bold"))
+
+for _, Source in WindUI:GetIconSources() do
+    print(Source)
+end
 ```
 
 ## Related Documentation
 
--   [Button](./button) - Icons in buttons
--   [Tab](./tab) - Icons in tabs
--   [Section](./sections) - Icons in sections
--   [Notification](./notification) - Icons in notifications
+- [Button](./button) - Icons in buttons
+- [Tab](./tab) - Icons in tabs
+- [Section](./sections) - Icons in sections
+- [Notification](./notification) - Icons and avatars in notifications

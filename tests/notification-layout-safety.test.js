@@ -8,7 +8,16 @@ const checks = {
 	touchClose:
 		/Name = "CloseButton"[\s\S]{0,220}Size = UDim2\.fromOffset\(CLOSE_SIZE, CLOSE_SIZE\)/.test(source) &&
 		/CLOSE_SIZE = 44/.test(source) &&
-		/CLOSE_SURFACE_SIZE = 30/.test(source),
+		/CLOSE_SURFACE_SIZE = 28/.test(source),
+	capsuleAppearance:
+		/APPEARANCE_ALIASES/.test(source) &&
+		/default = "Compact"/.test(source) &&
+		/Name = "CapsuleSurface"/.test(source) &&
+		/Card:SetAttribute\("Appearance", Notification\.Appearance\)/.test(source),
+	metadataCard:
+		/Appearance == "Card"/.test(source) &&
+		/Name = "Timestamp"/.test(source) &&
+		/AVATAR_SIZE = 46/.test(source),
 	boundedStack: /MAX_VISIBLE = 5/.test(source) && /TrimNotifications/.test(source),
 	heightAwareStack: /AvailableHeight/.test(source) && /TotalHeight > AvailableHeight/.test(source),
 	clippedExit: /Name = "NotificationContainer"[\s\S]{0,180}ClipsDescendants = true/.test(source),

@@ -10,6 +10,7 @@ function Element:New(Config)
 		Elements = {},
 		ElementFrame = nil,
 		LinkCorners = Config.LinkCorners == true,
+		CornerLink = Config.CornerLink,
 		MinChildWidth = math.max(tonumber(Config.MinChildWidth) or 128, 40),
 		IsStacked = false,
 	}

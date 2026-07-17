@@ -187,6 +187,37 @@ function WindUI:SetNotificationLower(Val)
 	Holder.SetLower(Val)
 end
 
+function WindUI:RegisterIconSource(Source, Provider, Options)
+	return Creator.RegisterIconSource(Source, Provider, Options)
+end
+
+function WindUI:RegisterIconPack(Source, Icons)
+	return Creator.RegisterIconPack(Source, Icons)
+end
+
+WindUI.AddIconSource = WindUI.RegisterIconSource
+WindUI.AddIcons = WindUI.RegisterIconPack
+
+function WindUI:AddIcon(Source, Name, Value)
+	return Creator.AddIcon(Source, Name, Value)
+end
+
+function WindUI:AddIconSourceAlias(Alias, Source)
+	return Creator.AddIconSourceAlias(Alias, Source)
+end
+
+function WindUI:SetIconSource(Source)
+	return Creator.SetIconSource(Source)
+end
+
+function WindUI:GetIconSources()
+	return Creator.GetIconSources()
+end
+
+function WindUI:HasIcon(Icon, Source)
+	return Creator.HasIcon(Icon, Source)
+end
+
 function WindUI:LoadingScreen(Config)
 	return LoadingScreen.new(WindUI, Config)
 end

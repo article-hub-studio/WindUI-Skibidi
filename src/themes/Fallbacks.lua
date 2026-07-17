@@ -147,15 +147,15 @@ return function(Creator)
 
 		Notification = "Background",
 		Notification2 = "White",
-		Notification2Transparency = 0.92,
+		Notification2Transparency = 0.965,
 		NotificationTitle = "Text",
 		NotificationTitleTransparency = 0,
 		NotificationContent = "Text",
 		NotificationContentTransparency = 0.4,
 		NotificationDuration = "White",
-		NotificationDurationTransparency = 0.95,
+		NotificationDurationTransparency = 0.96,
 		NotificationBorder = "White",
-		NotificationBorderTransparency = 0.75,
+		NotificationBorderTransparency = 0.8,
 
 		DropdownTabBorder = "White",
 		DropdownTabBackground = "ElementBackground",

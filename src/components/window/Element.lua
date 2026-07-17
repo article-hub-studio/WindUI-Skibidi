@@ -117,6 +117,11 @@ return function(Config)
 		UIElements = {},
 
 		Index = Config.Index,
+		LinkCorners = Config.LinkCorners,
+		CornerGroup = Config.CornerGroup or Config.LinkCornerGroup,
+		CornerBreak = Config.CornerBreak,
+		CornerBreakBefore = Config.CornerBreakBefore,
+		CornerBreakAfter = Config.CornerBreakAfter,
 	}
 
 	local AddPaddingX = Element.Size == "Small" and -4 or Element.Size == "Large" and 4 or 0
@@ -992,7 +997,10 @@ return function(Config)
 					Tab.Elements,
 					Element.Index,
 					Tab,
-					ParentType
+					ParentType,
+					Config.CornerLink
+						or (Config.ParentConfig and Config.ParentConfig.CornerLink)
+						or Config.Window.ElementConfig.CornerLink
 				)
 			end
 
