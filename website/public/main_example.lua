@@ -1,11 +1,19 @@
 local WindUI = loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua"))()
 
+WindUI:RegisterIconPack("demo", {
+	island = { Alias = "lucide:radio" },
+	notification = { Alias = "lucide:bell" },
+	corners = { Alias = "lucide:combine" },
+	success = { Alias = "lucide:circle-check" },
+})
+WindUI:AddIconSourceAlias("sample", "demo")
+
 WindUI:SetMotionPreset("Liquid")
 
 WindUI:LoadingCreate({
 	Title = "WindUI Full Example",
 	Desc = "Preparing liquid UI kit",
-	Icon = "sparkles",
+	Icon = "sample:island",
 	Width = 350,
 	Steps = { "Theme", "Motion", "Elements" },
 	ScrimTransparency = 0.28,
@@ -17,11 +25,18 @@ WindUI:LoadingSet(0.22, "Preparing theme")
 local Window = WindUI:CreateWindow({
 	Title = ".ftgs hub | WindUI Full Example",
 	Folder = "WindUIFullExample",
-	Icon = "sparkles",
+	Icon = "demo:island",
 	Default = true,
 	NewElements = true,
 	ElementTransparency = 0.18,
 	ElementGap = 8,
+	LinkElementCorners = true,
+	CornerLink = {
+		InnerRadius = 6,
+		BridgeHidden = true,
+		BridgeSparse = false,
+		BreakTypes = { "Divider", "Space", "Section" },
+	},
 	LiquidGlass = true,
 	ToggleKey = Enum.KeyCode.RightShift,
 	KeyBindMenu = {
@@ -55,18 +70,23 @@ local Window = WindUI:CreateWindow({
 		ButtonsType = "Mac",
 	},
 	OpenButton = {
-		Title = "Open WindUI",
-		Icon = "sparkles",
-		Glass = true,
+		Title = "WindUI",
+		Content = "Ready",
+		Icon = "demo:island",
+		State = "Compact",
 		Enabled = true,
 		Draggable = true,
 		OnlyMobile = false,
-		Scale = 0.55,
+		Scale = 0.9,
 		Position = "TopCenter",
-		Height = 46,
-		IconSize = 20,
-		BackgroundTransparency = 0.42,
-		StrokeTransparency = 0.34,
+		Height = 44,
+		ExpandedHeight = 68,
+		ExpandedWidth = 248,
+		MaxWidth = 360,
+		AutoCollapse = 3,
+		IconSize = 21,
+		BackgroundTransparency = 0.08,
+		StrokeTransparency = 0.7,
 		Color = ColorSequence.new(Color3.fromHex("#30FF6A"), Color3.fromHex("#E7FF2F")),
 	},
 	BackgroundColor = Color3.fromHex("#08111A"),
@@ -92,31 +112,8 @@ local OverviewTab = Window:Tab({
 
 OverviewTab:Callout({
 	Title = "WindUI Full Example",
-	Desc = "Full example loaded from GitHub with loadstring.",
+	Desc = "Full example with capsule notifications, Dynamic Island, linked corners and multi-source icons.",
 	Variant = "Info",
-})
-
-OverviewTab:ActionList({
-	Title = "Notification Styles",
-	Desc = "Tap a row to preview the styled toast.",
-	Actions = {
-		{ Title = "Notice", Desc = "General information with a cool accent.", Value = "Notice", Icon = "bell" },
-		{ Title = "Success", Desc = "Green completion feedback.", Value = "Success", Icon = "circle-check" },
-		{ Title = "Warning", Desc = "Persistent warning until closed.", Value = "Warning", Icon = "triangle-alert" },
-		{ Title = "Error", Desc = "Failure state with red accent.", Value = "Error", Icon = "circle-x" },
-	},
-	Callback = function(Action)
-		WindUI:Notify({
-			Title = Action.Title,
-			Content = Action.Desc,
-			Icon = Action.Icon,
-			Style = Action.Value,
-			Duration = Action.Value == "Warning" and false or 4,
-			Buttons = Action.Value == "Warning" and {
-				{ Title = "Dismiss" },
-			} or nil,
-		})
-	end,
 })
 
 local OverviewStats = OverviewTab:HStack({
@@ -159,6 +156,7 @@ OverviewTab:KeyValue({
 		{ Title = "Loader", Value = "loadstring" },
 		{ Title = "Theme", Value = WindUI:GetCurrentTheme() },
 		{ Title = "Topbar", Value = "Mac + Settings Gear" },
+		{ Title = "Icon sources", Value = tostring(#WindUI:GetIconSources()) },
 	},
 })
 
@@ -198,15 +196,168 @@ FeatureCardStats:Badge({
 
 FeatureCard:CardButton({
 	Title = "Notify From Card",
-	Icon = "bell",
+	Icon = "demo:notification",
 	Callback = function()
 		WindUI:Notify({
 			Title = "CardButton",
 			Content = "Card action callback fired.",
-			Icon = "check",
+			Icon = "demo:success",
 			Style = "Success",
 		})
 	end,
+})
+
+local SystemTab = Window:Tab({
+	Title = "System UI",
+	Icon = "demo:notification",
+})
+
+SystemTab:Callout({
+	Title = "Notification + Dynamic Island",
+	Desc = "Preview the new UI states and icon resolver without recreating the window.",
+	Variant = "Info",
+	Icon = "demo:island",
+})
+
+SystemTab:ActionList({
+	Title = "Notification Gallery",
+	Desc = "Compact capsules, metadata cards and accented glass all use the same Notify API.",
+	Actions = {
+		{
+			Title = "Compact Capsule",
+			Desc = "Minimal dark notification with a two-pixel timer.",
+			Value = "Compact",
+			Icon = { Source = "solar", Name = "bell-bold" },
+		},
+		{
+			Title = "Decorated Success",
+			Desc = "Compact layout with a colored wash and accent line.",
+			Value = "Decorated",
+			Icon = "lucide:circle-check",
+		},
+		{
+			Title = "Avatar Card",
+			Desc = "Larger profile image with timestamp metadata.",
+			Value = "Card",
+			Icon = "geist:user",
+		},
+		{
+			Title = "Persistent Glass",
+			Desc = "Glass appearance with action buttons and no timeout.",
+			Value = "Glass",
+			Icon = "gravity:triangle-exclamation",
+		},
+	},
+	Callback = function(Action)
+		if Action.Value == "Card" then
+			WindUI:Notify({
+				Title = "Anonim",
+				Content = "Metadata notification with an avatar and timestamp.",
+				Appearance = "Card",
+				Avatar = "rbxthumb://type=AvatarHeadShot&id=1&w=150&h=150",
+				Timestamp = os.date("%H:%M"),
+				Style = "Neutral",
+				Duration = 5,
+			})
+		elseif Action.Value == "Decorated" then
+			WindUI:Notify({
+				Title = "Saved successfully",
+				Content = "This capsule uses an accent wash while keeping the compact layout.",
+				Appearance = "Compact",
+				Icon = "demo:success",
+				Style = "Success",
+				Decorated = true,
+			})
+		elseif Action.Value == "Glass" then
+			WindUI:Notify({
+				Title = "Persistent notification",
+				Content = "Choose an action or close this notification manually.",
+				Appearance = "Glass",
+				Icon = "solar:bell-bold",
+				Style = "Warning",
+				Duration = false,
+				Buttons = {
+					{
+						Title = "Expand Island",
+						Callback = function()
+							Window:ExpandOpenButton({
+								Title = "WindUI alert",
+								Content = "Opened from a notification action",
+								Icon = "demo:notification",
+							}, 3)
+						end,
+					},
+					{ Title = "Dismiss" },
+				},
+			})
+		else
+			WindUI:Notify({
+				Title = "Notification example",
+				Content = "A compact dark capsule using a table-based Solar icon reference.",
+				Appearance = "Compact",
+				Icon = { Source = "solar", Name = "bell-bold" },
+				Style = "Info",
+			})
+		end
+	end,
+})
+
+SystemTab:ActionList({
+	Title = "Dynamic Island Open Button",
+	Desc = "Preview a state by closing the window. Tap the island to reopen WindUI.",
+	Actions = {
+		{
+			Title = "Push Update",
+			Desc = "Expand temporarily, then restore the previous state.",
+			Value = "Push",
+			Icon = "demo:island",
+		},
+		{
+			Title = "Expanded",
+			Desc = "Show title and secondary content.",
+			Value = "Expanded",
+			Icon = "lucide:panel-top-open",
+		},
+		{
+			Title = "Compact",
+			Desc = "Show icon and title as a small pill.",
+			Value = "Compact",
+			Icon = "geist:minus",
+		},
+		{
+			Title = "Collapsed",
+			Desc = "Use an icon-only circular state.",
+			Value = "Collapsed",
+			Icon = "gravity:circle",
+		},
+	},
+	Callback = function(Action)
+		local Changes = {
+			Title = "WindUI " .. Action.Value,
+			Content = Action.Value == "Collapsed" and false or "Dynamic Island method preview",
+			Icon = "demo:island",
+		}
+
+		if Action.Value == "Push" then
+			Window:PushOpenButton(Changes, 3)
+		else
+			Window:SetOpenButtonState(Action.Value, Changes)
+		end
+
+		task.defer(function()
+			Window:Close()
+		end)
+	end,
+})
+
+SystemTab:KeyValue({
+	Title = "Icon Resolver",
+	Items = {
+		{ Title = "Custom pack", Value = "demo:*" },
+		{ Title = "Alias", Value = "sample:*" },
+		{ Title = "Bundled", Value = "lucide / solar / geist / gravity" },
+		{ Title = "Structured", Value = '{ Source = "solar", Name = "bell-bold" }' },
+	},
 })
 
 local SettingsTab = Window:Tab({
@@ -368,8 +519,13 @@ PremiumTab:KeyValue({
 
 local LinkedTab = Window:Tab({
 	Title = "Linked Corners",
-	Icon = "combine",
+	Icon = "demo:corners",
 	LinkCorners = true,
+	CornerLink = {
+		InnerRadius = 6,
+		BridgeHidden = true,
+		BridgeSparse = false,
+	},
 	Gap = 1,
 })
 
@@ -382,11 +538,12 @@ LinkedTab:Callout({
 LinkedTab:Button({
 	Title = "Top Action",
 	Icon = "mouse-pointer-click",
+	CornerGroup = "primary",
 	Callback = function()
 		WindUI:Notify({
 			Title = "Linked corners",
-			Content = "Top element keeps only top corners rounded.",
-			Icon = "combine",
+			Content = "The group keeps soft inner corners and rounded outside edges.",
+			Icon = "demo:corners",
 			Style = "Info",
 		})
 	end,
@@ -396,12 +553,15 @@ LinkedTab:Toggle({
 	Title = "Middle Toggle",
 	Desc = "Middle element stays square while linked.",
 	Value = true,
+	CornerGroup = "primary",
 })
 
 LinkedTab:Card({
 	Title = "Linked Card Page",
 	Desc = "This card sits inside the linked stack and opens its own page.",
 	Icon = "panels-top-left",
+	CornerGroup = "primary",
+	CornerBreakAfter = true,
 	OpenTab = true,
 	TabTitle = "Linked Card",
 	Build = function(Tab)
@@ -415,6 +575,7 @@ LinkedTab:Card({
 
 LinkedTab:Slider({
 	Title = "Bottom Slider",
+	CornerGroup = "range",
 	Value = {
 		Min = 0,
 		Max = 100,
@@ -427,6 +588,7 @@ LinkedTab:Space()
 
 local LinkedRow = LinkedTab:HStack({
 	LinkCorners = true,
+	CornerLink = { InnerRadius = 5, Orientation = "Horizontal" },
 	MinChildWidth = 72,
 })
 LinkedRow:Button({
@@ -446,6 +608,7 @@ LinkedTab:Space()
 
 local LinkedStack = LinkedTab:VStack({
 	LinkCorners = true,
+	CornerLink = { InnerRadius = 5 },
 })
 LinkedStack:Button({
 	Title = "Stack Save",
@@ -461,7 +624,9 @@ LinkedTab:Space()
 LinkedTab:KeyValue({
 	Title = "Corner Mode",
 	Items = {
-		{ Title = "Tab", Value = "LinkCorners" },
+		{ Title = "Tab", Value = "LinkCorners + CornerLink" },
+		{ Title = "Inner radius", Value = "6px" },
+		{ Title = "Groups", Value = "primary / range" },
 		{ Title = "Gap", Value = "1px" },
 		{ Title = "Nested row", Value = "Left / Center / Right" },
 	},
@@ -636,3 +801,14 @@ MotionTab:Accordion({
 		{ Title = "Press", Desc = "Buttons and cards keep compact touch feedback." },
 	},
 })
+
+task.delay(0.7, function()
+	WindUI:Notify({
+		Title = "WindUI ready",
+		Content = "Open System UI to preview the upgraded components.",
+		Appearance = "Compact",
+		Icon = "demo:success",
+		Style = "Success",
+		Duration = 4,
+	})
+end)
