@@ -1,19 +1,36 @@
-local WindUI = loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua"))()
+local WindUI =
+	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-2"))()
 
-WindUI:RegisterIconPack("demo", {
-	island = { Alias = "lucide:radio" },
-	notification = { Alias = "lucide:bell" },
-	corners = { Alias = "lucide:combine" },
-	success = { Alias = "lucide:circle-check" },
-})
-WindUI:AddIconSourceAlias("sample", "demo")
+local HasIconSourceAPI = type(WindUI.RegisterIconPack) == "function"
+	and type(WindUI.AddIconSourceAlias) == "function"
+	and type(WindUI.GetIconSources) == "function"
+
+if HasIconSourceAPI then
+	WindUI:RegisterIconPack("demo", {
+		island = { Alias = "lucide:radio" },
+		notification = { Alias = "lucide:bell" },
+		corners = { Alias = "lucide:combine" },
+		success = { Alias = "lucide:circle-check" },
+	})
+	WindUI:AddIconSourceAlias("sample", "demo")
+end
+
+local function DemoIcon(Name, Fallback)
+	return if HasIconSourceAPI then "demo:" .. Name else Fallback
+end
+
+local function SourceIcon(Source, Name, Fallback)
+	return if HasIconSourceAPI then { Source = Source, Name = Name } else Fallback
+end
+
+local IconSources = if HasIconSourceAPI then WindUI:GetIconSources() else { "lucide", "solar" }
 
 WindUI:SetMotionPreset("Liquid")
 
 WindUI:LoadingCreate({
 	Title = "WindUI Full Example",
 	Desc = "Preparing liquid UI kit",
-	Icon = "sample:island",
+	Icon = DemoIcon("island", "radio"),
 	Width = 350,
 	Steps = { "Theme", "Motion", "Elements" },
 	ScrimTransparency = 0.28,
@@ -25,7 +42,7 @@ WindUI:LoadingSet(0.22, "Preparing theme")
 local Window = WindUI:CreateWindow({
 	Title = ".ftgs hub | WindUI Full Example",
 	Folder = "WindUIFullExample",
-	Icon = "demo:island",
+	Icon = DemoIcon("island", "radio"),
 	Default = true,
 	NewElements = true,
 	ElementTransparency = 0.18,
@@ -72,7 +89,7 @@ local Window = WindUI:CreateWindow({
 	OpenButton = {
 		Title = "WindUI",
 		Content = "Ready",
-		Icon = "demo:island",
+		Icon = DemoIcon("island", "radio"),
 		State = "Compact",
 		Enabled = true,
 		Draggable = true,
@@ -99,6 +116,21 @@ local Window = WindUI:CreateWindow({
 	}),
 	BackgroundOverlayTransparency = 0.47,
 })
+
+local function HasDynamicIslandAPI()
+	return type(Window.ExpandOpenButton) == "function"
+		and type(Window.PushOpenButton) == "function"
+		and type(Window.SetOpenButtonState) == "function"
+end
+
+local function NotifyOutdatedRuntime()
+	WindUI:Notify({
+		Title = "Runtime cache is updating",
+		Content = "Re-run the example to load the latest Dynamic Island API.",
+		Icon = "refresh-cw",
+		Style = "Notice",
+	})
+end
 
 WindUI:LoadingSet({ Step = 2, Progress = 0.58, Status = "Building motion" })
 task.delay(0.2, function()
@@ -156,7 +188,7 @@ OverviewTab:KeyValue({
 		{ Title = "Loader", Value = "loadstring" },
 		{ Title = "Theme", Value = WindUI:GetCurrentTheme() },
 		{ Title = "Topbar", Value = "Mac + Settings Gear" },
-		{ Title = "Icon sources", Value = tostring(#WindUI:GetIconSources()) },
+		{ Title = "Icon sources", Value = tostring(#IconSources) },
 	},
 })
 
@@ -196,12 +228,12 @@ FeatureCardStats:Badge({
 
 FeatureCard:CardButton({
 	Title = "Notify From Card",
-	Icon = "demo:notification",
+	Icon = DemoIcon("notification", "bell"),
 	Callback = function()
 		WindUI:Notify({
 			Title = "CardButton",
 			Content = "Card action callback fired.",
-			Icon = "demo:success",
+			Icon = DemoIcon("success", "circle-check"),
 			Style = "Success",
 		})
 	end,
@@ -209,14 +241,14 @@ FeatureCard:CardButton({
 
 local SystemTab = Window:Tab({
 	Title = "System UI",
-	Icon = "demo:notification",
+	Icon = DemoIcon("notification", "bell"),
 })
 
 SystemTab:Callout({
 	Title = "Notification + Dynamic Island",
 	Desc = "Preview the new UI states and icon resolver without recreating the window.",
 	Variant = "Info",
-	Icon = "demo:island",
+	Icon = DemoIcon("island", "radio"),
 })
 
 SystemTab:ActionList({
@@ -227,7 +259,7 @@ SystemTab:ActionList({
 			Title = "Compact Capsule",
 			Desc = "Minimal dark notification with a two-pixel timer.",
 			Value = "Compact",
-			Icon = { Source = "solar", Name = "bell-bold" },
+			Icon = SourceIcon("solar", "bell-bold", "bell"),
 		},
 		{
 			Title = "Decorated Success",
@@ -264,7 +296,7 @@ SystemTab:ActionList({
 				Title = "Saved successfully",
 				Content = "This capsule uses an accent wash while keeping the compact layout.",
 				Appearance = "Compact",
-				Icon = "demo:success",
+				Icon = DemoIcon("success", "circle-check"),
 				Style = "Success",
 				Decorated = true,
 			})
@@ -280,10 +312,14 @@ SystemTab:ActionList({
 					{
 						Title = "Expand Island",
 						Callback = function()
+							if not HasDynamicIslandAPI() then
+								NotifyOutdatedRuntime()
+								return
+							end
 							Window:ExpandOpenButton({
 								Title = "WindUI alert",
 								Content = "Opened from a notification action",
-								Icon = "demo:notification",
+								Icon = DemoIcon("notification", "bell"),
 							}, 3)
 						end,
 					},
@@ -295,7 +331,7 @@ SystemTab:ActionList({
 				Title = "Notification example",
 				Content = "A compact dark capsule using a table-based Solar icon reference.",
 				Appearance = "Compact",
-				Icon = { Source = "solar", Name = "bell-bold" },
+				Icon = SourceIcon("solar", "bell-bold", "bell"),
 				Style = "Info",
 			})
 		end
@@ -310,7 +346,7 @@ SystemTab:ActionList({
 			Title = "Push Update",
 			Desc = "Expand temporarily, then restore the previous state.",
 			Value = "Push",
-			Icon = "demo:island",
+			Icon = DemoIcon("island", "radio"),
 		},
 		{
 			Title = "Expanded",
@@ -332,10 +368,15 @@ SystemTab:ActionList({
 		},
 	},
 	Callback = function(Action)
+		if not HasDynamicIslandAPI() then
+			NotifyOutdatedRuntime()
+			return
+		end
+
 		local Changes = {
 			Title = "WindUI " .. Action.Value,
 			Content = Action.Value == "Collapsed" and false or "Dynamic Island method preview",
-			Icon = "demo:island",
+			Icon = DemoIcon("island", "radio"),
 		}
 
 		if Action.Value == "Push" then
@@ -519,7 +560,7 @@ PremiumTab:KeyValue({
 
 local LinkedTab = Window:Tab({
 	Title = "Linked Corners",
-	Icon = "demo:corners",
+	Icon = DemoIcon("corners", "combine"),
 	LinkCorners = true,
 	CornerLink = {
 		InnerRadius = 6,
@@ -543,7 +584,7 @@ LinkedTab:Button({
 		WindUI:Notify({
 			Title = "Linked corners",
 			Content = "The group keeps soft inner corners and rounded outside edges.",
-			Icon = "demo:corners",
+			Icon = DemoIcon("corners", "combine"),
 			Style = "Info",
 		})
 	end,
@@ -807,7 +848,7 @@ task.delay(0.7, function()
 		Title = "WindUI ready",
 		Content = "Open System UI to preview the upgraded components.",
 		Appearance = "Compact",
-		Icon = "demo:success",
+		Icon = DemoIcon("success", "circle-check"),
 		Style = "Success",
 		Duration = 4,
 	})

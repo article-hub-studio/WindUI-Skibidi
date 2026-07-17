@@ -4,6 +4,11 @@ const icons = fs.readFileSync("src/modules/Icons.lua", "utf8")
 const creator = fs.readFileSync("src/modules/Creator.lua", "utf8")
 const openButton = fs.readFileSync("src/components/window/Openbutton.lua", "utf8")
 const windowModule = fs.readFileSync("src/components/window/Init.lua", "utf8")
+const loader = fs.readFileSync("loader.lua", "utf8")
+const example = fs.readFileSync("main_example.lua", "utf8")
+const runtime = fs.readFileSync("dist/main.lua")
+const publicRuntime = fs.readFileSync("website/public/main.lua")
+const publicDistRuntime = fs.readFileSync("website/public/dist/main.lua")
 
 const checks = {
 	multiSourceParser:
@@ -47,6 +52,17 @@ const checks = {
 		/Position = PositionName/.test(creator) &&
 		/Horizontal = isHStack == true/.test(creator) &&
 		/typeof\(Options\.Resolver\) == "function"/.test(creator),
+	freshRuntimeLoader:
+		/CACHE_KEY/.test(loader) &&
+		/REQUIRED_API/.test(loader) &&
+		/RegisterIconPack/.test(loader) &&
+		/GetIconSources/.test(loader) &&
+		/pcall\(chunk\)/.test(loader),
+	publishedRuntimeSynced: runtime.equals(publicRuntime) && runtime.equals(publicDistRuntime),
+	exampleRuntimeCompatibility:
+		/HasIconSourceAPI/.test(example) &&
+		/HasDynamicIslandAPI/.test(example) &&
+		/NotifyOutdatedRuntime/.test(example),
 }
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok)
