@@ -665,6 +665,39 @@ function Creator.CreateUIShadow(Parent, Properties)
 	return Shadow
 end
 
+function Creator.ApplyLinkedCornerSurface(Object, Radius, Corners, Enabled)
+	if typeof(Object) ~= "Instance" or not Object:IsA("GuiObject") then
+		return nil
+	end
+
+	local Wrapper = DynamicShapeModule:GetWrapper(Object)
+	if Wrapper and Wrapper.SetLinkedCorners then
+		Wrapper:SetLinkedCorners(Enabled and Corners or nil, Radius)
+		return Wrapper
+	end
+
+	local Corner = Object:FindFirstChild("WindUILinkedCorner")
+	local ExistingCorner = Corner or Object:FindFirstChildWhichIsA("UICorner")
+	if not Enabled then
+		if Corner then
+			Corner:Destroy()
+		elseif ExistingCorner then
+			Creator.ApplyCornerRadii(ExistingCorner, Radius, Creator.DefaultCornerMap())
+		end
+		return nil
+	end
+
+	Corner = ExistingCorner
+	if not Corner then
+		Corner = Creator.New("UICorner", {
+			Name = "WindUILinkedCorner",
+			Parent = Object,
+		})
+	end
+	Creator.ApplyCornerRadii(Corner, Radius, Corners)
+	return Corner
+end
+
 function Creator.DefaultCornerMap()
 	return {
 		TopLeft = true,
@@ -1222,13 +1255,14 @@ function Creator:GetElementPosition(elements, targetIndex, isHStack, Options)
 		elseif IsDelimiter(Element) then
 			Flush()
 		else
+			local LinkingDisabled = Element.LinkCorners == false or Element.LinkCorner == false
 			local BreakBefore = Element.CornerBreakBefore == true or Element.LinkCornerBreakBefore == true
 			local SparseBreak = PreviousIndex ~= nil and Index - PreviousIndex > 1 and Options.BridgeSparse ~= true
 			local GroupBreak = PreviousElement ~= nil and GetGroup(PreviousElement) ~= GetGroup(Element)
 			local PreviousBreak = PreviousElement
 				and (PreviousElement.CornerBreakAfter == true or PreviousElement.LinkCornerBreakAfter == true)
 
-			if #Current > 0 and (BreakBefore or SparseBreak or GroupBreak or PreviousBreak) then
+			if #Current > 0 and (LinkingDisabled or BreakBefore or SparseBreak or GroupBreak or PreviousBreak) then
 				Flush()
 			end
 
@@ -1236,7 +1270,7 @@ function Creator:GetElementPosition(elements, targetIndex, isHStack, Options)
 			PreviousElement = Element
 			PreviousIndex = Index
 
-			if Element.LinkCorners == false or Element.LinkCorner == false then
+			if LinkingDisabled then
 				Flush()
 			end
 		end

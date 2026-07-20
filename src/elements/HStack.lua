@@ -4,13 +4,21 @@ local New = Creator.New
 local Element = {}
 
 function Element:New(Config)
+	local LinkCorners = Config.LinkCorners == true or typeof(Config.LinkCorners) == "table"
+	local CornerLink = Config.CornerLink or (typeof(Config.LinkCorners) == "table" and Config.LinkCorners)
+	local LinkedGap = typeof(CornerLink) == "table" and (CornerLink.Gap or CornerLink.Spacing) or nil
+	local Gap = Config.Gap
+		or Config.ElementGap
+		or (LinkCorners and (tonumber(LinkedGap) or 1))
+		or (Config.Tab and Config.Tab.Gap)
+		or (Config.Window.NewElements and 1 or 6)
 	local HStackModule = {
 		__type = "HStack",
 		AutoSpace = Config.AutoSpace or false,
 		Elements = {},
 		ElementFrame = nil,
-		LinkCorners = Config.LinkCorners == true,
-		CornerLink = Config.CornerLink,
+		LinkCorners = LinkCorners,
+		CornerLink = CornerLink,
 		MinChildWidth = math.max(tonumber(Config.MinChildWidth) or 128, 40),
 		IsStacked = false,
 	}
@@ -25,7 +33,7 @@ function Element:New(Config)
 			FillDirection = "Horizontal",
 			HorizontalAlignment = "Center",
 			--VerticalAlignment = "Center",
-			Padding = UDim.new(0, Config.Tab and Config.Tab.Gap or (Config.Window.NewElements and 1 or 6)),
+			Padding = UDim.new(0, Gap),
 		}),
 	})
 
@@ -34,8 +42,6 @@ function Element:New(Config)
 	local ElementsModule = Config.ElementsModule
 	local function UpdateLayout(AllElements)
 		AllElements = AllElements or HStackModule.Elements
-		local Gap = Config.Tab and Config.Tab.Gap or (Config.Window.NewElements and 1 or 6)
-
 		local StretchableElements = {}
 		local TotalFixedWidth = 0
 		local ParentWidth = HStackFrame.AbsoluteSize.X / Config.UIScale
@@ -65,8 +71,10 @@ function Element:New(Config)
 		local BaseOffset = math.floor(TotalOffset / StretchCount)
 		local Remainder = TotalOffset - (BaseOffset * StretchCount)
 
-		HStackFrame.UIListLayout.FillDirection = ShouldStack and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
-		HStackFrame.UIListLayout.HorizontalAlignment = ShouldStack and Enum.HorizontalAlignment.Left or Enum.HorizontalAlignment.Center
+		HStackFrame.UIListLayout.FillDirection = ShouldStack and Enum.FillDirection.Vertical
+			or Enum.FillDirection.Horizontal
+		HStackFrame.UIListLayout.HorizontalAlignment = ShouldStack and Enum.HorizontalAlignment.Left
+			or Enum.HorizontalAlignment.Center
 
 		for i, Element in next, StretchableElements do
 			local Offset = ShouldStack and 0 or BaseOffset

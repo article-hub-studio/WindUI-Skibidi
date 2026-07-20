@@ -58,7 +58,12 @@ return function(Config)
 			InnerRadius = 6,
 			BridgeHidden = true,
 		}
-		Config.ElementGap = PickAlias(Config.ElementGap, Config.ElementsGap, 8)
+		local LinkedGap = typeof(Config.CornerLink) == "table" and (Config.CornerLink.Gap or Config.CornerLink.Spacing)
+		Config.ElementGap = PickAlias(
+			Config.ElementGap,
+			Config.ElementsGap,
+			Config.LinkElementCorners and (tonumber(LinkedGap) or 1) or 8
+		)
 		Config.ElementTransparency = PickAlias(Config.ElementTransparency, Config.ElementsTransparency, 0.18)
 		Config.BackgroundOverlayTransparency = Pick(Config.BackgroundOverlayTransparency, 0.5)
 		Config.BackgroundColor = Pick(Config.BackgroundColor, Color3.fromHex("#101821"))
@@ -1829,6 +1834,43 @@ return function(Config)
 		end
 	end
 
+	local WindowMorph = {
+		Active = false,
+		RestorePosition = Window.UIElements.Main.Position,
+		TargetScale = nil,
+	}
+
+	local function GetWindowMorphTarget()
+		local Island = Window.OpenButtonMain
+		if not Island or not Window.IsOpenButtonEnabled or Window.IsPC or not Island.GetMorphTarget then
+			return nil
+		end
+
+		local Target = Island:GetMorphTarget()
+		if not Target.Enabled or Target.Size.X <= 0 or Target.Size.Y <= 0 then
+			return nil
+		end
+
+		local ParentPosition = Vector2.new(0, 0)
+		local Parent = Window.UIElements.Main.Parent
+		if typeof(Parent) == "Instance" and Parent:IsA("GuiObject") then
+			ParentPosition = Parent.AbsolutePosition
+		end
+
+		local BaseScale = math.max(tonumber(Config.WindUI.UIScale) or 1, 0.01)
+		local AbsoluteSize = Window.UIElements.Main.AbsoluteSize
+		local LogicalWidth = math.max(Window.Size.X.Offset, AbsoluteSize.X / BaseScale, 1)
+		local LogicalHeight = math.max(Window.Size.Y.Offset, AbsoluteSize.Y / BaseScale, 1)
+		local TargetScale =
+			math.clamp(math.min(Target.Size.X / LogicalWidth, Target.Size.Y / LogicalHeight), 0.035, BaseScale)
+
+		return {
+			Position = UDim2.fromOffset(Target.Position.X - ParentPosition.X, Target.Position.Y - ParentPosition.Y),
+			Scale = TargetScale,
+			Duration = Target.Duration > 0 and Target.Duration or Motion.GetDuration("WindowMorph"),
+		}
+	end
+
 	function Window:Open()
 		if Window.Destroyed then
 			return
@@ -1842,13 +1884,27 @@ return function(Config)
 
 			task.wait(0.06)
 			Window.Closed = false
+			local OpeningFromIsland = WindowMorph.Active
+			local MorphTarget = OpeningFromIsland and GetWindowMorphTarget() or nil
 
-			Window.UIElements.Main.Size = UDim2.new(Window.Size.X.Scale, Window.Size.X.Offset, 0, 100)
-
-			Motion.Play(Window.UIElements.Main, "WindowOpen", {
-				--GroupTransparency = 0,
-				Size = Window.Size,
-			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
+			if MorphTarget then
+				Window.UIElements.Main.Size = Window.Size
+				Window.UIElements.Main.Position = MorphTarget.Position
+				Config.WindUI.UIScaleObj.Scale = WindowMorph.TargetScale or MorphTarget.Scale
+				Window.UIElements.Main.Visible = true
+				Window.UIElements.Main:WaitForChild("Main").Visible = true
+				Motion.Play(Window.UIElements.Main, MorphTarget.Duration, {
+					Position = WindowMorph.RestorePosition,
+				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "WindowMorphPosition")
+				Motion.Play(Config.WindUI.UIScaleObj, MorphTarget.Duration, {
+					Scale = Config.WindUI.UIScale,
+				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "WindowMorphScale")
+			else
+				Window.UIElements.Main.Size = UDim2.new(Window.Size.X.Scale, Window.Size.X.Offset, 0, 100)
+				Motion.Play(Window.UIElements.Main, "WindowOpen", {
+					Size = Window.Size,
+				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
+			end
 
 			if Window.UIElements.BackgroundGradient then
 				Motion.Play(Window.UIElements.BackgroundGradient, "Focus", {
@@ -1856,7 +1912,9 @@ return function(Config)
 				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
 			end
 
-			Window.UIElements.Main.Background.ImageTransparency = 1
+			if not MorphTarget then
+				Window.UIElements.Main.Background.ImageTransparency = 1
+			end
 			Motion.Play(Window.UIElements.Main.Background, "WindowOpen", {
 				--Size = UDim2.new(1, 0, 1, 0),
 				ImageTransparency = Window.Transparent and Config.WindUI.TransparencyValue or 0,
@@ -1872,8 +1930,14 @@ return function(Config)
 				end
 			end
 
-			if Window.OpenButtonMain and Window.IsOpenButtonEnabled then
+			if Window.OpenButtonMain and Window.IsOpenButtonEnabled and not MorphTarget then
 				Window.OpenButtonMain:Visible(false)
+			elseif MorphTarget then
+				task.delay(math.min(MorphTarget.Duration * 0.22, 0.1), function()
+					if not Window.Closed and Window.OpenButtonMain then
+						Window.OpenButtonMain:Visible(false)
+					end
+				end)
 			end
 
 			--[[Config.WindUI.UIScaleObj.Scale -= 1 - 0.85
@@ -1926,6 +1990,7 @@ return function(Config)
 			Window.UIElements.Main:WaitForChild("Main").Visible = true
 
 			Config.WindUI:ToggleAcrylic(true)
+			WindowMorph.Active = false
 			--end)
 		end)
 	end
@@ -1935,6 +2000,17 @@ return function(Config)
 		end
 
 		local Close = {}
+		local MorphTarget
+		if Window.OpenButtonMain and Window.IsOpenButtonEnabled and not Window.IsPC then
+			Window.OpenButtonMain:SetState("Compact", nil, false)
+			Window.OpenButtonMain:Visible(true)
+			MorphTarget = GetWindowMorphTarget()
+		end
+		local UseMorph = MorphTarget ~= nil
+		local CloseDuration = UseMorph and MorphTarget.Duration or Motion.GetDuration("WindowClose")
+		WindowMorph.Active = UseMorph
+		WindowMorph.RestorePosition = Window.UIElements.Main.Position
+		WindowMorph.TargetScale = UseMorph and MorphTarget.Scale or nil
 
 		if Window.OnCloseCallback then
 			task.spawn(function()
@@ -1942,29 +2018,41 @@ return function(Config)
 			end)
 		end
 
-		Config.WindUI:ToggleAcrylic(false)
+		if not UseMorph then
+			Config.WindUI:ToggleAcrylic(false)
+		end
 
-		if Window.UIElements.Main and Window.UIElements.Main:WaitForChild("Main") then
+		if not UseMorph and Window.UIElements.Main and Window.UIElements.Main:WaitForChild("Main") then
 			Window.UIElements.Main.Main.Visible = false
 		end
 
 		Window.CanDropdown = false
 		Window.Closed = true
 
-		Motion.Play(Window.UIElements.Main, "WindowClose", {
-			--GroupTransparency = 1,
-			Size = UDim2.new(Window.Size.X.Scale, Window.Size.X.Offset, 0, 0),
-		}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
-		if Window.UIElements.BackgroundGradient then
+		if UseMorph then
+			Motion.Play(Window.UIElements.Main, MorphTarget.Duration, {
+				Position = MorphTarget.Position,
+			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "WindowMorphPosition")
+			Motion.Play(Config.WindUI.UIScaleObj, MorphTarget.Duration, {
+				Scale = MorphTarget.Scale,
+			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "WindowMorphScale")
+		else
+			Motion.Play(Window.UIElements.Main, "WindowClose", {
+				Size = UDim2.new(Window.Size.X.Scale, Window.Size.X.Offset, 0, 0),
+			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
+		end
+		if not UseMorph and Window.UIElements.BackgroundGradient then
 			Motion.Play(Window.UIElements.BackgroundGradient, "Fast", {
 				ImageTransparency = 1,
 			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
 		end
 
-		Motion.Play(Window.UIElements.Main.Background, "WindowClose", {
-			--Size = UDim2.new(1, 0, 1, -240),
-			ImageTransparency = 1,
-		}, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, "WindowBackground")
+		if not UseMorph then
+			Motion.Play(Window.UIElements.Main.Background, "WindowClose", {
+				--Size = UDim2.new(1, 0, 1, -240),
+				ImageTransparency = 1,
+			}, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, "WindowBackground")
+		end
 
 		--[[Tween(
 			Config.WindUI.UIScaleObj,
@@ -1973,7 +2061,7 @@ return function(Config)
 			Enum.EasingStyle.Quint,
 			Enum.EasingDirection.Out
 		):Play()]]
-		if BGImage then
+		if BGImage and not UseMorph then
 			if BGImage:IsA("VideoFrame") then
 				BGImage.Visible = false
 			else
@@ -1982,7 +2070,16 @@ return function(Config)
 				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
 			end
 		end
-		Motion.Play(Blur, "WindowClose", { ImageTransparency = 1 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Window")
+		if not UseMorph then
+			Motion.Play(
+				Blur,
+				"WindowClose",
+				{ ImageTransparency = 1 },
+				Enum.EasingStyle.Quint,
+				Enum.EasingDirection.Out,
+				"Window"
+			)
+		end
 		--[[if UIStroke then
 			Tween(UIStroke, 0.25, { Transparency = 1 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out):Play()
 		end]]
@@ -2007,13 +2104,20 @@ return function(Config)
 		Window.CanResize = false
 
 		task.spawn(function()
-			task.wait(Motion.GetDuration("WindowClose") + 0.05)
+			task.wait(CloseDuration + 0.05)
 
 			if not Window.Closed then
 				return
 			end
 
 			Window.UIElements.Main.Visible = false
+			Window.UIElements.Main.Main.Visible = false
+			if UseMorph then
+				Config.WindUI:ToggleAcrylic(false)
+				if BGImage and BGImage:IsA("VideoFrame") then
+					BGImage.Visible = false
+				end
+			end
 
 			if Window.OpenButtonMain and not Window.Destroyed and not Window.IsPC and Window.IsOpenButtonEnabled then
 				Window.OpenButtonMain:Visible(true)

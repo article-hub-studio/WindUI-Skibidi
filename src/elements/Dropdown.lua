@@ -41,6 +41,14 @@ function Element:New(Config)
 	end
 
 	local Compact = Config.Compact ~= false
+	local Placement = string.lower(tostring(Config.Placement or Config.MenuPlacement or Config.Mode or ""))
+	local DirectionName = string.lower(tostring(Config.Direction or Config.OpenDirection or ""))
+	local Centered = Config.Centered == true
+		or Config.Modal == true
+		or Placement == "center"
+		or Placement == "middle"
+		or DirectionName == "center"
+		or DirectionName == "middle"
 
 	local Dropdown = {
 		__type = "Dropdown",
@@ -49,13 +57,18 @@ function Element:New(Config)
 		Locked = Config.Locked or false,
 		LockedTitle = Config.LockedTitle,
 		Values = Values,
-		MenuWidth = Config.MenuWidth or (Compact and 164 or 180),
+		MenuWidth = Config.MenuWidth or (Centered and 300 or (Compact and 164 or 180)),
 		MenuMaxWidth = Config.MenuMaxWidth,
 		FullWidth = Config.FullWidth or Config.Full or Config.Mode == "Full" or Config.MenuMode == "Full",
-		Direction = Config.Direction or Config.OpenDirection or "Auto",
+		Direction = Centered and "Center" or (Config.Direction or Config.OpenDirection or "Auto"),
 		Side = Config.Side or Config.Align or Config.Alignment or "Right",
 		MobileDirection = Config.MobileDirection or Config.MobileOpenDirection,
 		MobileSide = Config.MobileSide or Config.MobileAlign,
+		Centered = Centered,
+		CenterTarget = Config.CenterTarget or Config.CenterIn or "Window",
+		CenterOffset = typeof(Config.CenterOffset) == "Vector2" and Config.CenterOffset or Vector2.new(0, 0),
+		Backdrop = Centered and Config.Backdrop ~= false,
+		BackdropTransparency = Creator.ClampTransparency(Config.BackdropTransparency, 0.72),
 		Value = Config.Value,
 		AllowNone = Config.AllowNone,
 		SearchBarEnabled = SearchBarEnabled == true,

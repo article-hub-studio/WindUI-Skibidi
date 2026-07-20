@@ -97,7 +97,8 @@ function Element:New(Config)
 	})
 
 	if Card.Image then
-		Card.UIElements.Image = Creator.Image(Card.Image, Card.Title .. "-card-image", 0, Config.Window.Folder, "Card", false, false)
+		Card.UIElements.Image =
+			Creator.Image(Card.Image, Card.Title .. "-card-image", 0, Config.Window.Folder, "Card", false, false)
 		Card.UIElements.Image.Size = UDim2.new(1, 0, 1, 0)
 		Card.UIElements.Image.Position = UDim2.new(0.5, 0, 0.5, 0)
 		Card.UIElements.Image.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -257,7 +258,14 @@ function Element:New(Config)
 				VerticalAlignment = "Center",
 				HorizontalAlignment = "Left",
 			}),
-			Utils.CreateIcon(Creator, ButtonConfig.Icon or "arrow-right", Config.Window.Folder, "Card", not ButtonAccent, "CardButtonIcon"),
+			Utils.CreateIcon(
+				Creator,
+				ButtonConfig.Icon or "arrow-right",
+				Config.Window.Folder,
+				"Card",
+				not ButtonAccent,
+				"CardButtonIcon"
+			),
 			New("TextLabel", {
 				Name = "Title",
 				Size = UDim2.new(1, -34, 1, 0),
@@ -440,30 +448,33 @@ function Element:New(Config)
 	end
 
 	function Card:Highlight()
-		Motion.Play(Card.UIElements.Background, "Highlight", { BackgroundTransparency = 0.78 }, nil, nil, "CardHighlight")
+		Motion.Play(
+			Card.UIElements.Background,
+			"Highlight",
+			{ BackgroundTransparency = 0.78 },
+			nil,
+			nil,
+			"CardHighlight"
+		)
 		task.delay(Motion.GetDuration("Highlight"), function()
 			if Card.UIElements.Main.Parent then
-				Motion.Play(
-					Card.UIElements.Background,
-					"Highlight",
-					{
-						BackgroundTransparency = Creator.ClampTransparency(
-							Config.Transparency,
-							Config.Window.LiquidGlass and 0.84 or 0.9
-						),
-					},
-					nil,
-					nil,
-					"CardHighlight"
-				)
+				Motion.Play(Card.UIElements.Background, "Highlight", {
+					BackgroundTransparency = Creator.ClampTransparency(
+						Config.Transparency,
+						Config.Window.LiquidGlass and 0.84 or 0.9
+					),
+				}, nil, nil, "CardHighlight")
 			end
 		end)
 	end
 
 	function Card.UpdateShape(Container)
-		local ShouldLinkCorners = Config.Window.ElementConfig.LinkCorners
-			or Card.LinkCorners
-			or (Config.ParentTable and Config.ParentTable.LinkCorners == true)
+		local ShouldLinkCorners = Card.LinkCorners ~= false
+			and (
+				Card.LinkCorners == true
+				or Config.Window.ElementConfig.LinkCorners
+				or (Config.ParentTable and Config.ParentTable.LinkCorners == true)
+			)
 
 		local corners = {
 			TopLeft = true,
@@ -472,6 +483,7 @@ function Element:New(Config)
 			BottomRight = true,
 		}
 		local newShape = "Squircle"
+		local Metadata = { Position = "Single", Count = 1 }
 
 		if ShouldLinkCorners and Container and Container.Elements then
 			local ParentType = Config.ParentConfig
@@ -479,7 +491,7 @@ function Element:New(Config)
 					and Config.ParentConfig.ParentTable.__type
 				or Config.ParentType
 				or (Config.ParentTable and Config.ParentTable.__type)
-			newShape, corners = Creator.GetLinkedCornerShape(
+			newShape, corners, Metadata = Creator.GetLinkedCornerShape(
 				Container.Elements,
 				Card.Index,
 				Container,
@@ -491,8 +503,9 @@ function Element:New(Config)
 		end
 
 		if newShape and MainFrameWrapper then
-			local DynamicShape = (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle"
-				or newShape
+			local DynamicShape = if Metadata.Count > 1
+				then "Square"
+				else (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle" or newShape
 			MainFrameWrapper:SetType(DynamicShape)
 		end
 

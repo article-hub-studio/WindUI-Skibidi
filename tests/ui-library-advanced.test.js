@@ -2,6 +2,11 @@ const fs = require("fs")
 
 const icons = fs.readFileSync("src/modules/Icons.lua", "utf8")
 const creator = fs.readFileSync("src/modules/Creator.lua", "utf8")
+const dynamicShape = fs.readFileSync("src/modules/DynamicShape.lua", "utf8")
+const elementsInit = fs.readFileSync("src/elements/Init.lua", "utf8")
+const dropdown = fs.readFileSync("src/components/ui/Dropdown.lua", "utf8")
+const dropdownElement = fs.readFileSync("src/elements/Dropdown.lua", "utf8")
+const loading = fs.readFileSync("src/components/LoadingScreen.lua", "utf8")
 const openButton = fs.readFileSync("src/components/window/Openbutton.lua", "utf8")
 const windowModule = fs.readFileSync("src/components/window/Init.lua", "utf8")
 const loader = fs.readFileSync("loader.lua", "utf8")
@@ -68,6 +73,12 @@ const checks = {
 		/function Window:SetOpenButtonState/.test(windowModule) &&
 		/function Window:HideOpenButton/.test(windowModule) &&
 		/function Window:WakeOpenButton/.test(windowModule),
+	windowIslandMorph:
+		/function OpenButtonMain:GetMorphTarget/.test(openButton) &&
+		/MorphWindow = true/.test(openButton) &&
+		/WindowMorphPosition/.test(windowModule) &&
+		/WindowMorphScale/.test(windowModule) &&
+		/Motion\.GetDuration\("WindowMorph"\)/.test(windowModule),
 	advancedLinkedCorners:
 		/Options\.InnerRadius/.test(creator) &&
 		/Options\.BridgeSparse/.test(creator) &&
@@ -79,6 +90,28 @@ const checks = {
 		/Position = PositionName/.test(creator) &&
 		/Horizontal = isHStack == true/.test(creator) &&
 		/typeof\(Options\.Resolver\) == "function"/.test(creator),
+	linkedCornerSurfaces:
+		/function Creator\.ApplyLinkedCornerSurface/.test(creator) &&
+		/Corner\.TopLeftRadius/.test(creator) &&
+		/Corner\.TopRightRadius/.test(creator) &&
+		/Corner\.BottomLeftRadius/.test(creator) &&
+		/Corner\.BottomRightRadius/.test(creator) &&
+		/function Wrapper:SetLinkedCorners/.test(dynamicShape) &&
+		/WindUILinkedCorner/.test(dynamicShape) &&
+		/content\.CornerGroup = config\.CornerGroup/.test(elementsInit) &&
+		/config\.CornerLink = tbl\.CornerLink/.test(elementsInit),
+	centeredDropdown:
+		/Dropdown\.Centered/.test(dropdown) &&
+		/Name = "DropdownBackdrop"/.test(dropdown) &&
+		/return "Center"/.test(dropdown) &&
+		/Config\.Centered == true/.test(dropdownElement) &&
+		/CenterTarget/.test(dropdownElement),
+	loadingPlayback:
+		/Name = "Body"/.test(loading) &&
+		/Name = "Percent"/.test(loading) &&
+		/function Loader:Play/.test(loading) &&
+		/os\.clock\(\) - StartedAt/.test(loading) &&
+		/Duration = 5/.test(example),
 	freshRuntimeLoader:
 		/CACHE_KEY/.test(loader) &&
 		/REQUIRED_API/.test(loader) &&
@@ -101,12 +134,16 @@ const checks = {
 		runtime.includes("UIShadow") &&
 		runtime.includes("LayoutVersion") &&
 		runtime.includes("LiquidGlass") &&
-		runtime.includes("AutoHide"),
+		runtime.includes("AutoHide") &&
+		runtime.includes("WindUILinkedCorner") &&
+		runtime.includes("WindowMorphScale") &&
+		runtime.includes("DropdownBackdrop") &&
+		runtime.includes("LoadingProgress"),
 	exampleRuntimeCompatibility:
 		/HasIconSourceAPI/.test(example) &&
 		/HasDynamicIslandAPI/.test(example) &&
 		/NotifyOutdatedRuntime/.test(example) &&
-		/ui-runtime-6/.test(example),
+		/ui-runtime-7/.test(example),
 }
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok)

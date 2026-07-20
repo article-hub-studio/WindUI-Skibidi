@@ -274,6 +274,8 @@ code={`OpenButton = {
     Shadow = true,      -- native UIShadow
     ShadowBlur = 18,
     ShadowTransparency = 0.5,
+    MorphWindow = true, -- shrink and travel into the island on close
+    MorphDuration = 0.46,
     StrokeThickness = 1,
     Color = ColorSequence.new( -- only gradient 
         Color3.fromHex("FF0F7B"), 
@@ -332,7 +334,7 @@ code={`OpenButton = {
 
 ## Dynamic Island Open Button
 
-`EditOpenButton` returns a controller. Its width, height, icon, title, and content animate between four states without recreating the UI. After `AutoHide` seconds, the button contracts into the small `Idle` pill while remaining tappable, like an iPhone Dynamic Island.
+`EditOpenButton` returns a controller. Its width, height, icon, title, and content animate between four states without recreating the UI. After `AutoHide` seconds, the button contracts into the small `Idle` pill while remaining tappable. When `MorphWindow` is enabled, closing the window keeps its layout intact while the whole surface scales down and travels into the Dynamic Island; opening reverses the same animation.
 
 ```luau
 local Island = Window:EditOpenButton({
@@ -344,6 +346,8 @@ local Island = Window:EditOpenButton({
     IdleHeight = 28,
     Shadow = true,
     ShadowBlur = 18,
+    MorphWindow = true,
+    MorphDuration = 0.46,
     OnlyMobile = false,
 })
 
@@ -375,7 +379,7 @@ Window:SetOpenButtonState("Expanded", { Content = "Custom state" })
 
 ## Advanced Linked Corners
 
-Linked corners can use a soft inner radius and can split a sequence by group or explicit breaks. Hidden and sparse elements are handled deterministically, and HStack automatically switches linking direction when it stacks vertically.
+Linked corners use Roblox's native per-corner `UICorner` radii, so every element surface—not only the outer container—receives the correct top-left, top-right, bottom-left and bottom-right shape. Sequences can split by group or explicit breaks, and HStack automatically switches linking direction when it stacks vertically.
 
 ```luau
 local Window = WindUI:CreateWindow({
@@ -384,6 +388,7 @@ local Window = WindUI:CreateWindow({
     LinkElementCorners = true,
     CornerLink = {
         InnerRadius = 6,
+        Gap = 1,
         BridgeHidden = true,
         BridgeSparse = false,
         BreakTypes = { "Divider", "Space", "Section" },
@@ -396,7 +401,7 @@ Tab:Button({ Title = "Last", CornerGroup = "account", CornerBreakAfter = true })
 Tab:Button({ Title = "Separate", LinkCorners = false })
 ```
 
-Containers such as `Group`, `HStack`, and `VStack` may define their own `CornerLink` table. Individual elements support `CornerGroup`, `CornerBreak`, `CornerBreakBefore`, `CornerBreakAfter`, and `LinkCorners = false`.
+Tabs and containers such as `Group`, `HStack`, and `VStack` may define their own `CornerLink` table. `Gap = 0` joins surfaces edge-to-edge and `Gap = 1` leaves a crisp separator. Individual elements support `CornerGroup`, `CornerBreak`, `CornerBreakBefore`, `CornerBreakAfter`, and `LinkCorners = false`.
 
 ## Background API
 
@@ -439,11 +444,17 @@ local Loader = WindUI:LoadingCreate({
     Desc = "Preparing interface",
     Icon = "sparkles",
     Steps = { "Theme", "Motion", "Elements" },
+    Duration = 5,
+    AutoStatus = true,
+    CompleteStatus = "Ready",
+    CloseDelay = 0.18,
 })
 
-WindUI:LoadingSet(0.35, "Loading theme")
-WindUI:LoadingSet({ Step = 2, Progress = 0.7, Status = "Building UI" })
-WindUI:LoadingSet({ Progress = 1, Status = "Ready", Close = true, Delay = 0.15 })
+-- Duration starts automatic progress and closes after exactly five seconds.
+-- Manual control remains available:
+Loader:SetProgress(0.35):SetStatus("Loading theme")
+Loader:Step(2, "Building UI")
+Loader:Play(5)
 ```
 
 ## Window Methods

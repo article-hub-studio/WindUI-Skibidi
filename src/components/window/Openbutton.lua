@@ -132,6 +132,8 @@ function OpenButton.New(Window)
 		ShadowSpread = UDim2.fromOffset(2, 2),
 		ShadowTransparency = 0.5,
 		FallbackShadow = false,
+		MorphWindow = true,
+		MorphDuration = 0.42,
 		OnStateChange = nil,
 	}
 
@@ -593,6 +595,18 @@ function OpenButton.New(Window)
 		return OpenButtonMain.State
 	end
 
+	function OpenButtonMain:GetMorphTarget()
+		local Target = Button or Container
+		local Size = Target.AbsoluteSize
+		local Position = Target.AbsolutePosition + (Size / 2)
+		return {
+			Position = Position,
+			Size = Size,
+			Duration = math.max(tonumber(Settings.MorphDuration) or 0.42, 0),
+			Enabled = Settings.MorphWindow ~= false and Settings.Enabled ~= false,
+		}
+	end
+
 	function OpenButtonMain:Expand(Changes, Duration)
 		OpenButtonMain:SetState("Expanded", Changes)
 		local Token = StateToken
@@ -734,6 +748,11 @@ function OpenButton.New(Window)
 		Settings.ShadowTransparency =
 			Creator.ClampTransparency(Pick(Config.ShadowTransparency, Settings.ShadowTransparency), 0.5)
 		Settings.FallbackShadow = Pick(Config.FallbackShadow, Settings.FallbackShadow)
+		Settings.MorphWindow = Pick(Config.MorphWindow, Pick(Config.WindowMorph, Settings.MorphWindow))
+		Settings.MorphDuration = math.max(
+			tonumber(Pick(Config.MorphDuration, Pick(Config.WindowMorphDuration, Settings.MorphDuration))) or 0.42,
+			0
+		)
 		Settings.OnStateChange = Pick(Config.OnStateChange, Settings.OnStateChange)
 
 		local RequestedState = Config.State or Config.Mode

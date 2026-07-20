@@ -1,5 +1,5 @@
 local WindUI =
-	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-6"))()
+	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-7"))()
 
 local HasIconSourceAPI = (tonumber(WindUI.IconAdapterVersion) or 0) >= 3
 	and type(WindUI.RegisterIconPack) == "function"
@@ -36,9 +36,11 @@ WindUI:LoadingCreate({
 	Steps = { "Theme", "Motion", "Elements" },
 	ScrimTransparency = 0.28,
 	CardTransparency = 0.14,
+	Duration = 5,
+	AutoStatus = true,
+	CompleteStatus = "Ready",
+	CloseDelay = 0.18,
 })
-
-WindUI:LoadingSet(0.22, "Preparing theme")
 
 local Window = WindUI:CreateWindow({
 	Title = ".ftgs hub | WindUI Full Example",
@@ -47,10 +49,11 @@ local Window = WindUI:CreateWindow({
 	Default = true,
 	NewElements = true,
 	ElementTransparency = 0.18,
-	ElementGap = 8,
+	ElementGap = 1,
 	LinkElementCorners = true,
 	CornerLink = {
 		InnerRadius = 6,
+		Gap = 1,
 		BridgeHidden = true,
 		BridgeSparse = false,
 		BreakTypes = { "Divider", "Space", "Section" },
@@ -113,6 +116,8 @@ local Window = WindUI:CreateWindow({
 		ShadowBlur = 18,
 		ShadowTransparency = 0.5,
 		FallbackShadow = false,
+		MorphWindow = true,
+		MorphDuration = 0.46,
 		Color = ColorSequence.new(Color3.fromHex("#30FF6A"), Color3.fromHex("#E7FF2F")),
 	},
 	BackgroundColor = Color3.fromHex("#08111A"),
@@ -142,11 +147,6 @@ local function NotifyOutdatedRuntime()
 		Style = "Notice",
 	})
 end
-
-WindUI:LoadingSet({ Step = 2, Progress = 0.58, Status = "Building motion" })
-task.delay(0.2, function()
-	WindUI:LoadingSet({ Step = 3, Progress = 1, Status = "Ready", Close = true, Delay = 0.16 })
-end)
 
 local OverviewTab = Window:Tab({
 	Title = "Overview",
@@ -499,6 +499,19 @@ SettingsTab:Dropdown({
 	Side = "Left",
 })
 
+SettingsTab:Dropdown({
+	Title = "Centered Dropdown",
+	Desc = "Opens as a centered modal menu with a dimmed backdrop.",
+	Values = { "Workspace", "Interface", "Notifications", "Dynamic Island", "Loading" },
+	Value = "Interface",
+	Search = true,
+	Centered = true,
+	CenterTarget = "Window",
+	Backdrop = true,
+	BackdropTransparency = 0.74,
+	MenuWidth = 300,
+})
+
 local DropdownRow = SettingsTab:HStack({
 	MinChildWidth = 180,
 })
@@ -590,10 +603,10 @@ local LinkedTab = Window:Tab({
 	LinkCorners = true,
 	CornerLink = {
 		InnerRadius = 6,
+		Gap = 1,
 		BridgeHidden = true,
 		BridgeSparse = false,
 	},
-	Gap = 1,
 })
 
 LinkedTab:Callout({
@@ -655,7 +668,7 @@ LinkedTab:Space()
 
 local LinkedRow = LinkedTab:HStack({
 	LinkCorners = true,
-	CornerLink = { InnerRadius = 5, Orientation = "Horizontal" },
+	CornerLink = { InnerRadius = 5, Gap = 1, Orientation = "Horizontal" },
 	MinChildWidth = 72,
 })
 LinkedRow:Button({
@@ -675,7 +688,7 @@ LinkedTab:Space()
 
 local LinkedStack = LinkedTab:VStack({
 	LinkCorners = true,
-	CornerLink = { InnerRadius = 5 },
+	CornerLink = { InnerRadius = 5, Gap = 1 },
 })
 LinkedStack:Button({
 	Title = "Stack Save",
@@ -691,6 +704,7 @@ LinkedTab:Space()
 LinkedTab:KeyValue({
 	Title = "Corner Mode",
 	Items = {
+		{ Title = "Surface", Value = "Native UICorner radii" },
 		{ Title = "Tab", Value = "LinkCorners + CornerLink" },
 		{ Title = "Inner radius", Value = "6px" },
 		{ Title = "Groups", Value = "primary / range" },

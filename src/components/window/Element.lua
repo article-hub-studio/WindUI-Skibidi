@@ -136,6 +136,7 @@ return function(Config)
 	local NativeBackground
 	local NativeBackgroundCorner
 	local NativeLiquidSheen
+	local NativeLayerCorners = {}
 	local CurrentCorners = {
 		TopLeft = true,
 		TopRight = true,
@@ -144,6 +145,14 @@ return function(Config)
 	}
 
 	local IconOffset = 0
+
+	local function NewLayerCorner()
+		local Corner = New("UICorner", {
+			CornerRadius = UDim.new(0, Element.UICorner),
+		})
+		table.insert(NativeLayerCorners, Corner)
+		return Corner
+	end
 
 	local ThumbnailFrame
 	local ImageFrame
@@ -364,6 +373,7 @@ return function(Config)
 		Active = false,
 		Parent = ElementFullFrame,
 	}, {
+		NewLayerCorner(),
 		New("UIListLayout", {
 			FillDirection = "Horizontal",
 			VerticalAlignment = "Center",
@@ -400,6 +410,7 @@ return function(Config)
 		},
 		Parent = ElementFullFrame,
 	}, {
+		NewLayerCorner(),
 		New("UIListLayout", {
 			FillDirection = "Horizontal",
 			VerticalAlignment = "Center",
@@ -450,6 +461,7 @@ return function(Config)
 		},
 		Parent = ElementFullFrame,
 	}, {
+		NewLayerCorner(),
 		New("UIGradient", {
 			Name = "HoverGradient",
 			Color = ColorSequence.new({
@@ -503,6 +515,9 @@ return function(Config)
 		CurrentCorners = Corners or CurrentCorners
 		if NativeBackgroundCorner then
 			Creator.ApplyCornerRadii(NativeBackgroundCorner, UDim.new(0, Element.UICorner), CurrentCorners)
+		end
+		for _, Corner in NativeLayerCorners do
+			Creator.ApplyCornerRadii(Corner, UDim.new(0, Element.UICorner), CurrentCorners)
 		end
 	end
 
@@ -559,7 +574,9 @@ return function(Config)
 			BackgroundTransparency = GetBackgroundTransparency() or 0,
 			ThemeTag = not Element.Color and {
 				BackgroundColor3 = "ElementBackground",
-				BackgroundTransparency = ElementTransparency == nil and not Element.LiquidGlass and "ElementBackgroundTransparency"
+				BackgroundTransparency = ElementTransparency == nil
+						and not Element.LiquidGlass
+						and "ElementBackgroundTransparency"
 					or nil,
 			} or nil,
 			ZIndex = 0,
@@ -575,12 +592,15 @@ return function(Config)
 
 	table.insert(MainChildren, Element.UIElements.Container)
 	table.insert(MainChildren, ElementFullFrame)
-	table.insert(MainChildren, New("UIPadding", {
-		PaddingTop = UDim.new(0, Element.UIPadding),
-		PaddingLeft = UDim.new(0, Element.UIPadding),
-		PaddingRight = UDim.new(0, Element.UIPadding),
-		PaddingBottom = UDim.new(0, Element.UIPadding),
-	}))
+	table.insert(
+		MainChildren,
+		New("UIPadding", {
+			PaddingTop = UDim.new(0, Element.UIPadding),
+			PaddingLeft = UDim.new(0, Element.UIPadding),
+			PaddingRight = UDim.new(0, Element.UIPadding),
+			PaddingBottom = UDim.new(0, Element.UIPadding),
+		})
+	)
 
 	local Main, MainTable = NewRoundFrame(Element.UICorner, "Squircle", {
 		Size = UDim2.new(1, 0, 0, 0),
@@ -630,7 +650,8 @@ return function(Config)
 				HoverOutline.HoverGradient.Offset =
 					Vector2.new(((x - Main.AbsolutePosition.X) / Main.AbsoluteSize.X) - 0.5, 0)
 				if NativeLiquidSheen then
-					NativeLiquidSheen.Offset = Vector2.new(((x - Main.AbsolutePosition.X) / Main.AbsoluteSize.X) - 0.5, 0)
+					NativeLiquidSheen.Offset =
+						Vector2.new(((x - Main.AbsolutePosition.X) / Main.AbsoluteSize.X) - 0.5, 0)
 				end
 			end
 		end)
@@ -639,7 +660,14 @@ return function(Config)
 			if CanHover then
 				--Tween(Main, 0.12, { ImageTransparency = Element.Color and 0.15 or 0.9 }):Play()
 				HoverOutline.Visible = true
-				Motion.Play(Hover, "Hover", { ImageTransparency = 0.9 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Hover")
+				Motion.Play(
+					Hover,
+					"Hover",
+					{ ImageTransparency = 0.9 },
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out,
+					"Hover"
+				)
 				Motion.Play(
 					HoverOutline,
 					"Hover",
@@ -649,21 +677,26 @@ return function(Config)
 					"Hover"
 				)
 				if NativeBackground and Element.LiquidGlass then
-					Motion.Play(
-						NativeBackground,
-						"Hover",
-						{ BackgroundTransparency = math.max((ElementTransparency or Element.GlassTransparency or 0.24) - 0.06, 0) },
-						Enum.EasingStyle.Quint,
-						Enum.EasingDirection.Out,
-						"Hover"
-					)
+					Motion.Play(NativeBackground, "Hover", {
+						BackgroundTransparency = math.max(
+							(ElementTransparency or Element.GlassTransparency or 0.24) - 0.06,
+							0
+						),
+					}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Hover")
 				end
 			end
 		end)
 		Creator.AddSignal(Main.InputEnded, function()
 			if CanHover then
 				--Tween(Main, 0.12, { ImageTransparency = Element.Color and 0.05 or 0.93 }):Play()
-				Motion.Play(Hover, "Hover", { ImageTransparency = 1 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Hover")
+				Motion.Play(
+					Hover,
+					"Hover",
+					{ ImageTransparency = 1 },
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out,
+					"Hover"
+				)
 				Motion.Play(
 					HoverOutline,
 					"Hover",
@@ -686,7 +719,14 @@ return function(Config)
 		end)
 		Creator.AddSignal(Main.MouseLeave, function()
 			if CanHover then
-				Motion.Play(Hover, "Hover", { ImageTransparency = 1 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Hover")
+				Motion.Play(
+					Hover,
+					"Hover",
+					{ ImageTransparency = 1 },
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out,
+					"Hover"
+				)
 				Motion.Play(
 					HoverOutline,
 					"Hover",
@@ -981,10 +1021,15 @@ return function(Config)
 					and Config.ParentConfig.ParentTable
 					and Config.ParentConfig.ParentTable.__type
 				or Config.ParentType
-			local ShouldLinkCorners = Config.Window.ElementConfig.LinkCorners
-				or (Config.ParentConfig and Config.ParentConfig.LinkCorners == true)
+			local ShouldLinkCorners = Element.LinkCorners ~= false
+				and (
+					Element.LinkCorners == true
+					or Config.Window.ElementConfig.LinkCorners
+					or (Config.ParentConfig and Config.ParentConfig.LinkCorners == true)
+				)
 
 			local newShape = "Squircle"
+			local Metadata = { Position = "Single", Count = 1 }
 			local corners = {
 				TopLeft = true,
 				TopRight = true,
@@ -993,7 +1038,7 @@ return function(Config)
 			}
 
 			if ShouldLinkCorners then
-				newShape, corners = Creator.GetLinkedCornerShape(
+				newShape, corners, Metadata = Creator.GetLinkedCornerShape(
 					Tab.Elements,
 					Element.Index,
 					Tab,
@@ -1005,8 +1050,10 @@ return function(Config)
 			end
 
 			if newShape and Main then
-				local DynamicShape = (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle"
-					or newShape
+				local UsesIndividualCorners = UseNativeCorners and Metadata.Count > 1
+				local DynamicShape = if UsesIndividualCorners
+					then "Square"
+					else (newShape == "Squircle-TL-BL" or newShape == "Squircle-TR-BR") and "Squircle" or newShape
 
 				MainTable:SetType(DynamicShape)
 				LockedTable:SetType(DynamicShape)

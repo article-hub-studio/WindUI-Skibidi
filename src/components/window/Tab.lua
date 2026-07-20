@@ -51,6 +51,15 @@ function TabModule.Init(WindowTable, WindUITable, ToolTipParent, TabHighlight)
 end
 
 function TabModule.New(Config, UIScale)
+	local LinkCorners = if Config.LinkCorners ~= nil
+		then Config.LinkCorners == true or typeof(Config.LinkCorners) == "table"
+		else Window.LinkElementCorners == true
+	local CornerLink = Config.CornerLink
+		or (typeof(Config.LinkCorners) == "table" and Config.LinkCorners)
+		or Window.ElementCornerLink
+	local ExplicitGap = Config.Gap or Config.ElementGap
+	local LinkedGap = typeof(CornerLink) == "table" and (CornerLink.Gap or CornerLink.Spacing) or nil
+
 	local Tab = {
 		__type = "Tab",
 		Title = Config.Title or "Tab",
@@ -75,9 +84,13 @@ function TabModule.New(Config, UIScale)
 		Elements = {},
 		ContainerFrame = nil,
 		UICorner = Window.UICorner - (Window.UIPadding / 2),
-		LinkCorners = Config.LinkCorners == true,
+		LinkCorners = LinkCorners,
+		CornerLink = CornerLink,
 
-		Gap = Config.Gap or Config.ElementGap or Window.ElementGap or (Window.NewElements and (Window.LiquidGlass and 6 or 1) or 6),
+		Gap = ExplicitGap
+			or (LinkCorners and (tonumber(LinkedGap) or 1))
+			or Window.ElementGap
+			or (Window.NewElements and (Window.LiquidGlass and 6 or 1) or 6),
 
 		TabPaddingX = 4 + (Window.UIPadding / 2),
 		TabPaddingY = 3 + (Window.UIPadding / 2),
@@ -135,7 +148,7 @@ function TabModule.New(Config, UIScale)
 			--         NumberSequenceKeypoint.new(0.5, 1),
 			--         NumberSequenceKeypoint.new(1.0, 0.1),
 			--     })
-				-- }),
+			-- }),
 		}),
 		Creator.NewRoundFrame(999, "Squircle", {
 			Name = "ActiveRail",

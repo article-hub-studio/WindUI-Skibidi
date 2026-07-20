@@ -17,7 +17,8 @@ local function ClampProgress(Value)
 end
 
 local function CreateIcon(IconName, Parent, Size, Folder)
-	local Icon = Creator.Image(IconName or "sparkles", IconName or "sparkles", 0, Folder or "Temp", "LoadingScreen", true, true)
+	local Icon =
+		Creator.Image(IconName or "sparkles", IconName or "sparkles", 0, Folder or "Temp", "LoadingScreen", true, true)
 	Icon.Size = UDim2.fromOffset(Size or 22, Size or 22)
 	Icon.Parent = Parent
 	return Icon
@@ -32,8 +33,12 @@ function LoadingScreen.new(WindUI, Config)
 	Config = AsConfig(Config)
 
 	local Steps = Config.Steps or { "Theme", "Motion", "Interface" }
+	if #Steps == 0 then
+		Steps = { "Interface" }
+	end
 	local ViewportSize = GetViewportSize()
 	local Width = math.floor(math.min(Config.Width or 360, math.max(286, ViewportSize.X - 28)))
+	local CardHeight = math.max(tonumber(Config.Height) or 188, 168)
 	local Loader = {
 		Closed = false,
 		Progress = ClampProgress(Config.Progress or 0.08),
@@ -69,7 +74,7 @@ function LoadingScreen.new(WindUI, Config)
 
 	local Card = Creator.NewRoundFrame(Config.Corner or 28, "Squircle", {
 		Name = "Card",
-		Size = UDim2.fromOffset(Width, 230),
+		Size = UDim2.fromOffset(Width, CardHeight),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		ImageTransparency = 1,
@@ -103,26 +108,44 @@ function LoadingScreen.new(WindUI, Config)
 				ImageColor3 = "Outline",
 			},
 		}),
+	})
+
+	Creator.CreateUIShadow(Card, {
+		BlurRadius = UDim.new(0, tonumber(Config.ShadowBlur) or 24),
+		Color = Color3.new(0, 0, 0),
+		Offset = UDim2.fromOffset(0, 8),
+		Spread = UDim2.fromOffset(2, 2),
+		Transparency = Creator.ClampTransparency(Config.ShadowTransparency, 0.42),
+		ZIndex = 0,
+	})
+
+	local Body = New("Frame", {
+		Name = "Body",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = Root.ZIndex + 5,
+		Parent = Card,
+	}, {
 		New("UIPadding", {
-			PaddingTop = UDim.new(0, 18),
-			PaddingLeft = UDim.new(0, 18),
-			PaddingRight = UDim.new(0, 18),
-			PaddingBottom = UDim.new(0, 18),
+			PaddingTop = UDim.new(0, 16),
+			PaddingLeft = UDim.new(0, 16),
+			PaddingRight = UDim.new(0, 16),
+			PaddingBottom = UDim.new(0, 16),
 		}),
 		New("UIListLayout", {
 			FillDirection = "Vertical",
-			Padding = UDim.new(0, 14),
+			Padding = UDim.new(0, 10),
 			SortOrder = "LayoutOrder",
 		}),
 	})
 
 	local Accent = Creator.NewRoundFrame(24, "Squircle", {
 		Name = "Accent",
-		Size = UDim2.new(1, 0, 0, 72),
+		Size = UDim2.new(1, 0, 0, 64),
 		ImageTransparency = 0.82,
 		LayoutOrder = 1,
 		ZIndex = Root.ZIndex + 5,
-		Parent = Card,
+		Parent = Body,
 		ThemeTag = {
 			ImageColor3 = "Primary",
 		},
@@ -205,17 +228,42 @@ function LoadingScreen.new(WindUI, Config)
 		},
 	})
 
+	local StatusRow = New("Frame", {
+		Name = "StatusRow",
+		Size = UDim2.new(1, 0, 0, 18),
+		BackgroundTransparency = 1,
+		LayoutOrder = 2,
+		Parent = Body,
+	})
+
 	local Status = New("TextLabel", {
 		Name = "Status",
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(1, -48, 1, 0),
 		BackgroundTransparency = 1,
 		Text = Config.Status or Steps[1] or "Loading",
 		TextSize = 13,
 		TextTransparency = 0.18,
 		TextXAlignment = "Left",
+		TextTruncate = "AtEnd",
 		FontFace = Font.new(Creator.Font, Enum.FontWeight.SemiBold),
-		LayoutOrder = 2,
-		Parent = Card,
+		Parent = StatusRow,
+		ThemeTag = {
+			TextColor3 = "Text",
+		},
+	})
+
+	local Percent = New("TextLabel", {
+		Name = "Percent",
+		Size = UDim2.new(0, 44, 1, 0),
+		Position = UDim2.fromScale(1, 0),
+		AnchorPoint = Vector2.new(1, 0),
+		BackgroundTransparency = 1,
+		Text = tostring(math.floor(Loader.Progress * 100 + 0.5)) .. "%",
+		TextSize = 12,
+		TextTransparency = 0.36,
+		TextXAlignment = "Right",
+		FontFace = Font.new(Creator.Font, Enum.FontWeight.SemiBold),
+		Parent = StatusRow,
 		ThemeTag = {
 			TextColor3 = "Text",
 		},
@@ -227,7 +275,7 @@ function LoadingScreen.new(WindUI, Config)
 		ImageTransparency = 0.82,
 		LayoutOrder = 3,
 		ZIndex = Root.ZIndex + 5,
-		Parent = Card,
+		Parent = Body,
 		ThemeTag = {
 			ImageColor3 = "ElementBackground",
 		},
@@ -255,10 +303,10 @@ function LoadingScreen.new(WindUI, Config)
 
 	local StepRow = New("Frame", {
 		Name = "Steps",
-		Size = UDim2.new(1, 0, 0, 42),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundTransparency = 1,
 		LayoutOrder = 4,
-		Parent = Card,
+		Parent = Body,
 	}, {
 		New("UIListLayout", {
 			FillDirection = "Horizontal",
@@ -297,6 +345,20 @@ function LoadingScreen.new(WindUI, Config)
 		table.insert(StepLabels, Pill)
 	end
 
+	local PlaybackToken = 0
+	local ActiveStep = 1
+
+	local function UpdateStepVisuals(Index)
+		ActiveStep = math.clamp(tonumber(Index) or 1, 1, math.max(#StepLabels, 1))
+		for StepIndex, Pill in next, StepLabels do
+			local Active = StepIndex <= ActiveStep
+			Motion.Play(Pill, "Switch", { ImageTransparency = Active and 0.84 or 0.94 }, nil, nil, "Step")
+			if Pill.Title then
+				Motion.Play(Pill.Title, "Switch", { TextTransparency = Active and 0.08 or 0.4 }, nil, nil, "StepText")
+			end
+		end
+	end
+
 	function Loader:SetStatus(Text)
 		Status.Text = tostring(Text or "")
 		return Loader
@@ -304,9 +366,13 @@ function LoadingScreen.new(WindUI, Config)
 
 	function Loader:SetProgress(Value)
 		Loader.Progress = ClampProgress(Value)
+		Percent.Text = tostring(math.floor(Loader.Progress * 100 + 0.5)) .. "%"
 		Motion.Play(Track.Fill, "Switch", {
 			Size = UDim2.new(Loader.Progress, 0, 1, 0),
 		}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "LoadingProgress")
+		if #StepLabels > 0 and Config.SyncSteps ~= false then
+			UpdateStepVisuals(math.clamp(math.ceil(Loader.Progress * #StepLabels), 1, #StepLabels))
+		end
 		return Loader
 	end
 
@@ -318,15 +384,9 @@ function LoadingScreen.new(WindUI, Config)
 		else
 			Loader:SetStatus(Steps[ActiveIndex] or Status.Text)
 		end
-		Loader:SetProgress(ActiveIndex / Count)
-
-		for StepIndex, Pill in next, StepLabels do
-			local Active = StepIndex <= ActiveIndex
-			Motion.Play(Pill, "Switch", { ImageTransparency = Active and 0.84 or 0.94 }, nil, nil, "Step")
-			if Pill.Title then
-				Motion.Play(Pill.Title, "Switch", { TextTransparency = Active and 0.08 or 0.4 }, nil, nil, "StepText")
-			end
-		end
+		local Progress = Count == 1 and 1 or (ActiveIndex - 1) / (Count - 1)
+		Loader:SetProgress(Progress)
+		UpdateStepVisuals(ActiveIndex)
 		return Loader
 	end
 
@@ -334,6 +394,7 @@ function LoadingScreen.new(WindUI, Config)
 		if Loader.Closed then
 			return Loader
 		end
+		PlaybackToken += 1
 		Loader.Closed = true
 		task.delay(tonumber(Delay) or 0, function()
 			Motion.Play(Content, "DropdownClose", { GroupTransparency = 1 }, nil, nil, "LoadingContent")
@@ -349,6 +410,7 @@ function LoadingScreen.new(WindUI, Config)
 	end
 
 	function Loader:Open()
+		PlaybackToken += 1
 		Loader.Closed = false
 		Root.Visible = true
 		Scrim.BackgroundTransparency = 1
@@ -359,8 +421,52 @@ function LoadingScreen.new(WindUI, Config)
 			BackgroundTransparency = Config.ScrimTransparency or 0.2,
 		}, nil, nil, "LoadingScrim")
 		Motion.Play(Content, "DropdownOpen", { GroupTransparency = 0 }, nil, nil, "LoadingContent")
-		Motion.Play(Card, "DropdownOpen", { ImageTransparency = Config.CardTransparency or 0.16 }, nil, nil, "LoadingCard")
+		Motion.Play(
+			Card,
+			"DropdownOpen",
+			{ ImageTransparency = Config.CardTransparency or 0.16 },
+			nil,
+			nil,
+			"LoadingCard"
+		)
 		Motion.Play(Card.Scale, "DropdownOpen", { Scale = 1 }, nil, nil, "LoadingScale")
+		return Loader
+	end
+
+	function Loader:Play(Duration)
+		local Seconds = math.max(tonumber(Duration) or tonumber(Config.Duration) or 1.2, 0.05)
+		PlaybackToken += 1
+		local Token = PlaybackToken
+		local StartedAt = os.clock()
+		local LastStep = 0
+
+		task.spawn(function()
+			while Token == PlaybackToken and not Loader.Closed and Root.Parent do
+				local Progress = math.clamp((os.clock() - StartedAt) / Seconds, 0, 1)
+				local StepIndex = math.clamp(math.floor(Progress * #Steps) + 1, 1, math.max(#Steps, 1))
+
+				if StepIndex ~= LastStep then
+					LastStep = StepIndex
+					if Config.AutoStatus ~= false and Steps[StepIndex] then
+						Loader:SetStatus(Steps[StepIndex])
+					end
+				end
+
+				Loader:SetProgress(Progress)
+				if Progress >= 1 then
+					break
+				end
+				task.wait(0.05)
+			end
+
+			if Token ~= PlaybackToken or Loader.Closed or not Root.Parent then
+				return
+			end
+
+			Loader:SetStatus(Config.CompleteStatus or "Ready")
+			Loader:SetProgress(1)
+			Loader:Close(Config.CloseDelay or 0.18)
+		end)
 		return Loader
 	end
 
@@ -368,7 +474,9 @@ function LoadingScreen.new(WindUI, Config)
 	Loader.UIElements.Scrim = Scrim
 	Loader.UIElements.Content = Content
 	Loader.UIElements.Card = Card
+	Loader.UIElements.Body = Body
 	Loader.UIElements.Status = Status
+	Loader.UIElements.Percent = Percent
 	Loader.UIElements.ProgressFill = Track.Fill
 
 	Loader:Open()
@@ -380,10 +488,24 @@ function LoadingScreen.new(WindUI, Config)
 				local Gradient = Accent:FindFirstChild("AccentGradient")
 				local FillGradient = Track.Fill and Track.Fill:FindFirstChild("FillGradient")
 				if Gradient then
-					Motion.Play(Gradient, "Background", { Offset = Vector2.new(Direction * 0.28, 0) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, "LoadingSheen")
+					Motion.Play(
+						Gradient,
+						"Background",
+						{ Offset = Vector2.new(Direction * 0.28, 0) },
+						Enum.EasingStyle.Sine,
+						Enum.EasingDirection.InOut,
+						"LoadingSheen"
+					)
 				end
 				if FillGradient then
-					Motion.Play(FillGradient, "Background", { Offset = Vector2.new(Direction * 0.38, 0) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, "LoadingFillSheen")
+					Motion.Play(
+						FillGradient,
+						"Background",
+						{ Offset = Vector2.new(Direction * 0.38, 0) },
+						Enum.EasingStyle.Sine,
+						Enum.EasingDirection.InOut,
+						"LoadingFillSheen"
+					)
 				end
 				Direction *= -1
 				task.wait(Motion.GetDuration("Background") + 0.18)
@@ -392,10 +514,7 @@ function LoadingScreen.new(WindUI, Config)
 	end
 
 	if Config.Duration or Config.AutoClose then
-		task.delay(tonumber(Config.Duration) or 1.2, function()
-			Loader:SetProgress(1)
-			Loader:Close(Config.CloseDelay or 0.15)
-		end)
+		Loader:Play(tonumber(Config.Duration) or 1.2)
 	end
 
 	return Loader

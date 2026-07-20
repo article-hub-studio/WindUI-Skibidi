@@ -31,49 +31,74 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		HorizontalAlignment = "Center",
 	})
 
-	Dropdown.UIElements.Menu = Creator.NewRoundFrame(Element.MenuCorner, Dropdown.Glass and "SquircleGlass" or "Squircle", {
-		ThemeTag = {
-			ImageColor3 = "DropdownBackground",
+	Dropdown.UIElements.Menu = Creator.NewRoundFrame(
+		Element.MenuCorner,
+		Dropdown.Glass and "SquircleGlass" or "Squircle",
+		{
+			ThemeTag = {
+				ImageColor3 = "DropdownBackground",
+			},
+			ImageTransparency = 1, -- 0.05
+			Size = UDim2.new(1, 0, 1, 0),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 0),
 		},
-		ImageTransparency = 1, -- 0.05
-		Size = UDim2.new(1, 0, 1, 0),
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 0),
-	}, {
-		New("UIPadding", {
-			PaddingTop = UDim.new(0, Element.MenuPadding),
-			PaddingLeft = UDim.new(0, Element.MenuPadding),
-			PaddingRight = UDim.new(0, Element.MenuPadding),
-			PaddingBottom = UDim.new(0, Element.MenuPadding),
-		}),
-		New("UIListLayout", {
-			FillDirection = "Vertical",
-			Padding = UDim.new(0, Element.MenuPadding),
-		}),
-		New("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 1, Dropdown.SearchBarEnabled and -Element.MenuPadding - Element.SearchBarHeight),
-			--Name = "CanvasGroup",
-			ClipsDescendants = true,
-			LayoutOrder = 999,
-			Name = "Frame",
-		}, {
-			New("UICorner", {
-				CornerRadius = UDim.new(0, Element.MenuCorner - Element.MenuPadding),
+		{
+			New("UIPadding", {
+				PaddingTop = UDim.new(0, Element.MenuPadding),
+				PaddingLeft = UDim.new(0, Element.MenuPadding),
+				PaddingRight = UDim.new(0, Element.MenuPadding),
+				PaddingBottom = UDim.new(0, Element.MenuPadding),
 			}),
-			New("ScrollingFrame", {
-				Size = UDim2.new(1, 0, 1, 0),
-				ScrollBarThickness = 0,
-				ScrollingDirection = "Y",
-				AutomaticCanvasSize = "Y",
-				CanvasSize = UDim2.new(0, 0, 0, 0),
+			New("UIListLayout", {
+				FillDirection = "Vertical",
+				Padding = UDim.new(0, Element.MenuPadding),
+			}),
+			New("Frame", {
 				BackgroundTransparency = 1,
-				ScrollBarImageTransparency = 1,
+				Size = UDim2.new(1, 0, 1, Dropdown.SearchBarEnabled and -Element.MenuPadding - Element.SearchBarHeight),
+				--Name = "CanvasGroup",
+				ClipsDescendants = true,
+				LayoutOrder = 999,
+				Name = "Frame",
 			}, {
-				Dropdown.UIElements.UIListLayout,
+				New("UICorner", {
+					CornerRadius = UDim.new(0, Element.MenuCorner - Element.MenuPadding),
+				}),
+				New("ScrollingFrame", {
+					Size = UDim2.new(1, 0, 1, 0),
+					ScrollBarThickness = 0,
+					ScrollingDirection = "Y",
+					AutomaticCanvasSize = "Y",
+					CanvasSize = UDim2.new(0, 0, 0, 0),
+					BackgroundTransparency = 1,
+					ScrollBarImageTransparency = 1,
+				}, {
+					Dropdown.UIElements.UIListLayout,
+				}),
 			}),
-		}),
+		}
+	)
+	Dropdown.UIElements.MenuScale = New("UIScale", {
+		Name = "MenuScale",
+		Scale = 1,
+		Parent = Dropdown.UIElements.Menu,
 	})
+
+	if Dropdown.Centered and Dropdown.Backdrop then
+		Dropdown.UIElements.Backdrop = New("TextButton", {
+			Name = "DropdownBackdrop",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = 1,
+			Text = "",
+			AutoButtonColor = false,
+			Visible = false,
+			Active = true,
+			ZIndex = 0,
+			Parent = Config.WindUI.DropdownGui,
+		})
+	end
 
 	Dropdown.UIElements.MenuCanvas = New("Frame", {
 		Size = UDim2.new(0, Dropdown.MenuWidth, 0, 300),
@@ -162,7 +187,13 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 	local function NormalizeDirection(Value, Default)
 		local Direction = tostring(Value or Default or "Auto")
 		Direction = Direction:sub(1, 1):upper() .. Direction:sub(2):lower()
-		if Direction ~= "Auto" and Direction ~= "Down" and Direction ~= "Up" and Direction ~= "Left" and Direction ~= "Right" then
+		if
+			Direction ~= "Auto"
+			and Direction ~= "Down"
+			and Direction ~= "Up"
+			and Direction ~= "Left"
+			and Direction ~= "Right"
+		then
 			return Default or "Auto"
 		end
 		return Direction
@@ -216,7 +247,10 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		local MinHeight = Dropdown.SearchBarEnabled and (Element.SearchBarHeight + 44) or 44
 		local MaxHeight = math.max(
 			MinHeight,
-			math.min(Dropdown.MenuMaxHeight or (IsMobileViewport() and 280 or 340), Viewport.Y - (Element.MenuPadding * 4))
+			math.min(
+				Dropdown.MenuMaxHeight or (IsMobileViewport() and 280 or 340),
+				Viewport.Y - (Element.MenuPadding * 4)
+			)
 		)
 
 		local ContentY = GetVisibleContentHeight()
@@ -239,14 +273,50 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		local viewport = GetViewportSize()
 		local padding = Element.MenuPadding * 2
 		local mobile = IsMobileViewport()
-		local direction = NormalizeDirection(mobile and (Dropdown.MobileDirection or Dropdown.Direction) or Dropdown.Direction, "Auto")
-		local side = NormalizeSide(mobile and (Dropdown.MobileSide or "Center") or Dropdown.Side, mobile and "Center" or "Right")
+		local direction = NormalizeDirection(
+			mobile and (Dropdown.MobileDirection or Dropdown.Direction) or Dropdown.Direction,
+			"Auto"
+		)
+		local side =
+			NormalizeSide(mobile and (Dropdown.MobileSide or "Center") or Dropdown.Side, mobile and "Center" or "Right")
 		local buttonPosition = button.AbsolutePosition
 		local buttonSize = button.AbsoluteSize
 		local menuSize = menu.AbsoluteSize
 
 		if menuSize.X <= 0 or menuSize.Y <= 0 then
 			menuSize = Vector2.new(menu.Size.X.Offset, menu.Size.Y.Offset)
+		end
+
+		if Dropdown.Centered then
+			local CenterPosition = Vector2.new(0, 0)
+			local CenterSize = viewport
+			local CenterTarget = string.lower(tostring(Dropdown.CenterTarget or "Window"))
+			local WindowMain = Config.Window and Config.Window.UIElements and Config.Window.UIElements.Main
+
+			if
+				CenterTarget ~= "screen"
+				and CenterTarget ~= "viewport"
+				and typeof(WindowMain) == "Instance"
+				and WindowMain.Visible
+				and WindowMain.AbsoluteSize.X > 0
+			then
+				CenterPosition = WindowMain.AbsolutePosition
+				CenterSize = WindowMain.AbsoluteSize
+			end
+
+			local Offset = Dropdown.CenterOffset or Vector2.new(0, 0)
+			local x = CenterPosition.X + (CenterSize.X / 2) + Offset.X
+			local y = CenterPosition.Y + (CenterSize.Y / 2) + Offset.Y
+			local HalfWidth = menuSize.X / 2
+			local HalfHeight = menuSize.Y / 2
+			x = math.clamp(x, padding + HalfWidth, viewport.X - padding - HalfWidth)
+			y = math.clamp(y, padding + HalfHeight, viewport.Y - padding - HalfHeight)
+
+			menu.AnchorPoint = Vector2.new(0.5, 0.5)
+			menu.Position = UDim2.fromOffset(math.floor(x + 0.5), math.floor(y + 0.5))
+			Dropdown.UIElements.Menu.AnchorPoint = Vector2.new(0.5, 0.5)
+			Dropdown.UIElements.Menu.Position = UDim2.fromScale(0.5, 0.5)
+			return "Center"
 		end
 
 		if mobile and not Dropdown.MobileDirection and (direction == "Left" or direction == "Right") then
@@ -463,7 +533,8 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		for _, tab in next, Dropdown.Tabs do
 			if tab.UIElements and tab.UIElements.TabItem then
 				local TabItem = tab.UIElements.TabItem
-				local Visible = NormalizedQuery == "" or string.find(GetSearchText(tab), NormalizedQuery, 1, true) ~= nil
+				local Visible = NormalizedQuery == ""
+					or string.find(GetSearchText(tab), NormalizedQuery, 1, true) ~= nil
 				if Visible then
 					if not TabItem.Parent then
 						TabItem.Parent = Dropdown.UIElements.Menu.Frame.ScrollingFrame
@@ -961,7 +1032,27 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			RecalculateCanvasSize()
 			LastDirection = UpdatePosition()
 			local Horizontal = LastDirection == "Left" or LastDirection == "Right"
-			Dropdown.UIElements.Menu.Size = Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0)
+			if Dropdown.Centered then
+				Dropdown.UIElements.Menu.Size = UDim2.fromScale(1, 1)
+				Dropdown.UIElements.MenuScale.Scale = 0.9
+				Motion.Play(
+					Dropdown.UIElements.MenuScale,
+					"DropdownOpen",
+					{ Scale = 1 },
+					Enum.EasingStyle.Quint,
+					Enum.EasingDirection.Out,
+					"CenterScale"
+				)
+				if Dropdown.UIElements.Backdrop then
+					Dropdown.UIElements.Backdrop.Visible = true
+					Dropdown.UIElements.Backdrop.BackgroundTransparency = 1
+					Motion.Play(Dropdown.UIElements.Backdrop, "DropdownOpen", {
+						BackgroundTransparency = Dropdown.BackdropTransparency,
+					}, nil, nil, "Backdrop")
+				end
+			else
+				Dropdown.UIElements.Menu.Size = Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0)
+			end
 			Motion.Play(Dropdown.UIElements.Menu, "DropdownOpen", {
 				Size = UDim2.new(1, 0, 1, 0),
 				ImageTransparency = Dropdown.Glass and Dropdown.GlassTransparency or 0,
@@ -985,10 +1076,26 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		Dropdown.Opened = false
 
 		local Horizontal = LastDirection == "Left" or LastDirection == "Right"
+		local CloseSize = if Dropdown.Centered
+			then UDim2.fromScale(1, 1)
+			else Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0)
 		Motion.Play(Dropdown.UIElements.Menu, "DropdownClose", {
-			Size = Horizontal and UDim2.new(0, 0, 1, 0) or UDim2.new(1, 0, 0, 0),
+			Size = CloseSize,
 			ImageTransparency = 1,
 		}, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, "OpenClose")
+		if Dropdown.Centered then
+			Motion.Play(Dropdown.UIElements.MenuScale, "DropdownClose", { Scale = 0.92 }, nil, nil, "CenterScale")
+			if Dropdown.UIElements.Backdrop then
+				Motion.Play(
+					Dropdown.UIElements.Backdrop,
+					"DropdownClose",
+					{ BackgroundTransparency = 1 },
+					nil,
+					nil,
+					"Backdrop"
+				)
+			end
+		end
 
 		task.spawn(function()
 			task.wait(Motion.GetDuration("DropdownClose"))
@@ -998,6 +1105,15 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			Dropdown.UIElements.Menu.Visible = false
 			Dropdown.UIElements.MenuCanvas.Visible = false
 			Dropdown.UIElements.MenuCanvas.Active = false
+			if Dropdown.UIElements.Backdrop then
+				Dropdown.UIElements.Backdrop.Visible = false
+			end
+		end)
+	end
+
+	if Dropdown.UIElements.Backdrop then
+		Creator.AddSignal(Dropdown.UIElements.Backdrop.MouseButton1Click, function()
+			DropdownModule:Close()
 		end)
 	end
 

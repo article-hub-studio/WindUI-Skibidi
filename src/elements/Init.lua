@@ -1,3 +1,5 @@
+local Creator = require("../modules/Creator")
+
 return {
 	Elements = {
 		Paragraph = require("./Paragraph"),
@@ -50,7 +52,12 @@ return {
 				config.Index = #tbl.Elements + 1
 				config.GlobalIndex = #Window.AllElements + 1
 				if config.LinkCorners == nil then
-					config.LinkCorners = tbl.LinkCorners == true or (Tab and Tab.LinkCorners == true)
+					config.LinkCorners = tbl.LinkCorners == true
+						or typeof(tbl.LinkCorners) == "table"
+						or (Tab and (Tab.LinkCorners == true or typeof(Tab.LinkCorners) == "table"))
+				end
+				if config.CornerLink == nil then
+					config.CornerLink = tbl.CornerLink or (Tab and Tab.CornerLink) or Window.ElementConfig.CornerLink
 				end
 				config.Parent = Container
 				config.Window = Window
@@ -59,6 +66,13 @@ return {
 				config.ElementsModule = ElementsModule
 
 				local _elementInstance, content = module:New(config)
+
+				content.Index = config.Index
+				content.LinkCorners = config.LinkCorners
+				content.CornerGroup = config.CornerGroup or config.LinkCornerGroup
+				content.CornerBreak = config.CornerBreak
+				content.CornerBreakBefore = config.CornerBreakBefore
+				content.CornerBreakAfter = config.CornerBreakAfter
 
 				if config.Flag and typeof(config.Flag) == "string" then
 					if Window.CurrentConfig then
@@ -131,6 +145,40 @@ return {
 						table.remove(tbl.Elements, config.Index)
 						table.remove(Tab.Elements, config.Index)
 						tbl:UpdateAllElementShapes(tbl)
+					end
+				end
+
+				if not content.ElementFrame and content.UIElements and content.UIElements.Main then
+					content.ElementFrame = content.UIElements.Main
+				end
+
+				if not content.UpdateShape and content.ElementFrame then
+					function content.UpdateShape(ParentTable)
+						local ShouldLink = content.LinkCorners ~= false
+							and (
+								content.LinkCorners == true
+								or Window.ElementConfig.LinkCorners
+								or (ParentTable and ParentTable.LinkCorners == true)
+							)
+						local Corners = Creator.DefaultCornerMap()
+						local Metadata = { Count = 1 }
+
+						if ShouldLink and ParentTable and ParentTable.Elements then
+							_, Corners, Metadata = Creator.GetLinkedCornerShape(
+								ParentTable.Elements,
+								content.Index,
+								ParentTable,
+								ParentTable.__type,
+								config.CornerLink or Window.ElementConfig.CornerLink
+							)
+						end
+
+						Creator.ApplyLinkedCornerSurface(
+							content.ElementFrame,
+							UDim.new(0, Window.ElementConfig.UICorner),
+							Corners,
+							ShouldLink and Metadata.Count > 1
+						)
 					end
 				end
 

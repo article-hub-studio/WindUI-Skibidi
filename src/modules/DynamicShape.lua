@@ -3,6 +3,7 @@ local Creator
 local DynamicShapeModule = {
 	New = nil,
 	Init = nil,
+	Wrappers = setmetatable({}, { __mode = "k" }),
 	Shapes = {
 		Circle = {
 			Image = "rbxassetid://111665032676235",
@@ -116,6 +117,7 @@ function DynamicShapeModule:New(Radius, Type, Properties, Children, IsButton, Is
 		GetType = nil,
 		SetRadius = nil,
 		SetType = nil,
+		SetLinkedCorners = nil,
 	}
 
 	local ShapeFallbacks = {
@@ -150,12 +152,49 @@ function DynamicShapeModule:New(Radius, Type, Properties, Children, IsButton, Is
 		return Wrapper
 	end
 
-	function Wrapper:SetType(NewType)
+	local function ApplyType(NewType)
 		Wrapper.Type = NewType
 		local Shape = GetShape(NewType)
 		ImageLabel.Image = Shape.Image
 		ImageLabel.SliceCenter = Shape.Rect
 		Wrapper:SetRadius(Wrapper.Radius)
+	end
+
+	function Wrapper:SetType(NewType)
+		if Wrapper.LinkedCorners then
+			Wrapper.LinkedBaseType = NewType
+			return Wrapper
+		end
+
+		ApplyType(NewType)
+		return Wrapper
+	end
+
+	function Wrapper:SetLinkedCorners(Corners, Radius)
+		if Corners then
+			if not Wrapper.LinkedCorners then
+				Wrapper.LinkedBaseType = Wrapper.Type
+			end
+			Wrapper.LinkedCorners = Corners
+			ApplyType("Square")
+
+			local Corner = ImageLabel:FindFirstChild("WindUILinkedCorner")
+			if not Corner then
+				Corner = Creator.New("UICorner", {
+					Name = "WindUILinkedCorner",
+					Parent = ImageLabel,
+				})
+			end
+			Creator.ApplyCornerRadii(Corner, Radius or Wrapper.Radius, Corners)
+		else
+			Wrapper.LinkedCorners = nil
+			ApplyType(Wrapper.LinkedBaseType or "Squircle")
+			Wrapper.LinkedBaseType = nil
+			local Corner = ImageLabel:FindFirstChild("WindUILinkedCorner")
+			if Corner then
+				Corner:Destroy()
+			end
+		end
 		return Wrapper
 	end
 
@@ -169,10 +208,11 @@ function DynamicShapeModule:New(Radius, Type, Properties, Children, IsButton, Is
 
 	Wrapper:SetRadius(Radius)
 	Wrapper:SetType(Type)
+	DynamicShapeModule.Wrappers[ImageLabel] = Wrapper
 
 	Creator.AddSignal(ImageLabel:GetPropertyChangedSignal("AbsoluteSize"), function()
 		local Shape = GetShape(Wrapper.Type)
-		if Shape.AutoChange == false then
+		if Shape.AutoChange == false or Wrapper.LinkedCorners then
 			return
 		end
 
@@ -216,6 +256,10 @@ function DynamicShapeModule:New(Radius, Type, Properties, Children, IsButton, Is
 	end)
 
 	return ImageLabel, Wrapper
+end
+
+function DynamicShapeModule:GetWrapper(Object)
+	return DynamicShapeModule.Wrappers[Object]
 end
 
 return DynamicShapeModule
