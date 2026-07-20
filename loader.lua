@@ -1,4 +1,4 @@
-local CACHE_KEY = "1.6.65-ui-runtime-7"
+local CACHE_KEY = "1.6.65-ui-runtime-8"
 local REQUIRED_API = {
 	"RegisterIconPack",
 	"GetIconSources",
@@ -10,6 +10,10 @@ local REQUIRED_API = {
 	"WindUILinkedCorner",
 	"WindowMorphScale",
 	"DropdownBackdrop",
+	"InternalCenter",
+	"DirectImageLabel",
+	"UseGlassSpritesheet",
+	"DarkOverlay",
 	"LoadingProgress",
 }
 local SOURCE_URL = "https://article-hub-studio.github.io/WindUI-Skibidi/dist/main.lua?v=" .. CACHE_KEY

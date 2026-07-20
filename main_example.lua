@@ -1,5 +1,5 @@
 local WindUI =
-	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-7"))()
+	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-8"))()
 
 local HasIconSourceAPI = (tonumber(WindUI.IconAdapterVersion) or 0) >= 3
 	and type(WindUI.RegisterIconPack) == "function"
@@ -52,7 +52,7 @@ local Window = WindUI:CreateWindow({
 	ElementGap = 1,
 	LinkElementCorners = true,
 	CornerLink = {
-		InnerRadius = 6,
+		InnerRadius = 0,
 		Gap = 1,
 		BridgeHidden = true,
 		BridgeSparse = false,
@@ -300,6 +300,7 @@ SystemTab:ActionList({
 				Avatar = "rbxthumb://type=AvatarHeadShot&id=1&w=150&h=150",
 				Timestamp = os.date("%H:%M"),
 				Style = "Neutral",
+				DarkOverlay = false,
 				Duration = 5,
 			})
 		elseif Action.Value == "Decorated" then
@@ -323,6 +324,7 @@ SystemTab:ActionList({
 				Content = "Choose an action or close this notification manually.",
 				Appearance = "Glass",
 				LiquidGlass = true,
+				DarkOverlay = false,
 				GlassTransparency = 0.78,
 				Icon = "solar:bell-bold",
 				Style = "Warning",
@@ -501,15 +503,16 @@ SettingsTab:Dropdown({
 
 SettingsTab:Dropdown({
 	Title = "Centered Dropdown",
-	Desc = "Opens as a centered modal menu with a dimmed backdrop.",
+	Desc = "Opens as a compact centered menu inside this window.",
 	Values = { "Workspace", "Interface", "Notifications", "Dynamic Island", "Loading" },
 	Value = "Interface",
 	Search = true,
 	Centered = true,
 	CenterTarget = "Window",
 	Backdrop = true,
-	BackdropTransparency = 0.74,
-	MenuWidth = 300,
+	BackdropTransparency = 0.84,
+	MenuWidth = 236,
+	MenuMaxHeight = 240,
 })
 
 local DropdownRow = SettingsTab:HStack({
@@ -602,7 +605,7 @@ local LinkedTab = Window:Tab({
 	Icon = DemoIcon("corners", "combine"),
 	LinkCorners = true,
 	CornerLink = {
-		InnerRadius = 6,
+		InnerRadius = 0,
 		Gap = 1,
 		BridgeHidden = true,
 		BridgeSparse = false,
@@ -622,7 +625,7 @@ LinkedTab:Button({
 	Callback = function()
 		WindUI:Notify({
 			Title = "Linked corners",
-			Content = "The group keeps soft inner corners and rounded outside edges.",
+			Content = "The group keeps flat shared seams and rounded outside edges.",
 			Icon = DemoIcon("corners", "combine"),
 			Style = "Info",
 		})
@@ -668,7 +671,7 @@ LinkedTab:Space()
 
 local LinkedRow = LinkedTab:HStack({
 	LinkCorners = true,
-	CornerLink = { InnerRadius = 5, Gap = 1, Orientation = "Horizontal" },
+	CornerLink = { InnerRadius = 0, Gap = 1, Orientation = "Horizontal" },
 	MinChildWidth = 72,
 })
 LinkedRow:Button({
@@ -688,7 +691,7 @@ LinkedTab:Space()
 
 local LinkedStack = LinkedTab:VStack({
 	LinkCorners = true,
-	CornerLink = { InnerRadius = 5, Gap = 1 },
+	CornerLink = { InnerRadius = 0, Gap = 1 },
 })
 LinkedStack:Button({
 	Title = "Stack Save",
@@ -706,7 +709,7 @@ LinkedTab:KeyValue({
 	Items = {
 		{ Title = "Surface", Value = "Native UICorner radii" },
 		{ Title = "Tab", Value = "LinkCorners + CornerLink" },
-		{ Title = "Inner radius", Value = "6px" },
+		{ Title = "Inner radius", Value = "0px (flat seams)" },
 		{ Title = "Groups", Value = "primary / range" },
 		{ Title = "Gap", Value = "1px" },
 		{ Title = "Nested row", Value = "Left / Center / Right" },
