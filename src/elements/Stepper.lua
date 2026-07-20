@@ -56,7 +56,10 @@ function Element:New(Config)
 		Animation = Config.Animation ~= false,
 		Draggable = Config.Draggable ~= false,
 		ShowButtons = ShowButtons,
-		Width = math.max(Utils.ToFiniteNumber(Config.Width) or Utils.ToFiniteNumber(Config.ControlWidth) or (IsMobile and 188 or 176), MinWidth),
+		Width = math.max(
+			Utils.ToFiniteNumber(Config.Width) or Utils.ToFiniteNumber(Config.ControlWidth) or (IsMobile and 188 or 176),
+			MinWidth
+		),
 	}
 
 	local CanCallback = true
@@ -289,7 +292,8 @@ function Element:New(Config)
 		end
 
 		local PreviousValue = Stepper.Value.Default
-		Stepper.Value.Default = Snap == false and math.clamp(Number, Stepper.Value.Min, Stepper.Value.Max) or SnapValue(Number)
+		Stepper.Value.Default = Snap == false and math.clamp(Number, Stepper.Value.Min, Stepper.Value.Max)
+			or SnapValue(Number)
 		Stepper.UIElements.ValueLabel.Text = FormatValue(Stepper.Value.Default)
 		SetProgressVisual(Stepper.Value.Default, true)
 		UpdateButtonStates(true)
@@ -367,22 +371,27 @@ function Element:New(Config)
 	local ScrollingFrameParent = Config.Tab and Config.Tab.UIElements and Config.Tab.UIElements.ContainerFrame
 
 	local function DisconnectDrag()
+		local WasDragging = ActiveInput ~= nil
+			or MoveConnection ~= nil
+			or ReleaseConnection ~= nil
+			or Config.WindUI.CurrentInput == CurInput
+
 		if MoveConnection then
-			MoveConnection:Disconnect()
+			Creator.DisconnectSignal(MoveConnection)
 			MoveConnection = nil
 		end
 		if ReleaseConnection then
-			ReleaseConnection:Disconnect()
+			Creator.DisconnectSignal(ReleaseConnection)
 			ReleaseConnection = nil
 		end
-		if ScrollingFrameParent then
+		if WasDragging and ScrollingFrameParent then
 			ScrollingFrameParent.ScrollingEnabled = true
 		end
 		if Config.WindUI.CurrentInput == CurInput then
 			Config.WindUI.CurrentInput = nil
 		end
 		ActiveInput = nil
-		if Stepper.Animation then
+		if WasDragging and Stepper.Animation then
 			Motion.Play(TrackThumb, "Focus", { Size = UDim2.fromOffset(9, 9) }, nil, nil, "StepperDrag")
 		end
 	end
@@ -418,10 +427,13 @@ function Element:New(Config)
 	end
 
 	Creator.AddSignal(ValueBackground.InputBegan, function(Input)
-		if Stepper.Locked or not Stepper.Draggable then
+		if Stepper.Locked or not Stepper.Draggable or ActiveInput then
 			return
 		end
-		if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then
+		if
+			Input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and Input.UserInputType ~= Enum.UserInputType.Touch
+		then
 			return
 		end
 		if Config.WindUI.CurrentInput and Config.WindUI.CurrentInput ~= CurInput then
@@ -438,20 +450,23 @@ function Element:New(Config)
 		end
 		UpdateFromInput(Input)
 
-		MoveConnection = UserInputService.InputChanged:Connect(function(ChangedInput)
+		MoveConnection = Creator.AddSignal(UserInputService.InputChanged, function(ChangedInput)
 			if not ActiveInput then
 				return
 			end
-			if ActiveInput.UserInputType == Enum.UserInputType.Touch and ChangedInput.UserInputType ~= Enum.UserInputType.Touch then
+			if ActiveInput.UserInputType == Enum.UserInputType.Touch and ChangedInput ~= ActiveInput then
 				return
 			end
-			if ActiveInput.UserInputType == Enum.UserInputType.MouseButton1 and ChangedInput.UserInputType ~= Enum.UserInputType.MouseMovement then
+			if
+				ActiveInput.UserInputType == Enum.UserInputType.MouseButton1
+				and ChangedInput.UserInputType ~= Enum.UserInputType.MouseMovement
+			then
 				return
 			end
 			UpdateFromInput(ChangedInput)
 		end)
 
-		ReleaseConnection = UserInputService.InputEnded:Connect(function(EndedInput)
+		ReleaseConnection = Creator.AddSignal(UserInputService.InputEnded, function(EndedInput)
 			if not ActiveInput then
 				return
 			end
@@ -463,6 +478,10 @@ function Element:New(Config)
 			end
 		end)
 	end)
+
+	function Stepper:Cleanup()
+		DisconnectDrag()
+	end
 
 	UpdateButtonStates(false)
 	SetProgressVisual(Stepper.Value.Default, false)

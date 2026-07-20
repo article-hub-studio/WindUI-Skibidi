@@ -29,6 +29,8 @@ local WindUI = {
 
 WindUI.IconAdapterVersion = WindUI.Creator.IconAdapterVersion
 
+local Creator = WindUI.Creator
+
 local cloneref = (cloneref or clonereference or function(instance)
 	return instance
 end)
@@ -47,7 +49,7 @@ end
 
 local CurInput = WindUI.GenerateGUID()
 
-UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+Creator.AddSignal(UserInputService.InputBegan, function(Input, GameProcessed)
 	--[[if GameProcessed then
 		return
 	end]]
@@ -67,7 +69,7 @@ UserInputService.InputBegan:Connect(function(Input, GameProcessed)
 		end
 	end)
 end)
-UserInputService.InputEnded:Connect(function(Input, GameProcessed)
+Creator.AddSignal(UserInputService.InputEnded, function(Input, GameProcessed)
 	if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 		if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
 			return
@@ -86,8 +88,6 @@ end
 
 local KeySystem = require("./components/KeySystem")
 local LoadingScreen = require("./components/LoadingScreen")
-
-local Creator = WindUI.Creator
 
 local New = Creator.New
 

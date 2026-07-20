@@ -11,8 +11,6 @@ local New = Creator.New
 
 local Element = {}
 
-local IsSliderHolding = false
-
 function Element:New(Config)
 	local Slider = {
 		__type = "Slider",
@@ -34,7 +32,7 @@ function Element:New(Config)
 		ThumbSize = 13,
 		IconSize = 26,
 	}
-	if Slider.Icons == {} then
+	if typeof(Slider.Icons) == "table" and next(Slider.Icons) == nil then
 		Slider.Icons = {
 			From = "sfsymbols:sunMinFill",
 			To = "sfsymbols:sunMaxFill",
@@ -49,6 +47,7 @@ function Element:New(Config)
 	local isTouch
 	local moveconnection
 	local releaseconnection
+	local IsSliderHolding = false
 	local Value = Slider.Value.Default or Slider.Value.Min or 0
 
 	local LastValue = Value
@@ -236,6 +235,54 @@ function Element:New(Config)
 
 	--local ScrollingFrameParent = Slider.SliderFrame.Parent:IsA("ScrollingFrame") and Slider.SliderFrame.Parent or Slider.SliderFrame.Parent.Parent.Parent
 	local ScrollingFrameParent = Config.Tab.UIElements.ContainerFrame
+	local CurInput = Config.WindUI.GenerateGUID()
+
+	local function DisconnectSliderInput()
+		local WasHolding = IsSliderHolding
+			or moveconnection ~= nil
+			or releaseconnection ~= nil
+			or Config.WindUI.CurrentInput == CurInput
+
+		if moveconnection then
+			Creator.DisconnectSignal(moveconnection)
+			moveconnection = nil
+		end
+		if releaseconnection then
+			Creator.DisconnectSignal(releaseconnection)
+			releaseconnection = nil
+		end
+
+		IsSliderHolding = false
+		if WasHolding then
+			ScrollingFrameParent.ScrollingEnabled = true
+		end
+		if Config.WindUI.CurrentInput == CurInput then
+			Config.WindUI.CurrentInput = nil
+		end
+	end
+
+	local function FinishSliderInput()
+		local WasHolding = IsSliderHolding
+		DisconnectSliderInput()
+		if not WasHolding then
+			return
+		end
+
+		if Config.Window.NewElements then
+			Motion.Play(Slider.UIElements.SliderIcon.Frame.Thumb, "Focus", {
+				ImageTransparency = 0,
+				Size = UDim2.new(
+					0,
+					Config.Window.NewElements and (Slider.ThumbSize * 2) or (Slider.ThumbSize + 2),
+					0,
+					Config.Window.NewElements and (Slider.ThumbSize + 4) or (Slider.ThumbSize + 2)
+				),
+			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Thumb")
+		end
+		if Tooltip then
+			Tooltip:Close(false)
+		end
+	end
 
 	function Slider:Set(Value, input)
 		if CanCallback then
@@ -276,7 +323,7 @@ function Element:New(Config)
 						Creator.SafeCallback(Slider.Callback, FormatValue(Value))
 					end
 
-					moveconnection = RunService.RenderStepped:Connect(function()
+					moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
 						local inputPosition = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
 						local delta = math.clamp(
 							(inputPosition - Slider.UIElements.SliderIcon.AbsolutePosition.X)
@@ -299,34 +346,12 @@ function Element:New(Config)
 					end)
 
 					-- release slider
-					releaseconnection = UserInputService.InputEnded:Connect(function(endInput)
-						if
-							(
-								endInput.UserInputType == Enum.UserInputType.MouseButton1
-								or endInput.UserInputType == Enum.UserInputType.Touch
-							) and input == endInput
-						then
-							moveconnection:Disconnect()
-							releaseconnection:Disconnect()
-							IsSliderHolding = false
-							ScrollingFrameParent.ScrollingEnabled = true
-
-							Config.WindUI.CurrentInput = nil
-
-							if Config.Window.NewElements then
-								Motion.Play(Slider.UIElements.SliderIcon.Frame.Thumb, "Focus", {
-									ImageTransparency = 0,
-									Size = UDim2.new(
-										0,
-										Config.Window.NewElements and (Slider.ThumbSize * 2) or (Slider.ThumbSize + 2),
-										0,
-										Config.Window.NewElements and (Slider.ThumbSize + 4) or (Slider.ThumbSize + 2)
-									),
-								}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Thumb")
-							end
-							if Tooltip then
-								Tooltip:Close(false)
-							end
+					releaseconnection = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
+						local ReleasedTouch = input.UserInputType == Enum.UserInputType.Touch and endInput == input
+						local ReleasedMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+							and endInput.UserInputType == Enum.UserInputType.MouseButton1
+						if ReleasedTouch or ReleasedMouse then
+							FinishSliderInput()
 						end
 					end)
 				else
@@ -391,8 +416,6 @@ function Element:New(Config)
 		end
 	end)
 
-	local CurInput = Config.WindUI.GenerateGUID()
-
 	Creator.AddSignal(Slider.UIElements.SliderContainer.InputBegan, function(input)
 		if Slider.Locked or IsSliderHolding then
 			return
@@ -426,6 +449,13 @@ function Element:New(Config)
 			--print("piskaa")
 		end
 	end)
+
+	function Slider:Cleanup()
+		DisconnectSliderInput()
+		if Tooltip then
+			Tooltip:Close(false)
+		end
+	end
 
 	return Slider.__type, Slider
 end

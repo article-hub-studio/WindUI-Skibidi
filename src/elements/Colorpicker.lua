@@ -23,8 +23,6 @@ local Element = {
 	--UIPadding = 8
 }
 
-local ActiveSlider = nil
-
 function Element:Colorpicker(Config, Window, WindUI, OnApply)
 	local Colorpicker = {
 		__type = "Colorpicker",
@@ -39,7 +37,30 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 	}
 
 	local Connections = {}
+	local ActiveSlider
+	local ActiveInput
+	local CurInput = WindUI.GenerateGUID()
 	local IsTransparency = Colorpicker.Transparency ~= nil
+
+	local function TrackConnection(Signal, Callback)
+		local Connection = Creator.AddSignal(Signal, Callback)
+		table.insert(Connections, Connection)
+		return Connection
+	end
+
+	local function DisconnectConnections()
+		for Index = #Connections, 1, -1 do
+			Creator.DisconnectSignal(Connections[Index])
+			Connections[Index] = nil
+		end
+
+		table.clear(Connections)
+		ActiveSlider = nil
+		ActiveInput = nil
+		if WindUI.CurrentInput == CurInput then
+			WindUI.CurrentInput = nil
+		end
+	end
 
 	function Colorpicker:SetHSVFromRGB(Color)
 		local H, S, V = Color3.toHSV(Color)
@@ -391,7 +412,7 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 		--     })
 	})
 
-	Creator.AddSignal(ColorpickerFrame.UIElements.Main:GetPropertyChangedSignal("AbsoluteSize"), function()
+	TrackConnection(ColorpickerFrame.UIElements.Main:GetPropertyChangedSignal("AbsoluteSize"), function()
 		Colorpicker.UIElements.Title.Size = UDim2.new(
 			0,
 			ColorpickerFrame.UIElements.Main.AbsoluteSize.X / Config.UIScale - (ColorpickerFrame.UIPadding * 2),
@@ -412,10 +433,7 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 			Variant = "Secondary",
 			Callback = function()
 				Config.IsShowed = false
-				for _, Conn in next, Connections do
-					Conn:Disconnect()
-				end
-				Connections = {}
+				DisconnectConnections()
 			end,
 		},
 		{
@@ -424,10 +442,7 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 			Variant = "Primary",
 			Callback = function()
 				Config.IsShowed = false
-				for _, Conn in next, Connections do
-					Conn:Disconnect()
-				end
-				Connections = {}
+				DisconnectConnections()
 
 				OnApply(Color3.fromHSV(Colorpicker.Hue, Colorpicker.Sat, Colorpicker.Vib), Colorpicker.Transparency)
 			end,
@@ -571,23 +586,20 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 		return math.clamp(tonumber(val) or 0, min, max)
 	end
 
-	table.insert(
-		Connections,
-		Creator.AddSignal(HexInput.Frame.Frame.TextBox.FocusLost, function(Enter)
-			if Enter then
-				local hex = HexInput.Frame.Frame.TextBox.Text:gsub("#", "")
-				local Success, Result = pcall(Color3.fromHex, hex)
-				if Success and typeof(Result) == "Color3" then
-					Colorpicker.Hue, Colorpicker.Sat, Colorpicker.Vib = Color3.toHSV(Result)
-					Colorpicker:Update()
-					Colorpicker.Default = Result
-				end
+	TrackConnection(HexInput.Frame.Frame.TextBox.FocusLost, function(Enter)
+		if Enter then
+			local hex = HexInput.Frame.Frame.TextBox.Text:gsub("#", "")
+			local Success, Result = pcall(Color3.fromHex, hex)
+			if Success and typeof(Result) == "Color3" then
+				Colorpicker.Hue, Colorpicker.Sat, Colorpicker.Vib = Color3.toHSV(Result)
+				Colorpicker:Update()
+				Colorpicker.Default = Result
 			end
-		end)
-	)
+		end
+	end)
 
 	local function updateColorFromInput(inputBox, component)
-		Creator.AddSignal(inputBox.Frame.Frame.TextBox.FocusLost, function(Enter)
+		TrackConnection(inputBox.Frame.Frame.TextBox.FocusLost, function(Enter)
 			if Enter then
 				local textBox = inputBox.Frame.Frame.TextBox
 				local current = GetRGB()
@@ -607,7 +619,7 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 	updateColorFromInput(BlueInput, "B")
 
 	if IsTransparency then
-		Creator.AddSignal(AlphaInput.Frame.Frame.TextBox.FocusLost, function(Enter)
+		TrackConnection(AlphaInput.Frame.Frame.TextBox.FocusLost, function(Enter)
 			if Enter then
 				local textBox = AlphaInput.Frame.Frame.TextBox
 				local clamped = clamp(textBox.Text, 0, 100)
@@ -621,153 +633,174 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 
 	-- fu
 
-	local function UpdateSatVib(SatVibMap, Colorpicker)
+	local function GetPointerPosition(Input)
+		if Input and Input.UserInputType == Enum.UserInputType.Touch then
+			return Input.Position.X, Input.Position.Y
+		end
+
+		return Mouse.X, Mouse.Y
+	end
+
+	local function UpdateSatVib(SatVibMap, Colorpicker, Input)
 		local MinX = SatVibMap.AbsolutePosition.X
 		local MaxX = MinX + SatVibMap.AbsoluteSize.X
 		local MinY = SatVibMap.AbsolutePosition.Y
 		local MaxY = MinY + SatVibMap.AbsoluteSize.Y
+		local PointerX, PointerY = GetPointerPosition(Input)
+		local Width = MaxX - MinX
+		local Height = MaxY - MinY
+		if Width <= 0 or Height <= 0 then
+			return
+		end
 
-		local MouseX = math.clamp(Mouse.X, MinX, MaxX)
-		local MouseY = math.clamp(Mouse.Y, MinY, MaxY)
+		local MouseX = math.clamp(PointerX, MinX, MaxX)
+		local MouseY = math.clamp(PointerY, MinY, MaxY)
 
-		Colorpicker.Sat = (MouseX - MinX) / (MaxX - MinX)
-		Colorpicker.Vib = 1 - ((MouseY - MinY) / (MaxY - MinY))
+		Colorpicker.Sat = (MouseX - MinX) / Width
+		Colorpicker.Vib = 1 - ((MouseY - MinY) / Height)
 
 		Colorpicker:Update()
 	end
 
-	local function UpdateHue(HueSlider, Colorpicker)
+	local function UpdateHue(HueSlider, Colorpicker, Input)
 		local MinY = HueSlider.AbsolutePosition.Y
 		local MaxY = MinY + HueSlider.AbsoluteSize.Y
+		local _, PointerY = GetPointerPosition(Input)
+		local Height = MaxY - MinY
+		if Height <= 0 then
+			return
+		end
 
-		local MouseY = math.clamp(Mouse.Y, MinY, MaxY)
+		local MouseY = math.clamp(PointerY, MinY, MaxY)
 
-		Colorpicker.Hue = (MouseY - MinY) / (MaxY - MinY)
+		Colorpicker.Hue = (MouseY - MinY) / Height
 
 		Colorpicker:Update()
 	end
 
-	local function UpdateTransparency(TransparencySlider, Colorpicker)
+	local function UpdateTransparency(TransparencySlider, Colorpicker, Input)
 		local MinY = TransparencySlider.AbsolutePosition.Y
 		local MaxY = MinY + TransparencySlider.AbsoluteSize.Y
+		local _, PointerY = GetPointerPosition(Input)
+		local Height = MaxY - MinY
+		if Height <= 0 then
+			return
+		end
 
-		local MouseY = math.clamp(Mouse.Y, MinY, MaxY)
+		local MouseY = math.clamp(PointerY, MinY, MaxY)
 
-		Colorpicker.Transparency = 1 - ((MouseY - MinY) / (MaxY - MinY))
+		Colorpicker.Transparency = 1 - ((MouseY - MinY) / Height)
 
 		Colorpicker:Update()
 	end
 
-	local CurInput = WindUI.GenerateGUID()
+	TrackConnection(UserInputService.InputChanged, function(input)
+		if
+			input.UserInputType ~= Enum.UserInputType.MouseMovement
+			and input.UserInputType ~= Enum.UserInputType.Touch
+		then
+			return
+		end
 
-	table.insert(
-		Connections,
-		UserInputService.InputChanged:Connect(function(input)
-			if
-				input.UserInputType ~= Enum.UserInputType.MouseMovement
-				and input.UserInputType ~= Enum.UserInputType.Touch
-			then
-				return
-			end
+		if ActiveInput and ActiveInput.UserInputType == Enum.UserInputType.Touch and input ~= ActiveInput then
+			return
+		end
 
-			if ActiveSlider == "SatVib" then
-				UpdateSatVib(Colorpicker.UIElements.SatVibMap, Colorpicker)
-			elseif ActiveSlider == "Hue" then
-				UpdateHue(HueSlider, Colorpicker)
-			elseif ActiveSlider == "Transparency" then
-				UpdateTransparency(TransparencySlider, Colorpicker)
-			end
-		end)
-	)
+		if ActiveSlider == "SatVib" then
+			UpdateSatVib(Colorpicker.UIElements.SatVibMap, Colorpicker, input)
+		elseif ActiveSlider == "Hue" then
+			UpdateHue(HueSlider, Colorpicker, input)
+		elseif ActiveSlider == "Transparency" then
+			UpdateTransparency(TransparencySlider, Colorpicker, input)
+		end
+	end)
 
-	table.insert(
-		Connections,
-		Colorpicker.UIElements.SatVibMap.InputBegan:Connect(function(input)
-			if
-				input.UserInputType ~= Enum.UserInputType.MouseButton1
-				and input.UserInputType ~= Enum.UserInputType.Touch
-			then
-				return
-			end
+	TrackConnection(Colorpicker.UIElements.SatVibMap.InputBegan, function(input)
+		if
+			input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch
+		then
+			return
+		end
 
-			if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
-				return
-			end
-			WindUI.CurrentInput = CurInput
+		if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
+			return
+		end
+		if ActiveSlider then
+			return
+		end
 
-			if ActiveSlider and ActiveSlider ~= "SatVib" then
-				return
-			end
+		WindUI.CurrentInput = CurInput
+		ActiveSlider = "SatVib"
+		ActiveInput = input
 
-			ActiveSlider = "SatVib"
+		UpdateSatVib(Colorpicker.UIElements.SatVibMap, Colorpicker, input)
+	end)
 
-			UpdateSatVib(Colorpicker.UIElements.SatVibMap, Colorpicker)
-		end)
-	)
+	TrackConnection(HueSlider.InputBegan, function(input)
+		if
+			input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch
+		then
+			return
+		end
 
-	table.insert(
-		Connections,
-		HueSlider.InputBegan:Connect(function(input)
-			if
-				input.UserInputType ~= Enum.UserInputType.MouseButton1
-				and input.UserInputType ~= Enum.UserInputType.Touch
-			then
-				return
-			end
+		if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
+			return
+		end
+		if ActiveSlider then
+			return
+		end
 
-			if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
-				return
-			end
-			WindUI.CurrentInput = CurInput
+		WindUI.CurrentInput = CurInput
+		ActiveSlider = "Hue"
+		ActiveInput = input
 
-			if ActiveSlider and ActiveSlider ~= "Hue" then
-				return
-			end
-
-			ActiveSlider = "Hue"
-
-			UpdateHue(HueSlider, Colorpicker)
-		end)
-	)
+		UpdateHue(HueSlider, Colorpicker, input)
+	end)
 
 	if TransparencySlider then
-		table.insert(
-			Connections,
-			TransparencySlider.InputBegan:Connect(function(input)
-				if
-					input.UserInputType ~= Enum.UserInputType.MouseButton1
-					and input.UserInputType ~= Enum.UserInputType.Touch
-				then
-					return
-				end
-
-				if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
-					return
-				end
-				WindUI.CurrentInput = CurInput
-
-				if ActiveSlider and ActiveSlider ~= "Transparency" then
-					return
-				end
-
-				ActiveSlider = "Transparency"
-
-				UpdateTransparency(TransparencySlider, Colorpicker)
-			end)
-		)
-	end
-
-	table.insert(
-		Connections,
-		UserInputService.InputEnded:Connect(function(input)
-			ActiveSlider = nil
+		TrackConnection(TransparencySlider.InputBegan, function(input)
+			if
+				input.UserInputType ~= Enum.UserInputType.MouseButton1
+				and input.UserInputType ~= Enum.UserInputType.Touch
+			then
+				return
+			end
 
 			if WindUI.CurrentInput and WindUI.CurrentInput ~= CurInput then
 				return
 			end
-			WindUI.CurrentInput = nil
+			if ActiveSlider then
+				return
+			end
+
+			WindUI.CurrentInput = CurInput
+			ActiveSlider = "Transparency"
+			ActiveInput = input
+
+			UpdateTransparency(TransparencySlider, Colorpicker, input)
 		end)
-	)
+	end
+
+	TrackConnection(UserInputService.InputEnded, function(input)
+		if not ActiveInput then
+			return
+		end
+
+		local ReleasedTouch = ActiveInput.UserInputType == Enum.UserInputType.Touch and input == ActiveInput
+		local ReleasedMouse = ActiveInput.UserInputType == Enum.UserInputType.MouseButton1
+			and input.UserInputType == Enum.UserInputType.MouseButton1
+		if not ReleasedTouch and not ReleasedMouse then
+			return
+		end
+
+		ActiveSlider = nil
+		ActiveInput = nil
+		if WindUI.CurrentInput == CurInput then
+			WindUI.CurrentInput = nil
+		end
+	end)
 
 	return Colorpicker
 end

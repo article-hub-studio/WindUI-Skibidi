@@ -72,10 +72,12 @@ function ScrollSlider.New(ScrollingFrame, Parent, Window, Thickness, WindUI)
 		isDragging = false
 		ScrollingFrame.ScrollingEnabled = true
 		if connectionMove then
-			connectionMove:Disconnect()
+			Creator.DisconnectSignal(connectionMove)
+			connectionMove = nil
 		end
 		if connectionEnd then
-			connectionEnd:Disconnect()
+			Creator.DisconnectSignal(connectionEnd)
+			connectionEnd = nil
 		end
 	end
 
@@ -101,7 +103,10 @@ function ScrollSlider.New(ScrollingFrame, Parent, Window, Thickness, WindUI)
 		local startY = input.Position.Y
 		local startCanvasY = ScrollingFrame.CanvasPosition.Y
 
-		connectionMove = UserInputService.InputChanged:Connect(function(moveInput)
+		connectionMove = Creator.AddSignal(UserInputService.InputChanged, function(moveInput)
+			if input.UserInputType == Enum.UserInputType.Touch and moveInput ~= input then
+				return
+			end
 			if
 				moveInput.UserInputType == Enum.UserInputType.MouseMovement
 				or moveInput.UserInputType == Enum.UserInputType.Touch
@@ -123,14 +128,11 @@ function ScrollSlider.New(ScrollingFrame, Parent, Window, Thickness, WindUI)
 			end
 		end)
 
-		connectionEnd = UserInputService.InputEnded:Connect(function(endInput)
-			if endInput.UserInputType == input.UserInputType then
-				if WindUI.CurrentInput and WindUI.CurrentInput ~= ScrollSliderActionId then
-					return
-				end
-
-				WindUI.CurrentInput = nil
-
+		connectionEnd = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
+			local ReleasedTouch = input.UserInputType == Enum.UserInputType.Touch and endInput == input
+			local ReleasedMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+				and endInput.UserInputType == Enum.UserInputType.MouseButton1
+			if ReleasedTouch or ReleasedMouse then
 				StopDrag()
 			end
 		end)

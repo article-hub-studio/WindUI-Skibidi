@@ -140,11 +140,30 @@ function Creator.AddSignal(Signal, Function)
 	return conn
 end
 
-function Creator.DisconnectAll()
-	for idx, signal in next, Creator.Signals do
-		local Connection = table.remove(Creator.Signals, idx)
-		Connection:Disconnect()
+function Creator.DisconnectSignal(Connection)
+	if not Connection then
+		return
 	end
+
+	local Index = table.find(Creator.Signals, Connection)
+	if Index then
+		table.remove(Creator.Signals, Index)
+	end
+
+	Connection:Disconnect()
+end
+
+function Creator.DisconnectAll()
+	for Index = #Creator.Signals, 1, -1 do
+		local Connection = Creator.Signals[Index]
+		Creator.Signals[Index] = nil
+
+		if Connection then
+			Connection:Disconnect()
+		end
+	end
+
+	table.clear(Creator.Signals)
 end
 
 function Creator.SafeCallback(Function, ...)
@@ -838,6 +857,7 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 	local dragging = false
 	local dragStart, startPos
 	local activeInput = nil
+	local Connections = {}
 
 	local DragModule = {
 		CanDraggable = true,
@@ -847,8 +867,29 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 		dragFrames = { mainFrame }
 	end
 
+	local function TrackConnection(Signal, Callback)
+		local Connection = Creator.AddSignal(Signal, Callback)
+		table.insert(Connections, Connection)
+		return Connection
+	end
+
+	local function StopDragging()
+		if WindUI and WindUI.CurrentInput == CurInput then
+			WindUI.CurrentInput = nil
+		end
+
+		local WasDragging = dragging
+		dragging = false
+		activeInput = nil
+		currentDragFrame = nil
+
+		if WasDragging and ondrag and typeof(ondrag) == "function" then
+			ondrag(false, nil)
+		end
+	end
+
 	local function update(input)
-		if not dragging or not DragModule.CanDraggable then
+		if not dragging or not Creator.CanDraggable or not DragModule.CanDraggable then
 			return
 		end
 
@@ -864,8 +905,8 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 	end
 
 	for _, dragFrame in pairs(dragFrames) do
-		dragFrame.InputBegan:Connect(function(input)
-			if not DragModule.CanDraggable or dragging then
+		TrackConnection(dragFrame.InputBegan, function(input)
+			if not Creator.CanDraggable or not DragModule.CanDraggable or dragging then
 				return
 			end
 
@@ -892,7 +933,7 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 		end)
 	end
 
-	UserInputService.InputChanged:Connect(function(input)
+	TrackConnection(UserInputService.InputChanged, function(input)
 		if not dragging then
 			return
 		end
@@ -911,7 +952,7 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 		end
 	end)
 
-	UserInputService.InputEnded:Connect(function(input)
+	TrackConnection(UserInputService.InputEnded, function(input)
 		if not dragging or WindUI.CurrentInput ~= CurInput then
 			return
 		end
@@ -923,19 +964,26 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 				and input.UserInputType == Enum.UserInputType.MouseButton1
 			)
 		then
-			WindUI.CurrentInput = nil
-			dragging = false
-			activeInput = nil
-			currentDragFrame = nil
-
-			if ondrag and typeof(ondrag) == "function" then
-				ondrag(false, nil)
-			end
+			StopDragging()
 		end
 	end)
 
 	function DragModule:Set(v)
-		DragModule.CanDraggable = v
+		DragModule.CanDraggable = v ~= false
+		if not DragModule.CanDraggable then
+			StopDragging()
+		end
+	end
+
+	function DragModule:Destroy()
+		StopDragging()
+
+		for Index = #Connections, 1, -1 do
+			Creator.DisconnectSignal(Connections[Index])
+			Connections[Index] = nil
+		end
+
+		table.clear(Connections)
 	end
 
 	return DragModule

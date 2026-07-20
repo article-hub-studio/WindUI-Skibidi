@@ -15,17 +15,51 @@ local Element = {
 
 local CreateLabel = require("../components/ui/Label").New
 
-function Element:New(Config)
-	local function NormalizeKeyCode(value)
-		if typeof(value) == "EnumItem" then
-			return value.Name
-		elseif type(value) == "string" then
-			return value
-		else
-			return "F"
-		end
+local MouseKeyAliases = {
+	MouseButton1 = "MouseLeft",
+	MouseLeft = "MouseLeft",
+	MouseLeftButton = "MouseLeft",
+	MouseButton2 = "MouseRight",
+	MouseRight = "MouseRight",
+	MouseRightButton = "MouseRight",
+}
+
+local function NormalizeKeyCode(Value)
+	local Name
+	if typeof(Value) == "EnumItem" then
+		Name = Value.Name
+	elseif type(Value) == "string" then
+		Name = Value
+	else
+		return "F"
 	end
 
+	return MouseKeyAliases[Name] or Name
+end
+
+local function GetInputKey(Input)
+	if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode ~= Enum.KeyCode.Unknown then
+		return Input.KeyCode.Name
+	elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
+		return "MouseLeft"
+	elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
+		return "MouseRight"
+	end
+
+	return nil
+end
+
+local function IsMatchingRelease(Input, Key)
+	if Key == "MouseLeft" then
+		return Input.UserInputType == Enum.UserInputType.MouseButton1
+	elseif Key == "MouseRight" then
+		return Input.UserInputType == Enum.UserInputType.MouseButton2
+	end
+
+	return Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Key
+end
+
+function Element:New(Config)
 	local Keybind = {
 		__type = "Keybind",
 		Title = Config.Title or "Keybind",
@@ -35,17 +69,16 @@ function Element:New(Config)
 		Value = NormalizeKeyCode(Config.Value) or "F",
 		Callback = Config.Callback or function() end,
 		CanChange = Config.CanChange ~= false,
-		Blacklist = Config.Blacklist or {},
+		Blacklist = typeof(Config.Blacklist) == "table" and Config.Blacklist or {},
 		Picking = false,
 		UIElements = {},
 	}
 
-	local FilteredBlacklist = {}
+	local BlacklistedKeys = {}
 
 	for _, Item in next, Keybind.Blacklist do
-		table.insert(FilteredBlacklist, Enum.KeyCode[NormalizeKeyCode(Item)])
+		BlacklistedKeys[NormalizeKeyCode(Item)] = true
 	end
-	table.insert(FilteredBlacklist, Enum.KeyCode[NormalizeKeyCode("Escape")])
 
 	local CanCallback = true
 
@@ -90,7 +123,29 @@ function Element:New(Config)
 		end
 	)
 
+	local CaptureBeganConnection
+	local CaptureEndedConnection
+
+	local function DisconnectCaptureConnection(Connection)
+		if Connection then
+			Creator.DisconnectSignal(Connection)
+		end
+	end
+
+	local function StopPicking(RestoreValue)
+		DisconnectCaptureConnection(CaptureBeganConnection)
+		DisconnectCaptureConnection(CaptureEndedConnection)
+		CaptureBeganConnection = nil
+		CaptureEndedConnection = nil
+		Keybind.Picking = false
+
+		if RestoreValue then
+			Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = Keybind.Value
+		end
+	end
+
 	function Keybind:Lock()
+		StopPicking(true)
 		Keybind.Locked = true
 		CanCallback = false
 		return Keybind.KeybindFrame:Lock(Keybind.LockedTitle)
@@ -103,6 +158,7 @@ function Element:New(Config)
 
 	function Keybind:Set(v)
 		local normalizedValue = NormalizeKeyCode(v)
+		StopPicking(false)
 		Keybind.Value = normalizedValue
 		Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = normalizedValue
 	end
@@ -111,64 +167,41 @@ function Element:New(Config)
 		Keybind:Lock()
 	end
 
-	local EndedEvent
-
 	Creator.AddSignal(Keybind.KeybindFrame.UIElements.Main.MouseButton1Click, function()
-		if CanCallback then
-			if Keybind.CanChange then
-				Keybind.Picking = true
-				Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = "..."
-
-				--task.wait(0.2)
-
-				local Event
-				Event = UserInputService.InputBegan:Connect(function(Input)
-					local Key
-
-					if Input.UserInputType == Enum.UserInputType.Keyboard then
-						if table.find(FilteredBlacklist, Input.KeyCode) then
-							Key = nil
-							return
-						else
-							Key = Input.KeyCode.Name
-						end
-					elseif
-						Input.UserInputType == Enum.UserInputType.MouseButton1
-						and not table.find(FilteredBlacklist, "MouseLeftButton")
-					then
-						Key = "MouseLeftButton"
-					elseif
-						Input.UserInputType == Enum.UserInputType.MouseButton2
-						and not table.find(FilteredBlacklist, "MouseRightButton")
-					then
-						Key = "MouseRightButton"
-					end
-
-					if EndedEvent then
-						EndedEvent:Disconnect()
-					end
-
-					EndedEvent = UserInputService.InputEnded:Connect(function(Input)
-						if
-							Key
-							and (
-								Input.KeyCode.Name == Key
-								or Key == "MouseLeft" and Input.UserInputType == Enum.UserInputType.MouseButton1
-								or Key == "MouseRight" and Input.UserInputType == Enum.UserInputType.MouseButton2
-							)
-						then
-							Keybind.Picking = false
-
-							Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = Key
-							Keybind.Value = Key
-
-							Event:Disconnect()
-							EndedEvent:Disconnect()
-						end
-					end)
-				end)
-			end
+		if not CanCallback or not Keybind.CanChange then
+			return
 		end
+
+		StopPicking(false)
+		Keybind.Picking = true
+		Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = "..."
+
+		CaptureBeganConnection = Creator.AddSignal(UserInputService.InputBegan, function(Input)
+			local Key = GetInputKey(Input)
+			if not Key then
+				return
+			end
+			if Key == "Escape" then
+				StopPicking(true)
+				return
+			end
+			if BlacklistedKeys[Key] then
+				return
+			end
+
+			DisconnectCaptureConnection(CaptureBeganConnection)
+			CaptureBeganConnection = nil
+
+			CaptureEndedConnection = Creator.AddSignal(UserInputService.InputEnded, function(EndedInput)
+				if not IsMatchingRelease(EndedInput, Key) then
+					return
+				end
+
+				Keybind.Value = Key
+				Keybind.UIElements.Keybind.Frame.Frame.TextLabel.Text = Key
+				StopPicking(false)
+			end)
+		end)
 	end)
 
 	Creator.AddSignal(UserInputService.InputBegan, function(input, gpe)

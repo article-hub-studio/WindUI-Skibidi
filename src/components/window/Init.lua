@@ -673,7 +673,13 @@ return function(Config)
 		local Extension = CleanUrl:match("%.(%w+)$")
 		if Extension then
 			Extension = Extension:lower()
-			if Extension == "jpg" or Extension == "jpeg" or Extension == "png" or Extension == "webp" or Extension == "webm" then
+			if
+				Extension == "jpg"
+				or Extension == "jpeg"
+				or Extension == "png"
+				or Extension == "webp"
+				or Extension == "webm"
+			then
 				return "." .. Extension
 			end
 		end
@@ -790,10 +796,22 @@ return function(Config)
 		if typeof(Value) == "table" then
 			local Kind = Value.Type or Value.Kind or Value.Mode
 			if Value.Video or Kind == "Video" or Kind == "video" then
-				return "Video", Value.Video or Value.Url or Value.URL or Value.Source or Value.Asset or Value.Path, Value
+				return "Video",
+					Value.Video or Value.Url or Value.URL or Value.Source or Value.Asset or Value.Path,
+					Value
 			end
-			if Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Kind == "Image" or Kind == "image" then
-				return "Image", Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Value.Source, Value
+			if
+				Value.Image
+				or Value.Url
+				or Value.URL
+				or Value.Asset
+				or Value.Path
+				or Kind == "Image"
+				or Kind == "image"
+			then
+				return "Image",
+					Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Value.Source,
+					Value
 			end
 			if Value.Color or Kind == "Color" or Kind == "color" then
 				return "Color", Value.Color or Value.Value, Value
@@ -861,7 +879,8 @@ return function(Config)
 		return nil
 	end
 
-	local InitialBackgroundKind, InitialBackgroundSource, InitialBackgroundOptions = GetBackgroundKind(Window.Background)
+	local InitialBackgroundKind, InitialBackgroundSource, InitialBackgroundOptions =
+		GetBackgroundKind(Window.Background)
 	IsVideoBG = InitialBackgroundKind == "Video"
 	BGImage = CreateDetachedMediaBackground(InitialBackgroundKind, InitialBackgroundSource, InitialBackgroundOptions)
 
@@ -1628,7 +1647,8 @@ return function(Config)
 		ClearDetachedBackgroundMedia("Gradient")
 		Window.BackgroundGradient = Gradient
 		Window.Background = nil
-		Window.BackgroundOverlayTransparency = GetBackgroundTransparency(Transparency, Window.BackgroundOverlayTransparency)
+		Window.BackgroundOverlayTransparency =
+			GetBackgroundTransparency(Transparency, Window.BackgroundOverlayTransparency)
 		local GradientFrame = SetBackgroundGradientObject(Gradient, 1)
 		if GradientFrame then
 			Motion.Play(
@@ -1828,11 +1848,7 @@ return function(Config)
 				(Config.WindUI.ScreenGui.AbsoluteSize.Y - 20 - 52) / Config.WindUI.UIScale
 			),
 			Position = not Window.IsFullscreen and CurrentPos or UDim2.new(0.5, 0, 0.5, 52 / 2),
-		},
-			Enum.EasingStyle.Quint,
-			Enum.EasingDirection.Out,
-			"Fullscreen"
-		)
+		}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Fullscreen")
 	end
 
 	function Window:ToggleFullscreen()
@@ -2651,7 +2667,7 @@ return function(Config)
 				button.AutomaticSize = Enum.AutomaticSize.X
 			end
 
-			wait()
+			task.wait()
 
 			local totalWidth = ButtonsLayout.AbsoluteContentSize.X / Config.WindUI.UIScale
 			local parentWidth = ButtonsContent.AbsoluteSize.X / Config.WindUI.UIScale

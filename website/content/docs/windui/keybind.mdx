@@ -33,7 +33,9 @@ local Keybind = Tab:Keybind({
 local Keybind = Tab:Keybind({
     Title = "Toggle UI",
     Desc = "Press this key to toggle the UI", -- optional
-    Value = "V", -- default key. optional
+    Value = "V", -- or "MouseLeft" / "MouseRight"
+    Blacklist = { "MouseRight" }, -- keyboard or mouse aliases. optional
+    CanChange = true, -- allow picking a new input. optional
     Locked = false, -- disable keybind. optional
     Flag = "toggle_ui_key", -- for config saving. optional
     Callback = function(key)
@@ -50,7 +52,9 @@ local Keybind = Tab:Keybind({
     data={[
         { name: "Title", type: "string", description: "Keybind label text", default: "Keybind" },
         { name: "Desc", type: "string?", description: "Keybind description", default: "nil" },
-        { name: "Value", type: "string?", description: "Default key binding", default: "nil" },
+        { name: "Value", type: "string | Enum.KeyCode | Enum.UserInputType?", description: "Default key binding. MouseLeftButton/MouseButton1 and MouseRightButton/MouseButton2 are normalized to MouseLeft and MouseRight.", default: "F" },
+        { name: "Blacklist", type: "{ string | Enum.KeyCode | Enum.UserInputType }?", description: "Inputs that cannot be selected. Escape always cancels capture.", default: "{}" },
+        { name: "CanChange", type: "boolean?", description: "Allow users to pick a new input from the UI.", default: "true" },
         { name: "Locked", type: "boolean?", description: "Disable keybind interaction", default: "false" },
         { name: "Flag", type: "string?", description: "Configuration flag for saving", default: "nil" },
         { name: "Callback", type: "function?", description: "Function called when key is pressed", default: "nil" },
@@ -75,7 +79,7 @@ local Keybind = Tab:Keybind({
             description: 'Programmatically set the keybind value.',
             args: {
                 Value: {
-                    type: 'Enum.KeyCode',
+                    type: 'string | Enum.KeyCode | Enum.UserInputType',
                     description: 'New keybind input.',
                 }
             }

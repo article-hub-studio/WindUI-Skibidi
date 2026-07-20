@@ -185,6 +185,7 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 
 	local DragConnection
 	local EndConnection
+	local InputOwnerId
 	local FrameWidth = if NewElement then 30 else 20
 	local ToggleWidth = ToggleFrame.Size.X.Offset
 	local RenderedValue
@@ -314,13 +315,20 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 
 	local function DisconnectDrag()
 		if DragConnection then
-			DragConnection:Disconnect()
+			Creator.DisconnectSignal(DragConnection)
 			DragConnection = nil
 		end
 		if EndConnection then
-			EndConnection:Disconnect()
+			Creator.DisconnectSignal(EndConnection)
 			EndConnection = nil
 		end
+	end
+
+	local function ReleaseOwnedInput()
+		if Config.WindUI and InputOwnerId and Config.WindUI.CurrentInput == InputOwnerId then
+			Config.WindUI.CurrentInput = nil
+		end
+		InputOwnerId = nil
 	end
 
 	function Control:Animate(Input, ToggleObject)
@@ -329,6 +337,7 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 		end
 
 		Config.Window.IsToggleDragging = true
+		InputOwnerId = Config.WindUI and Config.WindUI.CurrentInput or nil
 		local StartMouseX = Input.Position.X
 		local StartMouseY = Input.Position.Y
 		local StartFrameX = ToggleFrame.Frame.Position.X.Offset
@@ -338,7 +347,7 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 		Control:BeginHold()
 
 		DisconnectDrag()
-		DragConnection = UserInputService.InputChanged:Connect(function(InputChanged)
+		DragConnection = Creator.AddSignal(UserInputService.InputChanged, function(InputChanged)
 			if not Config.Window.IsToggleDragging then
 				return
 			end
@@ -346,6 +355,9 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 				InputChanged.UserInputType ~= Enum.UserInputType.MouseMovement
 				and InputChanged.UserInputType ~= Enum.UserInputType.Touch
 			then
+				return
+			end
+			if Input.UserInputType == Enum.UserInputType.Touch and InputChanged ~= Input then
 				return
 			end
 
@@ -370,22 +382,20 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 			ToggleFrame.Frame.Position = UDim2.new(0, NewX, 0.5, 0)
 		end)
 
-		EndConnection = UserInputService.InputEnded:Connect(function(InputEnded)
+		EndConnection = Creator.AddSignal(UserInputService.InputEnded, function(InputEnded)
 			if not Config.Window.IsToggleDragging then
 				return
 			end
-			if
-				InputEnded.UserInputType ~= Enum.UserInputType.MouseButton1
-				and InputEnded.UserInputType ~= Enum.UserInputType.Touch
-			then
+			local ReleasedTouch = Input.UserInputType == Enum.UserInputType.Touch and InputEnded == Input
+			local ReleasedMouse = Input.UserInputType == Enum.UserInputType.MouseButton1
+				and InputEnded.UserInputType == Enum.UserInputType.MouseButton1
+			if not ReleasedTouch and not ReleasedMouse then
 				return
 			end
 
 			Config.Window.IsToggleDragging = false
 			DisconnectDrag()
-			if Config.WindUI then
-				Config.WindUI.CurrentInput = nil
-			end
+			ReleaseOwnedInput()
 			RenderedValue = nil
 
 			if IsScrolling then
@@ -403,14 +413,13 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 	end
 
 	function Control:Destroy()
+		local WasDragging = InputOwnerId ~= nil or DragConnection ~= nil or EndConnection ~= nil
 		DisconnectDrag()
 		Control:EndHold()
-		if Config.Window then
+		if WasDragging and Config.Window then
 			Config.Window.IsToggleDragging = false
 		end
-		if Config.WindUI then
-			Config.WindUI.CurrentInput = nil
-		end
+		ReleaseOwnedInput()
 	end
 
 	Control:Set(Value, false, true)

@@ -202,10 +202,22 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		if typeof(Value) == "table" then
 			local Kind = Value.Type or Value.Kind or Value.Mode
 			if Value.Video or Kind == "Video" or Kind == "video" then
-				return "Video", Value.Video or Value.Url or Value.URL or Value.Source or Value.Asset or Value.Path, Value
+				return "Video",
+					Value.Video or Value.Url or Value.URL or Value.Source or Value.Asset or Value.Path,
+					Value
 			end
-			if Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Kind == "Image" or Kind == "image" then
-				return "Image", Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Value.Source, Value
+			if
+				Value.Image
+				or Value.Url
+				or Value.URL
+				or Value.Asset
+				or Value.Path
+				or Kind == "Image"
+				or Kind == "image"
+			then
+				return "Image",
+					Value.Image or Value.Url or Value.URL or Value.Asset or Value.Path or Value.Source,
+					Value
 			end
 			if Value.Gradient then
 				return "Gradient", Value.Gradient, Value
@@ -275,7 +287,9 @@ function KeyBindMenu.New(Window, WindUI, Config)
 				Size = UDim2.new(1, 0, 1, 0),
 				BackgroundTransparency = 1,
 				Image = tostring(Image),
-				ImageTransparency = MenuConfig.BackgroundImageTransparency or Window.BackgroundImageTransparency or 0.46,
+				ImageTransparency = MenuConfig.BackgroundImageTransparency
+					or Window.BackgroundImageTransparency
+					or 0.46,
 				ScaleType = MenuConfig.BackgroundScaleType or Window.BackgroundScaleType or "Crop",
 				ZIndex = 10019,
 				Parent = Root,
@@ -388,7 +402,13 @@ function KeyBindMenu.New(Window, WindUI, Config)
 			Padding = UDim.new(0, 2),
 		}),
 	})
-	CreateText(HeaderText, MenuConfig.Title or (Compact and "Keybind" or "KeyBind Menu"), Compact and 14 or 16, Enum.FontWeight.Bold, 0)
+	CreateText(
+		HeaderText,
+		MenuConfig.Title or (Compact and "Keybind" or "KeyBind Menu"),
+		Compact and 14 or 16,
+		Enum.FontWeight.Bold,
+		0
+	)
 	local HeaderDesc = CreateText(
 		HeaderText,
 		MenuConfig.Desc or (Compact and "Mobile quick toggle controls." or "Set the window toggle shortcut."),
@@ -616,14 +636,19 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		Window:SetToggleKey(EnumKey)
 		CurrentKey.Text = Name
 		if not Silent then
-			Notify("Keybind updated", EnumKey and ("Toggle key: " .. Name) or "Toggle key cleared.", "keyboard", "Success")
+			Notify(
+				"Keybind updated",
+				EnumKey and ("Toggle key: " .. Name) or "Toggle key cleared.",
+				"keyboard",
+				"Success"
+			)
 		end
 	end
 
 	local function StopCapture()
 		Menu.Capturing = false
 		if CaptureConnection then
-			CaptureConnection:Disconnect()
+			Creator.DisconnectSignal(CaptureConnection)
 			CaptureConnection = nil
 		end
 	end
@@ -636,7 +661,7 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		Menu.Capturing = true
 		CurrentKey.Text = "Press key..."
 
-		CaptureConnection = UserInputService.InputBegan:Connect(function(Input)
+		CaptureConnection = Creator.AddSignal(UserInputService.InputBegan, function(Input)
 			if Input.UserInputType ~= Enum.UserInputType.Keyboard then
 				return
 			end
@@ -695,7 +720,8 @@ function KeyBindMenu.New(Window, WindUI, Config)
 			CreateButton(QuickRow, ShortKeyName(KeyName), nil, "Secondary", function()
 				StopCapture()
 				ApplyKey(EnumKey)
-			end).Size = UDim2.new(1 / #QuickKeys, -4, 1, 0)
+			end).Size =
+				UDim2.new(1 / #QuickKeys, -4, 1, 0)
 		end
 	end
 
@@ -950,8 +976,22 @@ function KeyBindMenu.New(Window, WindUI, Config)
 			Position = TargetPosition,
 		}, nil, nil, "KeyBindMenu")
 		Motion.Play(Content, "DropdownOpen", { GroupTransparency = 0 }, nil, nil, "KeyBindContent")
-		Motion.Play(Root.GlassLayer, "DropdownOpen", { ImageTransparency = Compact and 0.92 or 0.78 }, nil, nil, "KeyBindGlass")
-		Motion.Play(Root.Outline, "DropdownOpen", { ImageTransparency = Compact and 0.48 or 0.72 }, nil, nil, "KeyBindOutline")
+		Motion.Play(
+			Root.GlassLayer,
+			"DropdownOpen",
+			{ ImageTransparency = Compact and 0.92 or 0.78 },
+			nil,
+			nil,
+			"KeyBindGlass"
+		)
+		Motion.Play(
+			Root.Outline,
+			"DropdownOpen",
+			{ ImageTransparency = Compact and 0.48 or 0.72 },
+			nil,
+			nil,
+			"KeyBindOutline"
+		)
 		Motion.Play(Root.Scale, "DropdownOpen", { Scale = 1 }, nil, nil, "KeyBindScale")
 		Motion.Play(
 			Scrim,
@@ -1008,7 +1048,10 @@ function KeyBindMenu.New(Window, WindUI, Config)
 		if not Menu.Open then
 			return
 		end
-		if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then
+		if
+			Input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and Input.UserInputType ~= Enum.UserInputType.Touch
+		then
 			return
 		end
 		if ContainsPoint(Root, Input.Position) or ContainsPoint(Menu.Button, Input.Position) then

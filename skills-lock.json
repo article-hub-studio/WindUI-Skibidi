@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "luau-best-practices": {
+      "source": "dig1t/skills",
+      "sourceType": "github",
+      "skillPath": "luau-best-practices/SKILL.md",
+      "computedHash": "8768d433b6ce458999c637aea067b8b07022548d1ca9f04171f7f0845da521da"
+    }
+  }
+}

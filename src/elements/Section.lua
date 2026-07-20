@@ -214,13 +214,13 @@ function Element:New(Config)
 
 	Section.ElementFrame = Main
 
-	Main.Outline.Top:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+	Creator.AddSignal(Main.Outline.Top:GetPropertyChangedSignal("AbsoluteSize"), function()
 		Main.Outline.Content.Position = UDim2.new(0, 0, 0, (Main.Outline.Top.AbsoluteSize.Y / Config.UIScale) + 10)
 
 		if Section.Opened then
 			Section:Open(true)
 		else
-			Section.Close(true)
+			Section:Close(true)
 		end
 	end)
 
