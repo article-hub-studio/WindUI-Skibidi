@@ -304,6 +304,7 @@ function NotificationModule.New(Config)
 		Appearance = Appearance,
 		LiquidGlass = LiquidGlass,
 		Decorated = Decorated,
+		DarkOverlay = Config.DarkOverlay == true or Config.Overlay == true,
 		Timestamp = Config.Timestamp ~= nil and tostring(Config.Timestamp)
 			or (Config.Time ~= nil and tostring(Config.Time) or nil),
 		AccentColor = AccentColor,
@@ -347,10 +348,13 @@ function NotificationModule.New(Config)
 	local RightSpace = (Notification.CanClose and CLOSE_RESERVED or 0) + TimestampWidth
 	local UseShadow = Config.Shadow ~= false
 	local UseFallbackShadow = Config.FallbackShadow == true
+	local UseDarkOverlay = Notification.DarkOverlay
 	local CardThemeTag = {
-		BackgroundColor3 = if Notification.LiquidGlass then "NotificationGlass" else "Notification",
+		BackgroundColor3 = if UseDarkOverlay
+			then (if Notification.LiquidGlass then "NotificationGlass" else "Notification")
+			else "NotificationGlassSurface",
 	}
-	if Config.Transparency == nil then
+	if Config.Transparency == nil and UseDarkOverlay then
 		CardThemeTag.BackgroundTransparency = if Notification.LiquidGlass
 			then "NotificationGlassTransparency"
 			else "NotificationTransparency"
@@ -478,10 +482,12 @@ function NotificationModule.New(Config)
 
 	local Card = New("Frame", {
 		Name = "Notification",
-		BackgroundColor3 = Color3.fromRGB(24, 25, 29),
+		BackgroundColor3 = if UseDarkOverlay then Color3.fromRGB(24, 25, 29) else Color3.new(1, 1, 1),
 		BackgroundTransparency = Creator.ClampTransparency(
 			Config.Transparency,
-			if Notification.LiquidGlass then 0.28 else 0.08
+			if UseDarkOverlay
+				then (if Notification.LiquidGlass then 0.28 else 0.08)
+				else (if Notification.LiquidGlass then 0.64 else 0.72)
 		),
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
@@ -495,6 +501,7 @@ function NotificationModule.New(Config)
 	})
 	Card:SetAttribute("Appearance", Notification.Appearance)
 	Card:SetAttribute("LiquidGlass", Notification.LiquidGlass)
+	Card:SetAttribute("DarkOverlay", UseDarkOverlay)
 	Card:SetAttribute("LayoutVersion", 3)
 
 	local NativeShadow
@@ -505,7 +512,7 @@ function NotificationModule.New(Config)
 			Color = ResolveColor(Config.ShadowColor, Color3.new(0, 0, 0)),
 			Offset = if typeof(Config.ShadowOffset) == "UDim2" then Config.ShadowOffset else UDim2.fromOffset(0, 5),
 			Spread = if typeof(Config.ShadowSpread) == "UDim2" then Config.ShadowSpread else UDim2.fromOffset(2, 2),
-			Transparency = Creator.ClampTransparency(Config.ShadowTransparency, 0.58),
+			Transparency = Creator.ClampTransparency(Config.ShadowTransparency, 0.68),
 			ZIndex = 0,
 		})
 	end
@@ -515,14 +522,18 @@ function NotificationModule.New(Config)
 		Name = "CapsuleSurface",
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
-		BackgroundTransparency = if Notification.LiquidGlass then 0.91 else 0.985,
+		BackgroundTransparency = if UseDarkOverlay
+			then (if Notification.LiquidGlass then 0.91 else 0.985)
+			else (if Notification.LiquidGlass then 0.94 else 1),
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 103,
 		ThemeTag = {
 			BackgroundColor3 = if Notification.LiquidGlass then "NotificationGlassSurface" else "Notification2",
-			BackgroundTransparency = if Notification.LiquidGlass
-				then "NotificationGlassSurfaceTransparency"
-				else "Notification2Transparency",
+			BackgroundTransparency = if UseDarkOverlay
+				then (if Notification.LiquidGlass
+					then "NotificationGlassSurfaceTransparency"
+					else "Notification2Transparency")
+				else nil,
 		},
 		Parent = Card,
 	}, {
@@ -751,30 +762,33 @@ function NotificationModule.New(Config)
 	})
 
 	local IconBubble
+	local IconImage
 	if Notification.Icon then
 		local IconIsGlyph = not Notification.IsAvatar
 			and (
 				type(Notification.Icon) ~= "string"
 				or (Notification.Icon:match("^rbxassetid://") == nil and Notification.Icon:match("^https?://") == nil)
 			)
-		local Icon = Creator.Image(
+		IconImage = Creator.Image(
 			Notification.Icon,
 			Notification.Title .. ":" .. tostring(Notification.Icon),
 			Notification.IsAvatar and IconSize / 2 or 0,
 			Config.Window and Config.Window.Folder,
 			"Notification",
 			true,
-			Notification.IconThemed
+			Notification.IconThemed,
+			nil,
+			Notification.IsAvatar
 		)
-		Icon.Name = "Icon"
-		Icon.Size = if Notification.IsAvatar
+		IconImage.Name = if Notification.IsAvatar then "Avatar" else "Icon"
+		IconImage.Size = if Notification.IsAvatar
 			then UDim2.fromScale(1, 1)
 			else UDim2.fromOffset(if IsCard then 22 else 18, if IsCard then 22 else 18)
-		Icon.Position = UDim2.fromScale(0.5, 0.5)
-		Icon.AnchorPoint = Vector2.new(0.5, 0.5)
-		Icon.ZIndex = 110
+		IconImage.Position = UDim2.fromScale(0.5, 0.5)
+		IconImage.AnchorPoint = Vector2.new(0.5, 0.5)
+		IconImage.ZIndex = 110
 		if IconIsGlyph and Creator.Icon(Notification.Icon) and Notification.IconThemed ~= true then
-			PaintIcon(Icon, Notification.IconColor, 0)
+			PaintIcon(IconImage, Notification.IconColor, 0)
 		end
 
 		IconBubble = New("Frame", {
@@ -800,7 +814,7 @@ function NotificationModule.New(Config)
 					ColorSequenceKeypoint.new(1, Notification.AccentColor),
 				}),
 			}),
-			Icon,
+			IconImage,
 		})
 	end
 
@@ -1231,6 +1245,8 @@ function NotificationModule.New(Config)
 		Title = Title,
 		Content = Content,
 		Timestamp = Timestamp,
+		Icon = IconImage,
+		Avatar = if Notification.IsAvatar then IconImage else nil,
 		IconBubble = IconBubble,
 		CloseButton = CloseButton,
 		CloseSurface = CloseSurface,

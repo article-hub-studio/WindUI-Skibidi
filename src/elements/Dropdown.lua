@@ -57,8 +57,9 @@ function Element:New(Config)
 		Locked = Config.Locked or false,
 		LockedTitle = Config.LockedTitle,
 		Values = Values,
-		MenuWidth = Config.MenuWidth or (Centered and 300 or (Compact and 164 or 180)),
+		MenuWidth = Config.MenuWidth or (Centered and 236 or (Compact and 164 or 180)),
 		MenuMaxWidth = Config.MenuMaxWidth,
+		MenuMaxHeight = Config.MenuMaxHeight or (Centered and 240 or nil),
 		FullWidth = Config.FullWidth or Config.Full or Config.Mode == "Full" or Config.MenuMode == "Full",
 		Direction = Centered and "Center" or (Config.Direction or Config.OpenDirection or "Auto"),
 		Side = Config.Side or Config.Align or Config.Alignment or "Right",
@@ -68,7 +69,7 @@ function Element:New(Config)
 		CenterTarget = Config.CenterTarget or Config.CenterIn or "Window",
 		CenterOffset = typeof(Config.CenterOffset) == "Vector2" and Config.CenterOffset or Vector2.new(0, 0),
 		Backdrop = Centered and Config.Backdrop ~= false,
-		BackdropTransparency = Creator.ClampTransparency(Config.BackdropTransparency, 0.72),
+		BackdropTransparency = Creator.ClampTransparency(Config.BackdropTransparency, 0.84),
 		Value = Config.Value,
 		AllowNone = Config.AllowNone,
 		SearchBarEnabled = SearchBarEnabled == true,
@@ -134,6 +135,9 @@ function Element:New(Config)
 	Dropdown.Select = Dropdown.DropdownMenu.Select
 	Dropdown.Open = Dropdown.DropdownMenu.Open
 	Dropdown.Close = Dropdown.DropdownMenu.Close
+	function Dropdown:Cleanup()
+		Dropdown.DropdownMenu:Destroy()
+	end
 
 	local DropdownIcon = New("ImageLabel", {
 		Image = Creator.Icon("chevrons-up-down")[1],

@@ -387,7 +387,7 @@ local Window = WindUI:CreateWindow({
     NewElements = true,
     LinkElementCorners = true,
     CornerLink = {
-        InnerRadius = 6,
+        InnerRadius = 0,
         Gap = 1,
         BridgeHidden = true,
         BridgeSparse = false,
@@ -401,7 +401,7 @@ Tab:Button({ Title = "Last", CornerGroup = "account", CornerBreakAfter = true })
 Tab:Button({ Title = "Separate", LinkCorners = false })
 ```
 
-Tabs and containers such as `Group`, `HStack`, and `VStack` may define their own `CornerLink` table. `Gap = 0` joins surfaces edge-to-edge and `Gap = 1` leaves a crisp separator. Individual elements support `CornerGroup`, `CornerBreak`, `CornerBreakBefore`, `CornerBreakAfter`, and `LinkCorners = false`.
+Tabs and containers such as `Group`, `HStack`, and `VStack` may define their own `CornerLink` table. `InnerRadius = 0` uses native per-corner radii to keep every shared seam completely flat. `Gap = 0` joins surfaces edge-to-edge and `Gap = 1` leaves a crisp separator. Individual elements support `CornerGroup`, `CornerBreak`, `CornerBreakBefore`, `CornerBreakAfter`, and `LinkCorners = false`.
 
 ## Background API
 

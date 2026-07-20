@@ -26,6 +26,8 @@ assert(Notification.UIElements.CloseSurface.Size.X.Offset == 24)
 assert(Notification.UIElements.Container.Size.Y.Offset == 0)
 assert(Notification.UIElements.Transition:IsA("CanvasGroup"))
 assert(Notification.UIElements.Main:GetAttribute("LayoutVersion") == 3)
+assert(Notification.DarkOverlay == false)
+assert(Notification.UIElements.Main:GetAttribute("DarkOverlay") == false)
 assert(type(Notification.Pause) == "function")
 assert(type(Notification.Resume) == "function")
 assert(type(Notification.Update) == "function")
@@ -49,6 +51,8 @@ local CardNotification = WindUI:Notify({
 assert(CardNotification.Appearance == "Card")
 assert(CardNotification.UIElements.Timestamp.Text == "May 23, 2025")
 assert(CardNotification.UIElements.IconBubble.Size.X.Offset == 40)
+assert(CardNotification.UIElements.Avatar:IsA("ImageLabel"))
+assert(CardNotification.UIElements.Avatar.Name == "Avatar")
 
 local GlassNotification = WindUI:Notify({
 	Title = "Liquid glass",
@@ -59,4 +63,5 @@ local GlassNotification = WindUI:Notify({
 
 assert(GlassNotification.LiquidGlass == true)
 assert(GlassNotification.UIElements.Main:GetAttribute("LiquidGlass") == true)
+assert(GlassNotification.UIElements.Main:GetAttribute("DarkOverlay") == false)
 assert(GlassNotification.UIElements.LiquidGlass.Visible == true)

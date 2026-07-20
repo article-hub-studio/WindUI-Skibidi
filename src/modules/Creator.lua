@@ -957,49 +957,81 @@ function Creator.SanitizeFilename(url)
 	return filename
 end
 
-function Creator.Image(Img, Name, Corner, Folder, Type, IsThemeTag, Themed, ThemeTagName)
+Creator.SupportsDirectImageLabel = true
+
+function Creator.Image(Img, Name, Corner, Folder, Type, IsThemeTag, Themed, ThemeTagName, DirectImageLabel)
 	local FolderName = if typeof(Folder) == "table" then Folder.Folder else Folder
 	FolderName = tostring(FolderName or "Temp")
 	Name = Creator.SanitizeFilename(tostring(Name or "Image"))
 	Type = tostring(Type or "Image")
+	DirectImageLabel = DirectImageLabel == true
+
+	if DirectImageLabel and typeof(Img) == "table" then
+		Img = Img.Image or Img.Asset or Img.AssetId or Img.Id or Img.Url or Img.URL
+	end
 
 	local IsExternalURL = type(Img) == "string"
 		and Img:match("^https?://") ~= nil
 		and Img:find("roblox.com", 1, true) == nil
-	local ResolvedIcon = if IsExternalURL or typeof(Img) == "Instance" then nil else Creator.Icon(Img)
+	local ResolvedIcon = if DirectImageLabel
+			or IsExternalURL
+			or typeof(Img) == "Instance"
+		then nil
+		else Creator.Icon(Img)
 	local ImageThemeTag = (ResolvedIcon or Themed) and IsThemeTag and (ThemeTagName or "Icon") or nil
 
-	local ImageFrame = New("Frame", {
-		Size = UDim2.new(0, 0, 0, 0),
+	local ImageTarget = New("ImageLabel", {
+		Name = "ImageLabel",
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
+		ScaleType = Enum.ScaleType.Crop,
+		ThemeTag = ImageThemeTag and {
+			ImageColor3 = ImageThemeTag,
+		} or nil,
 	}, {
-		New("ImageLabel", {
-			Name = "ImageLabel",
-			Size = UDim2.fromScale(1, 1),
-			BackgroundTransparency = 1,
-			ScaleType = Enum.ScaleType.Crop,
-			ThemeTag = ImageThemeTag and {
-				ImageColor3 = ImageThemeTag,
-			} or nil,
-		}, {
-			New("UICorner", {
-				CornerRadius = UDim.new(0, tonumber(Corner) or 0),
-			}),
+		New("UICorner", {
+			CornerRadius = UDim.new(0, tonumber(Corner) or 0),
 		}),
 	})
+	local ImageFrame = if DirectImageLabel
+		then ImageTarget
+		else New("Frame", {
+			Size = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1,
+		}, {
+			ImageTarget,
+		})
 
 	if typeof(Img) == "Instance" then
-		ImageFrame.ImageLabel:Destroy()
-		local Clone = Img:Clone()
-		Clone.Name = "ImageLabel"
-		if Clone:IsA("GuiObject") then
-			Clone.Size = UDim2.fromScale(1, 1)
-			Clone.Position = UDim2.fromScale(0.5, 0.5)
-			Clone.AnchorPoint = Vector2.new(0.5, 0.5)
+		if DirectImageLabel then
+			local Source = if Img:IsA("ImageLabel") or Img:IsA("ImageButton")
+				then Img
+				else Img:FindFirstChildWhichIsA("ImageLabel", true) or Img:FindFirstChildWhichIsA(
+					"ImageButton",
+					true
+				)
+			if Source then
+				ImageTarget.Image = Source.Image
+				ImageTarget.ImageRectOffset = Source.ImageRectOffset
+				ImageTarget.ImageRectSize = Source.ImageRectSize
+				ImageTarget.ImageColor3 = Source.ImageColor3
+				ImageTarget.ImageTransparency = Source.ImageTransparency
+			else
+				ImageFrame.Visible = false
+			end
+		else
+			ImageTarget:Destroy()
+			local Clone = Img:Clone()
+			Clone.Name = "ImageLabel"
+			if Clone:IsA("GuiObject") then
+				Clone.Size = UDim2.fromScale(1, 1)
+				Clone.Position = UDim2.fromScale(0.5, 0.5)
+				Clone.AnchorPoint = Vector2.new(0.5, 0.5)
+			end
+			Clone.Parent = ImageFrame
 		end
-		Clone.Parent = ImageFrame
 	elseif ResolvedIcon then
-		ImageFrame.ImageLabel:Destroy()
+		ImageTarget:Destroy()
 		local IconLabel = Icons.Image({
 			Icon = Img,
 			Size = UDim2.fromScale(1, 1),
@@ -1026,7 +1058,7 @@ function Creator.Image(Img, Name, Corner, Folder, Type, IsThemeTag, Themed, Them
 
 				local AssetSuccess, Asset = pcall(getcustomasset, FileName)
 				if AssetSuccess then
-					ImageFrame.ImageLabel.Image = Asset
+					ImageTarget.Image = Asset
 				elseif not AssetSuccess then
 					warn(string.format("[ WindUI.Creator ] Failed to load '%s': %s", FileName, tostring(Asset)))
 				end
@@ -1040,9 +1072,9 @@ function Creator.Image(Img, Name, Corner, Folder, Type, IsThemeTag, Themed, Them
 	elseif Img == nil or Img == "" then
 		ImageFrame.Visible = false
 	elseif type(Img) == "number" then
-		ImageFrame.ImageLabel.Image = "rbxassetid://" .. tostring(Img)
+		ImageTarget.Image = "rbxassetid://" .. tostring(Img)
 	elseif type(Img) == "string" then
-		ImageFrame.ImageLabel.Image = Img
+		ImageTarget.Image = Img
 	else
 		warn(string.format("[ WindUI.Creator ] Unsupported image value: %s", typeof(Img)))
 		ImageFrame.Visible = false

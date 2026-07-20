@@ -6,6 +6,8 @@ const dynamicShape = fs.readFileSync("src/modules/DynamicShape.lua", "utf8")
 const elementsInit = fs.readFileSync("src/elements/Init.lua", "utf8")
 const dropdown = fs.readFileSync("src/components/ui/Dropdown.lua", "utf8")
 const dropdownElement = fs.readFileSync("src/elements/Dropdown.lua", "utf8")
+const toggle = fs.readFileSync("src/components/ui/Toggle.lua", "utf8")
+const toggleElement = fs.readFileSync("src/elements/Toggle.lua", "utf8")
 const loading = fs.readFileSync("src/components/LoadingScreen.lua", "utf8")
 const openButton = fs.readFileSync("src/components/window/Openbutton.lua", "utf8")
 const windowModule = fs.readFileSync("src/components/window/Init.lua", "utf8")
@@ -86,6 +88,9 @@ const checks = {
 		/CornerBreakBefore/.test(creator) &&
 		/CornerBreakAfter/.test(creator) &&
 		/CornerGroup/.test(creator),
+	flatLinkedCornerSeams:
+		/InnerRadius = 0/.test(windowModule) &&
+		/CornerLink = \{ InnerRadius = 0, Gap = 1/.test(example),
 	linkedCornerMetadata:
 		/Position = PositionName/.test(creator) &&
 		/Horizontal = isHStack == true/.test(creator) &&
@@ -103,9 +108,18 @@ const checks = {
 	centeredDropdown:
 		/Dropdown\.Centered/.test(dropdown) &&
 		/Name = "DropdownBackdrop"/.test(dropdown) &&
+		/Dropdown\.InternalCenter = InternalCenter/.test(dropdown) &&
+		/Parent = PopupParent/.test(dropdown) &&
 		/return "Center"/.test(dropdown) &&
 		/Config\.Centered == true/.test(dropdownElement) &&
+		/Centered and 236/.test(dropdownElement) &&
 		/CenterTarget/.test(dropdownElement),
+	optimizedToggle:
+		/UseGlassSpritesheet = Config\.GlassSpritesheet == true/.test(toggle) &&
+		/UseDrag = Config\.Drag == true/.test(toggle) &&
+		/task\.defer/.test(toggle) &&
+		/ToggleFunc\.UseDrag/.test(toggleElement) &&
+		!/task\.spawn/.test(toggle),
 	loadingPlayback:
 		/Name = "Body"/.test(loading) &&
 		/Name = "Percent"/.test(loading) &&
@@ -138,12 +152,15 @@ const checks = {
 		runtime.includes("WindUILinkedCorner") &&
 		runtime.includes("WindowMorphScale") &&
 		runtime.includes("DropdownBackdrop") &&
+		runtime.includes("InternalCenter") &&
+		runtime.includes("UseGlassSpritesheet") &&
+		runtime.includes("DarkOverlay") &&
 		runtime.includes("LoadingProgress"),
 	exampleRuntimeCompatibility:
 		/HasIconSourceAPI/.test(example) &&
 		/HasDynamicIslandAPI/.test(example) &&
 		/NotifyOutdatedRuntime/.test(example) &&
-		/ui-runtime-7/.test(example),
+		/ui-runtime-8/.test(example),
 }
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok)

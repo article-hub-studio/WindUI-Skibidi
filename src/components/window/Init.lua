@@ -55,9 +55,9 @@ return function(Config)
 			or (typeof(Config.LinkElementCorners) == "table" and Config.LinkElementCorners)
 			or (typeof(Config.ElementsLinkCorners) == "table" and Config.ElementsLinkCorners)
 			or {
-			InnerRadius = 6,
-			BridgeHidden = true,
-		}
+				InnerRadius = 0,
+				BridgeHidden = true,
+			}
 		local LinkedGap = typeof(Config.CornerLink) == "table" and (Config.CornerLink.Gap or Config.CornerLink.Spacing)
 		Config.ElementGap = PickAlias(
 			Config.ElementGap,

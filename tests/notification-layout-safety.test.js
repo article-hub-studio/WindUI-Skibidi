@@ -22,7 +22,9 @@ const checks = {
 	metadataCard:
 		/Appearance == "Card"/.test(source) &&
 		/Name = "Timestamp"/.test(source) &&
-		/AVATAR_SIZE = 40/.test(source),
+		/AVATAR_SIZE = 40/.test(source) &&
+		/DirectImageLabel/.test(creator) &&
+		/Avatar = if Notification\.IsAvatar then IconImage else nil/.test(source),
 	boundedStack: /MAX_VISIBLE = 4/.test(source) && /TrimNotifications/.test(source),
 	heightAwareStack: /AvailableHeight/.test(source) && /TotalHeight > AvailableHeight/.test(source),
 	shadowOverflow:
@@ -51,6 +53,10 @@ const checks = {
 		/Name = "LiquidGlass"/.test(source) &&
 		/"SquircleGlass"/.test(source) &&
 		/Card:SetAttribute\("LiquidGlass", Notification\.LiquidGlass\)/.test(source),
+	noDarkOverlay:
+		/DarkOverlay = Config\.DarkOverlay == true/.test(source) &&
+		/Card:SetAttribute\("DarkOverlay", UseDarkOverlay\)/.test(source) &&
+		/else \(if Notification\.LiquidGlass then 0\.64 else 0\.72\)/.test(source),
 	individualCorners:
 		/Creator\.ApplyCornerRadii\(Corner, Radius, Corners\)/.test(source) &&
 		/TopLeftRadius/.test(creator) &&

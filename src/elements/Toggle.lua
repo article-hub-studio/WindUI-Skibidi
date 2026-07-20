@@ -113,14 +113,14 @@ function Element:New(Config)
 	end
 
 	function Toggle:Toggle(isCallback, isAnim)
-		Toggle:Set(not Toggle.Value, isCallback, isAnim or Config.Window.NewElements)
+		Toggle:Set(not Toggle.Value, isCallback, isAnim == true)
 	end
 
-	Toggle:Set(Toggled, false, Config.Window.NewElements)
+	Toggle:Set(Toggled, false, true)
 
-	local CurInput = Config.WindUI.GenerateGUID()
+	local CurInput = if ToggleFunc.UseDrag then Config.WindUI.GenerateGUID() else nil
 
-	if Config.Window.NewElements and ToggleFunc.Animate then
+	if Config.Window.NewElements and ToggleFunc.Animate and ToggleFunc.UseDrag then
 		if Toggle.Type == "Toggle" then
 			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.InputBegan, function(Input)
 				if
@@ -147,12 +147,18 @@ function Element:New(Config)
 	else
 		if Toggle.Type == "Toggle" then
 			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.MouseButton1Click, function()
-				Toggle:Toggle(nil, Config.Window.NewElements)
+				Toggle:Toggle(nil, false)
 			end)
 		elseif Toggle.Type == "Checkbox" then
 			Creator.AddSignal(ToggleFrame.MouseButton1Click, function()
-				Toggle:Toggle(nil, Config.Window.NewElements)
+				Toggle:Toggle(nil, false)
 			end)
+		end
+	end
+
+	function Toggle:Cleanup()
+		if ToggleFunc.Destroy then
+			ToggleFunc:Destroy()
 		end
 	end
 
@@ -162,7 +168,7 @@ function Element:New(Config)
 				return
 			end
 			if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == Toggle.KeyCode then
-				Toggle:Toggle(nil, Config.Window.NewElements)
+				Toggle:Toggle(nil, false)
 			end
 		end)
 	end

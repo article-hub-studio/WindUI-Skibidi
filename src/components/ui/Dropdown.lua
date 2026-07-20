@@ -20,6 +20,20 @@ local TabBackgroundTransparency = 0.76
 
 function DropdownMenu.New(Config, Dropdown, Element, Type)
 	local DropdownModule = {}
+	local CenterTarget = string.lower(tostring(Dropdown.CenterTarget or "Window"))
+	local WindowMain = Config.Window and Config.Window.UIElements and Config.Window.UIElements.Main
+	local WindowPopupRoot = if typeof(WindowMain) == "Instance"
+		then WindowMain:FindFirstChild("Main") or WindowMain
+		else nil
+	local InternalCenter = Dropdown.Centered
+		and CenterTarget ~= "screen"
+		and CenterTarget ~= "viewport"
+		and typeof(WindowPopupRoot) == "Instance"
+	local PopupParent = if InternalCenter then WindowPopupRoot else Config.WindUI.DropdownGui
+	local PersistentConnections = {}
+
+	Dropdown.InternalCenter = InternalCenter
+	Dropdown.PopupParent = PopupParent
 
 	if not Dropdown.Callback then
 		Type = "Menu"
@@ -42,6 +56,7 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			Size = UDim2.new(1, 0, 1, 0),
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, 0, 0, 0),
+			ZIndex = 242,
 		},
 		{
 			New("UIPadding", {
@@ -95,8 +110,8 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			AutoButtonColor = false,
 			Visible = false,
 			Active = true,
-			ZIndex = 0,
-			Parent = Config.WindUI.DropdownGui,
+			ZIndex = 240,
+			Parent = PopupParent,
 		})
 	end
 
@@ -106,8 +121,9 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		Position = UDim2.new(-10, 0, -10, 0),
 		Visible = false,
 		Active = false,
+		ZIndex = 241,
 		--GroupTransparency = 1, -- 0
-		Parent = Config.WindUI.DropdownGui,
+		Parent = PopupParent,
 		AnchorPoint = Vector2.new(1, 0),
 	}, {
 		Dropdown.UIElements.Menu,
@@ -156,6 +172,9 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 	end
 
 	local function GetViewportSize()
+		if InternalCenter and typeof(PopupParent) == "Instance" and PopupParent:IsA("GuiObject") then
+			return PopupParent.AbsoluteSize / GetLayoutScale()
+		end
 		if Config.WindUI.DropdownGui and Config.WindUI.DropdownGui.AbsoluteSize.X > 0 then
 			return Config.WindUI.DropdownGui.AbsoluteSize
 		end
@@ -224,7 +243,9 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			math.min(Dropdown.MenuMaxWidth or (IsMobileViewport() and 320 or 420), Viewport.X - (Padding * 2))
 		)
 		local MinWidth = math.min(Dropdown.Compact and 148 or 170, MaxWidth)
-		local TriggerWidth = button.AbsoluteSize.X > 0 and button.AbsoluteSize.X or Dropdown.MenuWidth
+		local TriggerWidth = if button.AbsoluteSize.X > 0
+			then button.AbsoluteSize.X / (InternalCenter and GetLayoutScale() or 1)
+			else Dropdown.MenuWidth
 		local Width = Dropdown.FullWidth and math.max(TriggerWidth, Dropdown.MenuWidth) or Dropdown.MenuWidth
 
 		return math.floor(math.clamp(Width, MinWidth, MaxWidth) + 0.5)
@@ -238,10 +259,11 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			Dropdown.UIElements.MenuCanvas.Size.Y.Scale,
 			Dropdown.UIElements.MenuCanvas.Size.Y.Offset
 		)
+		return Width
 	end
 
 	local function RecalculateListSize()
-		ApplyCanvasWidth()
+		local CanvasWidth = ApplyCanvasWidth()
 
 		local Viewport = GetViewportSize()
 		local MinHeight = Dropdown.SearchBarEnabled and (Element.SearchBarHeight + 44) or 44
@@ -259,11 +281,9 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		local TotalY = ContentY + SearchBarOffset
 
 		if TotalY > MaxHeight then
-			Dropdown.UIElements.MenuCanvas.Size =
-				UDim2.fromOffset(Dropdown.UIElements.MenuCanvas.AbsoluteSize.X, MaxHeight)
+			Dropdown.UIElements.MenuCanvas.Size = UDim2.fromOffset(CanvasWidth, MaxHeight)
 		else
-			Dropdown.UIElements.MenuCanvas.Size =
-				UDim2.fromOffset(Dropdown.UIElements.MenuCanvas.AbsoluteSize.X, TotalY)
+			Dropdown.UIElements.MenuCanvas.Size = UDim2.fromOffset(CanvasWidth, TotalY)
 		end
 	end
 
@@ -281,13 +301,28 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 			NormalizeSide(mobile and (Dropdown.MobileSide or "Center") or Dropdown.Side, mobile and "Center" or "Right")
 		local buttonPosition = button.AbsolutePosition
 		local buttonSize = button.AbsoluteSize
-		local menuSize = menu.AbsoluteSize
+		local menuSize = menu.AbsoluteSize / (InternalCenter and GetLayoutScale() or 1)
 
 		if menuSize.X <= 0 or menuSize.Y <= 0 then
 			menuSize = Vector2.new(menu.Size.X.Offset, menu.Size.Y.Offset)
 		end
 
 		if Dropdown.Centered then
+			if InternalCenter then
+				local Offset = Dropdown.CenterOffset or Vector2.new(0, 0)
+				local HalfWidth = menuSize.X / 2
+				local HalfHeight = menuSize.Y / 2
+				local x = math.clamp((viewport.X / 2) + Offset.X, padding + HalfWidth, viewport.X - padding - HalfWidth)
+				local y =
+					math.clamp((viewport.Y / 2) + Offset.Y, padding + HalfHeight, viewport.Y - padding - HalfHeight)
+
+				menu.AnchorPoint = Vector2.new(0.5, 0.5)
+				menu.Position = UDim2.fromOffset(math.floor(x + 0.5), math.floor(y + 0.5))
+				Dropdown.UIElements.Menu.AnchorPoint = Vector2.new(0.5, 0.5)
+				Dropdown.UIElements.Menu.Position = UDim2.fromScale(0.5, 0.5)
+				return "Center"
+			end
+
 			local CenterPosition = Vector2.new(0, 0)
 			local CenterSize = viewport
 			local CenterTarget = string.lower(tostring(Dropdown.CenterTarget or "Window"))
@@ -1131,41 +1166,68 @@ function DropdownMenu.New(Config, Dropdown, Element, Type)
 		end
 	)
 
-	Creator.AddSignal(UserInputService.InputBegan, function(Input)
-		if
-			Input.UserInputType == Enum.UserInputType.MouseButton1
-			or Input.UserInputType == Enum.UserInputType.Touch
-		then
-			local menuCanvas = Dropdown.UIElements.MenuCanvas
-			local DropdownButton = Dropdown.UIElements.Dropdown or Dropdown.DropdownFrame.UIElements.Main
-			local InputPosition = GetInputPosition(Input)
-			local isClickOnDropdown = ContainsPoint(DropdownButton, InputPosition)
-			local isClickOnMenu = ContainsPoint(menuCanvas, InputPosition)
-
+	table.insert(
+		PersistentConnections,
+		Creator.AddSignal(UserInputService.InputBegan, function(Input)
 			if
-				Config.Window.CanDropdown
-				and (Dropdown.Opened or menuCanvas.Visible)
-				and not isClickOnDropdown
-				and not isClickOnMenu
+				Input.UserInputType == Enum.UserInputType.MouseButton1
+				or Input.UserInputType == Enum.UserInputType.Touch
 			then
-				DropdownModule:Close()
-			end
-		end
-	end)
+				local menuCanvas = Dropdown.UIElements.MenuCanvas
+				local DropdownButton = Dropdown.UIElements.Dropdown or Dropdown.DropdownFrame.UIElements.Main
+				local InputPosition = GetInputPosition(Input)
+				local isClickOnDropdown = ContainsPoint(DropdownButton, InputPosition)
+				local isClickOnMenu = ContainsPoint(menuCanvas, InputPosition)
 
-	Creator.AddSignal(
-		Dropdown.UIElements.Dropdown and Dropdown.UIElements.Dropdown:GetPropertyChangedSignal("AbsolutePosition")
-			or Dropdown.DropdownFrame.UIElements.Main:GetPropertyChangedSignal("AbsolutePosition"),
-		UpdatePosition
-	)
-
-	if Config.WindUI.DropdownGui then
-		Creator.AddSignal(Config.WindUI.DropdownGui:GetPropertyChangedSignal("AbsoluteSize"), function()
-			if Dropdown.UIElements.MenuCanvas.Visible then
-				RecalculateListSize()
-				UpdatePosition()
+				if
+					Config.Window.CanDropdown
+					and (Dropdown.Opened or menuCanvas.Visible)
+					and not isClickOnDropdown
+					and not isClickOnMenu
+				then
+					DropdownModule:Close()
+				end
 			end
 		end)
+	)
+
+	table.insert(
+		PersistentConnections,
+		Creator.AddSignal(
+			Dropdown.UIElements.Dropdown and Dropdown.UIElements.Dropdown:GetPropertyChangedSignal("AbsolutePosition")
+				or Dropdown.DropdownFrame.UIElements.Main:GetPropertyChangedSignal("AbsolutePosition"),
+			UpdatePosition
+		)
+	)
+
+	if typeof(PopupParent) == "Instance" and PopupParent:IsA("GuiObject") then
+		table.insert(
+			PersistentConnections,
+			Creator.AddSignal(PopupParent:GetPropertyChangedSignal("AbsoluteSize"), function()
+				if Dropdown.UIElements.MenuCanvas.Visible then
+					RecalculateListSize()
+					UpdatePosition()
+				end
+			end)
+		)
+	end
+
+	function DropdownModule:Destroy()
+		MenuMotionToken += 1
+		Dropdown.Opened = false
+
+		for _, Connection in PersistentConnections do
+			Connection:Disconnect()
+		end
+		table.clear(PersistentConnections)
+
+		if Dropdown.UIElements.Backdrop then
+			Dropdown.UIElements.Backdrop:Destroy()
+			Dropdown.UIElements.Backdrop = nil
+		end
+		if Dropdown.UIElements.MenuCanvas then
+			Dropdown.UIElements.MenuCanvas:Destroy()
+		end
 	end
 
 	return DropdownModule

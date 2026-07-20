@@ -139,6 +139,9 @@ return {
 						frame:Highlight()
 					end
 					function content:Destroy()
+						if content.Cleanup then
+							content:Cleanup()
+						end
 						frame:Destroy()
 
 						table.remove(Window.AllElements, config.GlobalIndex)
