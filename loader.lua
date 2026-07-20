@@ -1,5 +1,13 @@
-local CACHE_KEY = "1.6.65-ui-runtime-5"
-local REQUIRED_API = { "RegisterIconPack", "GetIconSources", "ExpandOpenButton", "AdapterVersion=3", "CreateUIShadow" }
+local CACHE_KEY = "1.6.65-ui-runtime-6"
+local REQUIRED_API = {
+	"RegisterIconPack",
+	"GetIconSources",
+	"ExpandOpenButton",
+	"HideOpenButton",
+	"AdapterVersion=3",
+	"CreateUIShadow",
+	'LayoutVersion",3',
+}
 local SOURCE_URL = "https://article-hub-studio.github.io/WindUI-Skibidi/dist/main.lua?v=" .. CACHE_KEY
 
 local Success, Source = pcall(function()
