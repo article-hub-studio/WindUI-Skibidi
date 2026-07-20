@@ -38,6 +38,10 @@ local POSITION_PRESETS = {
 }
 
 local STATE_ALIASES = {
+	hidden = "Idle",
+	hide = "Idle",
+	idle = "Idle",
+	island = "Idle",
 	closed = "Collapsed",
 	circle = "Collapsed",
 	icon = "Collapsed",
@@ -101,6 +105,8 @@ function OpenButton.New(Window)
 		Position = "TopCenter",
 		State = "Compact",
 		Height = 44,
+		IdleWidth = 78,
+		IdleHeight = 28,
 		ExpandedHeight = 68,
 		ExpandedWidth = 220,
 		MaxWidth = 380,
@@ -117,6 +123,15 @@ function OpenButton.New(Window)
 		TextColor = nil,
 		TextTransparency = nil,
 		AutoCollapse = nil,
+		AutoHide = 4,
+		WakeOnShow = true,
+		Shadow = true,
+		ShadowBlur = UDim.new(0, 18),
+		ShadowColor = Color3.new(0, 0, 0),
+		ShadowOffset = UDim2.fromOffset(0, 5),
+		ShadowSpread = UDim2.fromOffset(2, 2),
+		ShadowTransparency = 0.5,
+		FallbackShadow = false,
 		OnStateChange = nil,
 	}
 
@@ -131,6 +146,7 @@ function OpenButton.New(Window)
 	}
 
 	local StateToken = 0
+	local HideToken = 0
 	local ActiveTweens = {}
 	local Icon
 	local DragModule
@@ -224,6 +240,18 @@ function OpenButton.New(Window)
 			}),
 		}),
 	})
+
+	local NativeShadow = Creator.CreateUIShadow(Button, {
+		Name = "NativeShadow",
+		Enabled = Settings.Shadow,
+		BlurRadius = Settings.ShadowBlur,
+		Color = Settings.ShadowColor,
+		Offset = Settings.ShadowOffset,
+		Spread = Settings.ShadowSpread,
+		Transparency = Settings.ShadowTransparency,
+		ZIndex = 0,
+	})
+	Shadow.Visible = Settings.Shadow and NativeShadow == nil and Settings.FallbackShadow
 
 	local Drag = New("Frame", {
 		Name = "Drag",
@@ -385,13 +413,17 @@ function OpenButton.New(Window)
 	end
 
 	local function GetDragWidth(State, Height)
-		if not Settings.Draggable or State == "Collapsed" then
+		if not Settings.Draggable or State == "Collapsed" or State == "Idle" then
 			return 0
 		end
 		return Height
 	end
 
 	local function GetTargetSize(State)
+		if State == "Idle" then
+			return Vector2.new(Settings.IdleWidth, Settings.IdleHeight)
+		end
+
 		local Height = if State == "Expanded" then Settings.ExpandedHeight else Settings.Height
 		if State == "Collapsed" then
 			return Vector2.new(Settings.Height, Settings.Height)
@@ -428,7 +460,7 @@ function OpenButton.New(Window)
 		Settings.State = State
 		Drag.Visible = DragWidth > 0
 		Divider.Visible = DragWidth > 0
-		Title.Visible = State ~= "Collapsed"
+		Title.Visible = State ~= "Collapsed" and State ~= "Idle"
 		Description.Visible = State == "Expanded" and Settings.Content ~= nil and Settings.Content ~= ""
 		TrailingIcon.Visible = State == "Expanded"
 
@@ -443,10 +475,15 @@ function OpenButton.New(Window)
 		Divider.Position = UDim2.new(0, DragWidth, 0.5, 0)
 
 		if Icon then
-			local IconX = if State == "Collapsed" then TargetSize.X / 2 else ActionPadding + Settings.IconSize / 2
+			local IconX = if State == "Collapsed" or State == "Idle"
+				then TargetSize.X / 2
+				else ActionPadding + Settings.IconSize / 2
 			Animate(Icon, Duration, {
 				Position = UDim2.fromOffset(IconX, TargetSize.Y / 2),
-				Size = UDim2.fromOffset(Settings.IconSize, Settings.IconSize),
+				Size = UDim2.fromOffset(
+					if State == "Idle" then 0 else Settings.IconSize,
+					if State == "Idle" then 0 else Settings.IconSize
+				),
 			})
 		end
 
@@ -458,6 +495,32 @@ function OpenButton.New(Window)
 		Description.Text = tostring(Settings.Content or "")
 
 		Creator.SafeCallback(Settings.OnStateChange, State, OpenButtonMain)
+	end
+
+	local function CancelAutoHide()
+		HideToken = HideToken + 1
+	end
+
+	local function ScheduleAutoHide(Delay)
+		CancelAutoHide()
+		if Settings.AutoHide == false or OpenButtonMain.State == "Idle" or not Container.Visible then
+			return
+		end
+
+		local Seconds = tonumber(Delay)
+		if Seconds == nil then
+			Seconds = tonumber(Settings.AutoHide)
+		end
+		if Seconds == nil or Seconds <= 0 then
+			return
+		end
+
+		local Token = HideToken
+		task.delay(Seconds, function()
+			if Token == HideToken and Container.Parent and Container.Visible then
+				OpenButtonMain:SetState("Idle")
+			end
+		end)
 	end
 
 	function OpenButtonMain:SetIcon(NewIcon, SkipLayout)
@@ -506,6 +569,7 @@ function OpenButton.New(Window)
 
 	function OpenButtonMain:SetState(NewState, Changes, AnimateState)
 		StateToken = StateToken + 1
+		CancelAutoHide()
 		if typeof(Changes) == "table" then
 			if Changes.Title ~= nil then
 				Settings.Title = tostring(Changes.Title)
@@ -521,6 +585,7 @@ function OpenButton.New(Window)
 		end
 
 		ApplyState(NewState, AnimateState)
+		ScheduleAutoHide()
 		return OpenButtonMain
 	end
 
@@ -533,9 +598,10 @@ function OpenButton.New(Window)
 		local Token = StateToken
 		local Delay = tonumber(Duration) or tonumber(Settings.AutoCollapse)
 		if Delay and Delay > 0 then
+			CancelAutoHide()
 			task.delay(Delay, function()
 				if Token == StateToken and Container.Parent then
-					OpenButtonMain:SetState("Compact")
+					OpenButtonMain:Compact()
 				end
 			end)
 		end
@@ -550,6 +616,16 @@ function OpenButton.New(Window)
 		return OpenButtonMain:SetState("Compact", Changes)
 	end
 
+	function OpenButtonMain:Idle(Changes)
+		return OpenButtonMain:SetState("Idle", Changes)
+	end
+
+	OpenButtonMain.Hide = OpenButtonMain.Idle
+
+	function OpenButtonMain:Wake(Changes)
+		return OpenButtonMain:Compact(Changes)
+	end
+
 	function OpenButtonMain:ToggleExpanded(Changes)
 		if OpenButtonMain.State == "Expanded" then
 			return OpenButtonMain:Compact(Changes)
@@ -560,6 +636,7 @@ function OpenButton.New(Window)
 	function OpenButtonMain:Push(Changes, Duration)
 		local PreviousState = OpenButtonMain.State
 		OpenButtonMain:SetState("Expanded", Changes)
+		CancelAutoHide()
 		local Token = StateToken
 		local Delay = math.max(tonumber(Duration) or 3, 0)
 		task.delay(Delay, function()
@@ -574,6 +651,15 @@ function OpenButton.New(Window)
 
 	function OpenButtonMain:Visible(Value)
 		Container.Visible = Value == true
+		if Container.Visible then
+			if Settings.WakeOnShow and OpenButtonMain.State == "Idle" then
+				OpenButtonMain:SetState("Compact")
+			else
+				ScheduleAutoHide()
+			end
+		else
+			CancelAutoHide()
+		end
 		return OpenButtonMain
 	end
 
@@ -606,6 +692,8 @@ function OpenButton.New(Window)
 		Settings.Draggable = Pick(Config.Draggable, Settings.Draggable)
 		Settings.Position = Pick(Config.Position, Pick(Config.Preset, Settings.Position))
 		Settings.Height = math.max(tonumber(Pick(Config.Height, Settings.Height)) or 44, 34)
+		Settings.IdleWidth = math.max(tonumber(Pick(Config.IdleWidth, Settings.IdleWidth)) or 78, 44)
+		Settings.IdleHeight = math.max(tonumber(Pick(Config.IdleHeight, Settings.IdleHeight)) or 28, 20)
 		Settings.ExpandedHeight =
 			math.max(tonumber(Pick(Config.ExpandedHeight, Settings.ExpandedHeight)) or 68, Settings.Height)
 		Settings.ExpandedWidth = math.max(tonumber(Pick(Config.ExpandedWidth, Settings.ExpandedWidth)) or 220, 120)
@@ -630,6 +718,22 @@ function OpenButton.New(Window)
 			Settings.TextTransparency
 		)
 		Settings.AutoCollapse = Pick(Config.AutoCollapse, Settings.AutoCollapse)
+		Settings.AutoHide = Pick(Config.AutoHide, Settings.AutoHide)
+		Settings.WakeOnShow = Pick(Config.WakeOnShow, Settings.WakeOnShow)
+		Settings.Shadow = Pick(Config.Shadow, Settings.Shadow)
+		Settings.ShadowBlur = Creator.ToUDimRadius(Config.ShadowBlur, Settings.ShadowBlur)
+		Settings.ShadowColor = if typeof(Config.ShadowColor) == "Color3"
+			then Config.ShadowColor
+			else Settings.ShadowColor
+		Settings.ShadowOffset = if typeof(Config.ShadowOffset) == "UDim2"
+			then Config.ShadowOffset
+			else Settings.ShadowOffset
+		Settings.ShadowSpread = if typeof(Config.ShadowSpread) == "UDim2"
+			then Config.ShadowSpread
+			else Settings.ShadowSpread
+		Settings.ShadowTransparency =
+			Creator.ClampTransparency(Pick(Config.ShadowTransparency, Settings.ShadowTransparency), 0.5)
+		Settings.FallbackShadow = Pick(Config.FallbackShadow, Settings.FallbackShadow)
 		Settings.OnStateChange = Pick(Config.OnStateChange, Settings.OnStateChange)
 
 		local RequestedState = Config.State or Config.Mode
@@ -655,6 +759,15 @@ function OpenButton.New(Window)
 		MainAction.UICorner.CornerRadius = GetInnerCornerRadius(Settings.CornerRadius, 4)
 		HoverSurface.UICorner.CornerRadius = GetInnerCornerRadius(Settings.CornerRadius, 4)
 		Shadow.UICorner.CornerRadius = Settings.CornerRadius
+		Shadow.Visible = Settings.Shadow and NativeShadow == nil and Settings.FallbackShadow
+		if NativeShadow then
+			NativeShadow.Enabled = Settings.Shadow
+			NativeShadow.BlurRadius = Settings.ShadowBlur
+			NativeShadow.Color = Settings.ShadowColor
+			NativeShadow.Offset = Settings.ShadowOffset
+			NativeShadow.Spread = Settings.ShadowSpread
+			NativeShadow.Transparency = Settings.ShadowTransparency
+		end
 		Stroke.Thickness = Settings.StrokeThickness
 		Stroke.Transparency = Settings.StrokeTransparency
 		StrokeGradient.Color = Settings.Color
@@ -677,12 +790,15 @@ function OpenButton.New(Window)
 		ApplyState(RequestedState or OpenButtonMain.State, Config.Animate ~= false)
 		if Config.Visible ~= nil then
 			OpenButtonMain:Visible(Config.Visible)
+		elseif Container.Visible then
+			ScheduleAutoHide()
 		end
 		return OpenButtonMain
 	end
 
 	function OpenButtonMain:Destroy()
 		StateToken = StateToken + 1
+		CancelAutoHide()
 		local Objects = {}
 		for Object in ActiveTweens do
 			table.insert(Objects, Object)
@@ -724,6 +840,7 @@ function OpenButton.New(Window)
 		TrailingIcon = TrailingIcon,
 		Stroke = Stroke,
 		Shadow = Shadow,
+		NativeShadow = NativeShadow,
 		Scale = UIScale,
 	}
 

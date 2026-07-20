@@ -1,5 +1,5 @@
 local WindUI =
-	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-5"))()
+	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-6"))()
 
 local HasIconSourceAPI = (tonumber(WindUI.IconAdapterVersion) or 0) >= 3
 	and type(WindUI.RegisterIconPack) == "function"
@@ -98,13 +98,21 @@ local Window = WindUI:CreateWindow({
 		Scale = 0.9,
 		Position = "TopCenter",
 		Height = 44,
+		IdleWidth = 78,
+		IdleHeight = 28,
 		ExpandedHeight = 68,
 		ExpandedWidth = 248,
 		MaxWidth = 360,
 		AutoCollapse = 3,
+		AutoHide = 4,
+		WakeOnShow = true,
 		IconSize = 21,
 		BackgroundTransparency = 0.08,
 		StrokeTransparency = 0.7,
+		Shadow = true,
+		ShadowBlur = 18,
+		ShadowTransparency = 0.5,
+		FallbackShadow = false,
 		Color = ColorSequence.new(Color3.fromHex("#30FF6A"), Color3.fromHex("#E7FF2F")),
 	},
 	BackgroundColor = Color3.fromHex("#08111A"),
@@ -122,6 +130,8 @@ local function HasDynamicIslandAPI()
 	return type(Window.ExpandOpenButton) == "function"
 		and type(Window.PushOpenButton) == "function"
 		and type(Window.SetOpenButtonState) == "function"
+		and type(Window.HideOpenButton) == "function"
+		and type(Window.WakeOpenButton) == "function"
 end
 
 local function NotifyOutdatedRuntime()
@@ -254,7 +264,7 @@ SystemTab:Callout({
 
 SystemTab:ActionList({
 	Title = "Notification Gallery",
-	Desc = "Compact native-shadow toasts, metadata cards and accented glass use the same Notify API.",
+	Desc = "Compact native-shadow toasts, metadata cards and Liquid Glass use the same Notify API.",
 	Actions = {
 		{
 			Title = "Compact Toast",
@@ -312,6 +322,8 @@ SystemTab:ActionList({
 				Title = "Persistent notification",
 				Content = "Choose an action or close this notification manually.",
 				Appearance = "Glass",
+				LiquidGlass = true,
+				GlassTransparency = 0.78,
 				Icon = "solar:bell-bold",
 				Style = "Warning",
 				Duration = false,
@@ -368,6 +380,12 @@ SystemTab:ActionList({
 			Icon = "geist:minus",
 		},
 		{
+			Title = "Idle (Auto Hidden)",
+			Desc = "Shrink to the tappable iPhone-style idle pill.",
+			Value = "Idle",
+			Icon = "geist:minus",
+		},
+		{
 			Title = "Collapsed",
 			Desc = "Use an icon-only circular state.",
 			Value = "Collapsed",
@@ -382,7 +400,8 @@ SystemTab:ActionList({
 
 		local Changes = {
 			Title = "WindUI " .. Action.Value,
-			Content = Action.Value == "Collapsed" and false or "Dynamic Island method preview",
+			Content = (Action.Value == "Collapsed" or Action.Value == "Idle") and false
+				or "Dynamic Island method preview",
 			Icon = DemoIcon("island", "radio"),
 		}
 

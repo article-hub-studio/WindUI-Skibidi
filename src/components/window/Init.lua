@@ -2213,6 +2213,14 @@ return function(Config)
 		return Window.OpenButtonMain:Compact(Changes)
 	end
 
+	function Window:HideOpenButton(Changes)
+		return Window.OpenButtonMain:Idle(Changes)
+	end
+
+	function Window:WakeOpenButton(Changes)
+		return Window.OpenButtonMain:Wake(Changes)
+	end
+
 	function Window:PushOpenButton(Changes, Duration)
 		return Window.OpenButtonMain:Push(Changes, Duration)
 	end

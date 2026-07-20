@@ -147,6 +147,12 @@ return function(Creator)
 
 		Notification = "Dialog",
 		NotificationTransparency = 0.08,
+		NotificationGlass = "Dialog",
+		NotificationGlassTransparency = 0.28,
+		NotificationGlassSurface = "White",
+		NotificationGlassSurfaceTransparency = 0.91,
+		NotificationGlassHighlight = "White",
+		NotificationGlassTextureTransparency = 0.78,
 		Notification2 = "White",
 		Notification2Transparency = 0.985,
 		NotificationTitle = "Text",

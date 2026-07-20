@@ -590,6 +590,9 @@ function Creator.ToUDimRadius(Value, Default)
 	if typeof(Value) == "UDim" then
 		return Value
 	end
+	if type(Value) == "number" then
+		return UDim.new(0, math.max(Value, 0))
+	end
 
 	if typeof(Default) == "UDim" then
 		return Default

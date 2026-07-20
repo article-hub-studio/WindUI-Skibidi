@@ -4,7 +4,7 @@
     | |/ |/ / / _ \/ _  / /_/ // /
     |__/|__/_/_//_/\_,_/\____/___/
 
-    v1.6.65  |  2026-07-17  |  Roblox UI Library for scripts
+    v1.6.65  |  2026-07-20  |  Roblox UI Library for scripts
 
     To view the source code, see the `src/` folder on the official GitHub repository.
 
@@ -939,6 +939,12 @@ SearchBarBorderTransparency=0.75,
 
 Notification="Dialog",
 NotificationTransparency=0.08,
+NotificationGlass="Dialog",
+NotificationGlassTransparency=0.28,
+NotificationGlassSurface="White",
+NotificationGlassSurfaceTransparency=0.91,
+NotificationGlassHighlight="White",
+NotificationGlassTextureTransparency=0.78,
 Notification2="White",
 Notification2Transparency=0.985,
 NotificationTitle="Text",
@@ -1553,6 +1559,9 @@ end
 function p.ToUDimRadius(r,u)
 if typeof(r)=="UDim"then
 return r
+end
+if type(r)=="number"then
+return UDim.new(0,math.max(r,0))
 end
 
 if typeof(u)=="UDim"then
@@ -2772,6 +2781,9 @@ capsule="Compact",
 card="Card",
 avatar="Card",
 glass="Glass",
+liquid="Glass",
+liquidglass="Glass",
+frosted="Glass",
 legacy="Glass",
 }
 
@@ -2970,9 +2982,10 @@ Y=NormalizeIcon(_)
 else
 Y=W.Icon
 end
-local aa=T.Decorated==true or T.Accented==true or V=="Glass"
+local aa=T.LiquidGlass==true or T.Glass==true or V=="Glass"
+local ab=T.Decorated==true or T.Accented==true or V=="Glass"
 
-local ab={
+local ac={
 Title=tostring(T.Title or"Notification"),
 Content=T.Content~=nil and tostring(T.Content)or nil,
 Icon=Y,
@@ -2980,7 +2993,7 @@ IsAvatar=T.Avatar~=nil,
 IconThemed=T.IconThemed,
 IconColor=ResolveColor(
 T.IconColor,
-if aa
+if ab
 or T.AccentColor~=nil
 or T.Color~=nil
 then X
@@ -2988,7 +3001,8 @@ else Color3.fromHex"#A1A1AA"
 ),
 Style=U,
 Appearance=V,
-Decorated=aa,
+LiquidGlass=aa,
+Decorated=ab,
 Timestamp=T.Timestamp~=nil and tostring(T.Timestamp)
 or(T.Time~=nil and tostring(T.Time)or nil),
 AccentColor=X,
@@ -3007,89 +3021,92 @@ Paused=false,
 }
 
 S.NotificationIndex=S.NotificationIndex+1
-ab.Index=S.NotificationIndex
-S.Notifications[ab.Index]=ab
+ac.Index=S.NotificationIndex
+S.Notifications[ac.Index]=ac
 
-local ac=T.Holder or S.Holder
-assert(ac,"Notification holder is not initialized")
+local ad=T.Holder or S.Holder
+assert(ad,"Notification holder is not initialized")
 
-local ad=ab.Appearance=="Card"
-local ae=if ad then 12 else r
-local af=math.max(tonumber(T.Radius)or(ad and 20 or p),8)
-local ag=if typeof(T.Corners or T.CornerRadii)=="table"
+local ae=ac.Appearance=="Card"
+local af=if ae then 12 else r
+local ag=math.max(tonumber(T.Radius)or(ae and 20 or p),8)
+local ah=if typeof(T.Corners or T.CornerRadii)=="table"
 then T.Corners or T.CornerRadii
 else T
-local ah={
-TopLeft=ResolveCornerValue(ag,"TopLeft",af),
-TopRight=ResolveCornerValue(ag,"TopRight",af),
-BottomRight=ResolveCornerValue(ag,"BottomRight",af),
-BottomLeft=ResolveCornerValue(ag,"BottomLeft",af),
+local ai={
+TopLeft=ResolveCornerValue(ah,"TopLeft",ag),
+TopRight=ResolveCornerValue(ah,"TopRight",ag),
+BottomRight=ResolveCornerValue(ah,"BottomRight",ag),
+BottomLeft=ResolveCornerValue(ah,"BottomLeft",ag),
 }
-local ai=if ad then x else v
-local aj=if ab.Timestamp then 72 else 0
-local ak=typeof(ab.Duration)=="number"and ab.Duration>0
-local al=ab.Icon and(ai+9)or 0
-local am=(ab.CanClose and B or 0)+aj
-local an=T.Shadow~=false
-local ao={
-BackgroundColor3="Notification",
+local aj=if ae then x else v
+local ak=if ac.Timestamp then 72 else 0
+local al=typeof(ac.Duration)=="number"and ac.Duration>0
+local am=ac.Icon and(aj+9)or 0
+local an=(ac.CanClose and B or 0)+ak
+local ao=T.Shadow~=false
+local ap=T.FallbackShadow==true
+local aq={
+BackgroundColor3=if ac.LiquidGlass then"NotificationGlass"else"Notification",
 }
 if T.Transparency==nil then
-ao.BackgroundTransparency="NotificationTransparency"
+aq.BackgroundTransparency=if ac.LiquidGlass
+then"NotificationGlassTransparency"
+else"NotificationTransparency"
 end
-local ap
-local aq=0
-local ar=if ak then ab.Duration else 0
-local as
-local at=false
-local au=false
-local av=64
-local aw={}
+local ar
+local as=0
+local at=if al then ac.Duration else 0
+local au
+local av=false
+local aw=false
+local ax=64
+local ay={}
 
-local function Connect(ax,ay)
-local az=ax:Connect(ay)
-table.insert(aw,az)
-return az
+local function Connect(az,aA)
+local aB=az:Connect(aA)
+table.insert(ay,aB)
+return aB
 end
 
-local function AttachPress(ax,ay)
-Connect(ax.InputBegan,function(az)
+local function AttachPress(az,aA)
+Connect(az.InputBegan,function(aB)
 if
-az.UserInputType==Enum.UserInputType.MouseButton1
-or az.UserInputType==Enum.UserInputType.Touch
+aB.UserInputType==Enum.UserInputType.MouseButton1
+or aB.UserInputType==Enum.UserInputType.Touch
 then
-d.Press(ax,true,ay)
+d.Press(az,true,aA)
 end
 end)
-Connect(ax.InputEnded,function(az)
+Connect(az.InputEnded,function(aB)
 if
-az.UserInputType==Enum.UserInputType.MouseButton1
-or az.UserInputType==Enum.UserInputType.Touch
+aB.UserInputType==Enum.UserInputType.MouseButton1
+or aB.UserInputType==Enum.UserInputType.Touch
 then
-d.Press(ax,false,ay)
+d.Press(az,false,aA)
 end
 end)
-Connect(ax.MouseLeave,function()
-d.Press(ax,false,ay)
+Connect(az.MouseLeave,function()
+d.Press(az,false,aA)
 end)
 end
 
-local function AttachHover(ax,ay,az,aA)
-Connect(ax.MouseEnter,function()
+local function AttachHover(az,aA,aB,aC)
+Connect(az.MouseEnter,function()
 d.Play(
-ay,
+aA,
 "Hover",
-{BackgroundTransparency=az},
+{BackgroundTransparency=aB},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Hover"
 )
 end)
-Connect(ax.MouseLeave,function()
+Connect(az.MouseLeave,function()
 d.Play(
-ay,
+aA,
 "Hover",
-{BackgroundTransparency=aA},
+{BackgroundTransparency=aC},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Hover"
@@ -3098,57 +3115,57 @@ end)
 end
 
 local function DisconnectSignals()
-for ax,ay in aw do
-ay:Disconnect()
+for az,aA in ay do
+aA:Disconnect()
 end
-table.clear(aw)
+table.clear(ay)
 end
 
-local ax=e("Frame",{
+local az=e("Frame",{
 Name="NotificationContainer",
 BackgroundTransparency=1,
 Size=UDim2.new(1,0,0,0),
 ClipsDescendants=false,
-LayoutOrder=-ab.Index,
+LayoutOrder=-ac.Index,
 ZIndex=100,
-Parent=ac,
+Parent=ad,
 })
 
-local ay=e("UIScale",{
+local aA=e("UIScale",{
 Name="TransitionScale",
 Scale=0.965,
 })
 
-local az=e("CanvasGroup",{
+local aB=e("CanvasGroup",{
 Name="NotificationTransition",
 Active=true,
 BackgroundTransparency=1,
 GroupTransparency=1,
 BorderSizePixel=0,
-Size=UDim2.new(1,0,0,av),
+Size=UDim2.new(1,0,0,ax),
 Position=UDim2.new(0,M,0,0),
 ClipsDescendants=false,
 ZIndex=101,
-Parent=ax,
+Parent=az,
 },{
-ay,
+aA,
 })
 
-local aA=e("Frame",{
+local aC=e("Frame",{
 Name="Shadow",
 BackgroundColor3=Color3.new(0,0,0),
 BackgroundTransparency=0.78,
 BorderSizePixel=0,
 Size=UDim2.new(1,-4,1,-4),
 Position=UDim2.new(0,2,0,O),
-Visible=an,
+Visible=ao,
 ZIndex=101,
-Parent=az,
+Parent=aB,
 },{
-CreateCorner(af,ah),
+CreateCorner(ag,ai),
 })
 
-local aB=e("UIStroke",{
+local aD=e("UIStroke",{
 Color=Color3.new(1,1,1),
 Transparency=0.76,
 Thickness=1,
@@ -3158,26 +3175,30 @@ Transparency="NotificationBorderTransparency",
 },
 })
 
-local aC=e("Frame",{
+local aE=e("Frame",{
 Name="Notification",
 BackgroundColor3=Color3.fromRGB(24,25,29),
-BackgroundTransparency=b.ClampTransparency(T.Transparency,0.08),
+BackgroundTransparency=b.ClampTransparency(
+T.Transparency,
+if ac.LiquidGlass then 0.28 else 0.08
+),
 BorderSizePixel=0,
 Size=UDim2.fromScale(1,1),
 ClipsDescendants=true,
 ZIndex=102,
-ThemeTag=ao,
-Parent=az,
+ThemeTag=aq,
+Parent=aB,
 },{
-CreateCorner(af,ah),
-aB,
+CreateCorner(ag,ai),
+aD,
 })
-aC:SetAttribute("Appearance",ab.Appearance)
-aC:SetAttribute("LayoutVersion",2)
+aE:SetAttribute("Appearance",ac.Appearance)
+aE:SetAttribute("LiquidGlass",ac.LiquidGlass)
+aE:SetAttribute("LayoutVersion",3)
 
-local aD
-if an then
-aD=b.CreateUIShadow(aC,{
+local aF
+if ao then
+aF=b.CreateUIShadow(aE,{
 Name="NativeShadow",
 BlurRadius=b.ToUDimRadius(T.ShadowBlur,UDim.new(0,16)),
 Color=ResolveColor(T.ShadowColor,Color3.new(0,0,0)),
@@ -3187,50 +3208,70 @@ Transparency=b.ClampTransparency(T.ShadowTransparency,0.58),
 ZIndex=0,
 })
 end
-aA.Visible=an and aD==nil
+aC.Visible=ao and aF==nil and ap
 
-local aE=e("Frame",{
+local aG=e("Frame",{
 Name="CapsuleSurface",
 BackgroundColor3=Color3.new(1,1,1),
 BorderSizePixel=0,
-BackgroundTransparency=if ab.Appearance=="Glass"then 0.955 else 0.985,
+BackgroundTransparency=if ac.LiquidGlass then 0.91 else 0.985,
 Size=UDim2.fromScale(1,1),
 ZIndex=103,
 ThemeTag={
-BackgroundColor3="Notification2",
-BackgroundTransparency="Notification2Transparency",
+BackgroundColor3=if ac.LiquidGlass then"NotificationGlassSurface"else"Notification2",
+BackgroundTransparency=if ac.LiquidGlass
+then"NotificationGlassSurfaceTransparency"
+else"Notification2Transparency",
 },
-Parent=aC,
+Parent=aE,
 },{
-CreateCorner(af,ah),
+CreateCorner(ag,ai),
 })
 
-if typeof(ab.Background)=="string"and ab.Background~=""then
+local aH=b.NewRoundFrame(ag,"SquircleGlass",{
+Name="LiquidGlass",
+ImageColor3=Color3.new(1,1,1),
+ImageTransparency=b.ClampTransparency(T.GlassTransparency,0.78),
+Size=UDim2.fromScale(1,1),
+Visible=ac.LiquidGlass,
+ZIndex=104,
+ThemeTag=if T.GlassTransparency==nil
+then{
+ImageColor3="NotificationGlassHighlight",
+ImageTransparency="NotificationGlassTextureTransparency",
+}
+else{
+ImageColor3="NotificationGlassHighlight",
+},
+Parent=aE,
+})
+
+if typeof(ac.Background)=="string"and ac.Background~=""then
 e("ImageLabel",{
 Name="Background",
-Image=ab.Background,
+Image=ac.Background,
 BackgroundTransparency=1,
 Size=UDim2.fromScale(1,1),
 ScaleType=Enum.ScaleType.Crop,
-ImageTransparency=ab.BackgroundImageTransparency,
+ImageTransparency=ac.BackgroundImageTransparency,
 ZIndex=104,
-Parent=aC,
+Parent=aE,
 },{
-CreateCorner(af,ah),
+CreateCorner(ag,ai),
 })
 end
 
-local aF=e("Frame",{
+local aI=e("Frame",{
 Name="ToneWash",
-BackgroundColor3=ab.AccentColor,
+BackgroundColor3=ac.AccentColor,
 BackgroundTransparency=0.94,
 BorderSizePixel=0,
 Size=UDim2.fromScale(1,1),
-Visible=ab.Decorated,
+Visible=ac.Decorated,
 ZIndex=105,
-Parent=aC,
+Parent=aE,
 },{
-CreateCorner(af,ah),
+CreateCorner(ag,ai),
 e("UIGradient",{
 Rotation=18,
 Transparency=NumberSequence.new{
@@ -3241,23 +3282,23 @@ NumberSequenceKeypoint.new(1,1),
 }),
 })
 
-local aG=e("Frame",{
+local aJ=e("Frame",{
 Name="AccentLine",
-BackgroundColor3=ab.AccentColor,
+BackgroundColor3=ac.AccentColor,
 BackgroundTransparency=0.08,
 BorderSizePixel=0,
 Size=UDim2.new(0,3,0.48,0),
 Position=UDim2.new(0,0,0.5,0),
 AnchorPoint=Vector2.new(0,0.5),
-Visible=ab.Decorated,
+Visible=ac.Decorated,
 ZIndex=106,
-Parent=aC,
+Parent=aE,
 },{
 CreateCorner(3,{
-TopLeft=ah.TopLeft,
+TopLeft=ai.TopLeft,
 TopRight=3,
 BottomRight=3,
-BottomLeft=ah.BottomLeft,
+BottomLeft=ai.BottomLeft,
 }),
 e("UIGradient",{
 Rotation=90,
@@ -3270,7 +3311,7 @@ NumberSequenceKeypoint.new(1,1),
 }),
 })
 
-local aH=e("Frame",{
+local aK=e("Frame",{
 Name="TopHighlight",
 BackgroundColor3=Color3.new(1,1,1),
 BackgroundTransparency=0.94,
@@ -3278,7 +3319,7 @@ BorderSizePixel=0,
 Size=UDim2.new(0.72,0,0,1),
 Position=UDim2.new(0.14,0,0,0),
 ZIndex=106,
-Parent=aC,
+Parent=aE,
 },{
 e("UIGradient",{
 Transparency=NumberSequence.new{
@@ -3289,80 +3330,80 @@ NumberSequenceKeypoint.new(1,1),
 }),
 })
 
-local aI=e("Frame",{
+local aL=e("Frame",{
 Name="Body",
 BackgroundTransparency=1,
-Size=UDim2.new(1,-(ae*2),0,0),
-Position=UDim2.fromOffset(ae,ae),
+Size=UDim2.new(1,-(af*2),0,0),
+Position=UDim2.fromOffset(af,af),
 ZIndex=107,
-Parent=aC,
+Parent=aE,
 })
 
-local aJ=e("UIListLayout",{
+local aM=e("UIListLayout",{
 SortOrder=Enum.SortOrder.LayoutOrder,
 Padding=UDim.new(0,8),
-Parent=aI,
+Parent=aL,
 })
 
-local aK=e("Frame",{
+local aN=e("Frame",{
 Name="Header",
 BackgroundTransparency=1,
-Size=UDim2.new(1,0,0,math.max(ab.Icon and ai or 0,20)),
+Size=UDim2.new(1,0,0,math.max(ac.Icon and aj or 0,20)),
 LayoutOrder=1,
 ZIndex=107,
-Parent=aI,
+Parent=aL,
 })
 
-local aL
-if ab.Timestamp then
-aL=e("TextLabel",{
+local aO
+if ac.Timestamp then
+aO=e("TextLabel",{
 Name="Timestamp",
-Text=ab.Timestamp,
+Text=ac.Timestamp,
 TextSize=11,
 FontFace=Font.new(b.Font,Enum.FontWeight.Medium),
 TextXAlignment=Enum.TextXAlignment.Right,
 TextYAlignment=Enum.TextYAlignment.Top,
 TextTruncate=Enum.TextTruncate.AtEnd,
 BackgroundTransparency=1,
-Size=UDim2.fromOffset(aj,18),
-Position=UDim2.new(1,-(ab.CanClose and B or 0),0,1),
+Size=UDim2.fromOffset(ak,18),
+Position=UDim2.new(1,-(ac.CanClose and B or 0),0,1),
 AnchorPoint=Vector2.new(1,0),
 TextTransparency=0.22,
 ZIndex=109,
 ThemeTag={
 TextColor3="NotificationContent",
 },
-Parent=aK,
+Parent=aN,
 })
 end
 
-local aM=e("Frame",{
+local aP=e("Frame",{
 Name="TextContainer",
 BackgroundTransparency=1,
-Size=UDim2.new(1,-(al+am),0,0),
-Position=UDim2.fromOffset(al,0),
+Size=UDim2.new(1,-(am+an),0,0),
+Position=UDim2.fromOffset(am,0),
 ZIndex=108,
-Parent=aK,
+Parent=aN,
 })
 
-local aN=e("UIListLayout",{
+local aQ=e("UIListLayout",{
 SortOrder=Enum.SortOrder.LayoutOrder,
 Padding=UDim.new(0,2),
-Parent=aM,
+Parent=aP,
 })
 
-local aO=e("TextLabel",{
+local aR=e("TextLabel",{
 Name="Title",
 AutomaticSize=Enum.AutomaticSize.Y,
 Size=UDim2.new(1,0,0,0),
 BackgroundTransparency=1,
-Text=ab.Title,
-TextWrapped=ad or T.Wrap==true,
+Text=ac.Title,
+TextWrapped=ae or T.Wrap==true,
 TextTruncate=Enum.TextTruncate.AtEnd,
 RichText=true,
 TextXAlignment=Enum.TextXAlignment.Left,
 TextYAlignment=Enum.TextYAlignment.Top,
-TextSize=if ad then 15 else 14,
+TextSize=if ae then 15 else 14,
 LineHeight=1,
 FontFace=Font.new(b.Font,Enum.FontWeight.SemiBold),
 LayoutOrder=1,
@@ -3371,7 +3412,7 @@ ThemeTag={
 TextColor3="NotificationTitle",
 TextTransparency="NotificationTitleTransparency",
 },
-Parent=aM,
+Parent=aP,
 },{
 e("UISizeConstraint",{
 MinSize=Vector2.new(0,18),
@@ -3379,13 +3420,13 @@ MaxSize=Vector2.new(10000,G),
 }),
 })
 
-local aP=e("TextLabel",{
+local aS=e("TextLabel",{
 Name="Content",
 AutomaticSize=Enum.AutomaticSize.Y,
 Size=UDim2.new(1,0,0,0),
 BackgroundTransparency=1,
-Text=ab.Content or"",
-TextWrapped=ad or T.Wrap==true,
+Text=ac.Content or"",
+TextWrapped=ae or T.Wrap==true,
 TextTruncate=Enum.TextTruncate.AtEnd,
 RichText=true,
 TextXAlignment=Enum.TextXAlignment.Left,
@@ -3394,13 +3435,13 @@ TextSize=12,
 LineHeight=1.05,
 FontFace=Font.new(b.Font,Enum.FontWeight.Regular),
 LayoutOrder=2,
-Visible=ab.Content~=nil,
+Visible=ac.Content~=nil,
 ZIndex=108,
 ThemeTag={
 TextColor3="NotificationContent",
 TextTransparency="NotificationContentTransparency",
 },
-Parent=aM,
+Parent=aP,
 },{
 e("UISizeConstraint",{
 MinSize=Vector2.new(0,16),
@@ -3408,65 +3449,65 @@ MaxSize=Vector2.new(10000,H),
 }),
 })
 
-local aQ
-if ab.Icon then
-local aR=not ab.IsAvatar
+local aT
+if ac.Icon then
+local aU=not ac.IsAvatar
 and(
-type(ab.Icon)~="string"
-or(ab.Icon:match"^rbxassetid://"==nil and ab.Icon:match"^https?://"==nil)
+type(ac.Icon)~="string"
+or(ac.Icon:match"^rbxassetid://"==nil and ac.Icon:match"^https?://"==nil)
 )
-local aS=b.Image(
-ab.Icon,
-ab.Title..":"..tostring(ab.Icon),
-ab.IsAvatar and ai/2 or 0,
+local aV=b.Image(
+ac.Icon,
+ac.Title..":"..tostring(ac.Icon),
+ac.IsAvatar and aj/2 or 0,
 T.Window and T.Window.Folder,
 "Notification",
 true,
-ab.IconThemed
+ac.IconThemed
 )
-aS.Name="Icon"
-aS.Size=if ab.IsAvatar
+aV.Name="Icon"
+aV.Size=if ac.IsAvatar
 then UDim2.fromScale(1,1)
-else UDim2.fromOffset(if ad then 22 else 18,if ad then 22 else 18)
-aS.Position=UDim2.fromScale(0.5,0.5)
-aS.AnchorPoint=Vector2.new(0.5,0.5)
-aS.ZIndex=110
-if aR and b.Icon(ab.Icon)and ab.IconThemed~=true then
-PaintIcon(aS,ab.IconColor,0)
+else UDim2.fromOffset(if ae then 22 else 18,if ae then 22 else 18)
+aV.Position=UDim2.fromScale(0.5,0.5)
+aV.AnchorPoint=Vector2.new(0.5,0.5)
+aV.ZIndex=110
+if aU and b.Icon(ac.Icon)and ac.IconThemed~=true then
+PaintIcon(aV,ac.IconColor,0)
 end
 
-aQ=e("Frame",{
+aT=e("Frame",{
 Name="IconBubble",
-BackgroundColor3=if ab.IsAvatar then Color3.new(1,1,1)else ab.IconColor,
-BackgroundTransparency=if ab.IsAvatar then 0.9 elseif ab.Decorated then 0.88 else 0.95,
+BackgroundColor3=if ac.IsAvatar then Color3.new(1,1,1)else ac.IconColor,
+BackgroundTransparency=if ac.IsAvatar then 0.9 elseif ac.Decorated then 0.88 else 0.95,
 BorderSizePixel=0,
-Size=UDim2.fromOffset(ai,ai),
+Size=UDim2.fromOffset(aj,aj),
 ClipsDescendants=true,
 ZIndex=109,
-Parent=aK,
+Parent=aN,
 },{
-CreateCorner(ai/2),
+CreateCorner(aj/2),
 e("UIStroke",{
-Color=ab.IconColor,
-Transparency=if ab.Decorated then 0.72 else 0.88,
+Color=ac.IconColor,
+Transparency=if ac.Decorated then 0.72 else 0.88,
 Thickness=1,
 }),
 e("UIGradient",{
 Rotation=35,
 Color=ColorSequence.new{
-ColorSequenceKeypoint.new(0,ab.AccentColor:Lerp(Color3.new(1,1,1),0.16)),
-ColorSequenceKeypoint.new(1,ab.AccentColor),
+ColorSequenceKeypoint.new(0,ac.AccentColor:Lerp(Color3.new(1,1,1),0.16)),
+ColorSequenceKeypoint.new(1,ac.AccentColor),
 },
 }),
-aS,
+aV,
 })
 end
 
-local aR
-local aS
-if ab.CanClose then
-local aT=b.Icon"x"
-aS=e("Frame",{
+local aU
+local aV
+if ac.CanClose then
+local aW=b.Icon"x"
+aV=e("Frame",{
 Name="Surface",
 BackgroundColor3=Color3.new(1,1,1),
 BackgroundTransparency=0.98,
@@ -3482,9 +3523,9 @@ BackgroundColor3="Notification2",
 CreateCorner(A/2),
 e("ImageLabel",{
 Name="Icon",
-Image=aT and aT[1]or"",
-ImageRectSize=aT and aT[2]and aT[2].ImageRectSize or Vector2.zero,
-ImageRectOffset=aT and aT[2]and aT[2].ImageRectPosition
+Image=aW and aW[1]or"",
+ImageRectSize=aW and aW[2]and aW[2].ImageRectSize or Vector2.zero,
+ImageRectOffset=aW and aW[2]and aW[2].ImageRectPosition
 or Vector2.zero,
 BackgroundTransparency=1,
 Size=UDim2.fromOffset(14,14),
@@ -3498,7 +3539,7 @@ ImageColor3="NotificationTitle",
 }),
 })
 
-aR=e("TextButton",{
+aU=e("TextButton",{
 Name="CloseButton",
 Text="",
 AutoButtonColor=false,
@@ -3508,23 +3549,23 @@ Size=UDim2.fromOffset(z,z),
 Position=UDim2.new(1,4,0.5,0),
 AnchorPoint=Vector2.new(1,0.5),
 ZIndex=109,
-Parent=aK,
+Parent=aN,
 },{
-aS,
+aV,
 })
-AttachPress(aR,0.96)
-AttachHover(aR,aS,0.91,0.98)
+AttachPress(aU,0.96)
+AttachHover(aU,aV,0.91,0.98)
 end
 
-local aT
-if#ab.Buttons>0 then
-aT=e("Frame",{
+local aW
+if#ac.Buttons>0 then
+aW=e("Frame",{
 Name="Actions",
 BackgroundTransparency=1,
 Size=UDim2.new(1,0,0,C),
 LayoutOrder=2,
 ZIndex=107,
-Parent=aI,
+Parent=aL,
 })
 
 e("UIListLayout",{
@@ -3533,24 +3574,24 @@ HorizontalAlignment=Enum.HorizontalAlignment.Left,
 VerticalAlignment=Enum.VerticalAlignment.Top,
 SortOrder=Enum.SortOrder.LayoutOrder,
 Padding=UDim.new(0,6),
-Parent=aT,
+Parent=aW,
 })
 
-for aU,aV in ab.Buttons do
-local aW=aU==1
-local aX
-if#ab.Buttons==2 then
-aX=UDim2.new(0.5,-3,0,C)
+for aX,aY in ac.Buttons do
+local aZ=aX==1
+local a_
+if#ac.Buttons==2 then
+a_=UDim2.new(0.5,-3,0,C)
 else
-aX=UDim2.new(1,0,0,C)
+a_=UDim2.new(1,0,0,C)
 end
 
-local aY=if aW then 0.16 else 0.93
-local aZ=e("UIStroke",{
-Color=if aW then ab.AccentColor else Color3.new(1,1,1),
-Transparency=if aW then 0.55 else 0.78,
+local a0=if aZ then 0.16 else 0.93
+local a1=e("UIStroke",{
+Color=if aZ then ac.AccentColor else Color3.new(1,1,1),
+Transparency=if aZ then 0.55 else 0.78,
 Thickness=1,
-ThemeTag=if aW
+ThemeTag=if aZ
 then nil
 else{
 Color="NotificationBorder",
@@ -3558,19 +3599,19 @@ Transparency="NotificationBorderTransparency",
 },
 })
 
-local a_=e("TextButton",{
-Name="Action"..aU,
-Text=tostring(aV.Title or aV.Text or"Action"),
+local a2=e("TextButton",{
+Name="Action"..aX,
+Text=tostring(aY.Title or aY.Text or"Action"),
 TextSize=12,
 FontFace=Font.new(b.Font,Enum.FontWeight.SemiBold),
 AutoButtonColor=false,
-BackgroundColor3=if aW then ab.AccentColor else Color3.new(1,1,1),
-BackgroundTransparency=aY,
+BackgroundColor3=if aZ then ac.AccentColor else Color3.new(1,1,1),
+BackgroundTransparency=a0,
 BorderSizePixel=0,
-Size=aX,
-LayoutOrder=aU,
+Size=a_,
+LayoutOrder=aX,
 ZIndex=108,
-ThemeTag=if aW
+ThemeTag=if aZ
 then{
 TextColor3="White",
 }
@@ -3578,25 +3619,25 @@ else{
 BackgroundColor3="Notification2",
 TextColor3="NotificationTitle",
 },
-Parent=aT,
+Parent=aW,
 },{
 CreateCorner(9),
-aZ,
+a1,
 })
-AttachPress(a_,0.97)
-AttachHover(a_,a_,if aW then 0.06 else 0.87,aY)
+AttachPress(a2,0.97)
+AttachHover(a2,a2,if aZ then 0.06 else 0.87,a0)
 
-Connect(a_.MouseButton1Click,function()
-b.SafeCallback(aV.Callback,ab,aV)
-if aV.Close~=false and aV.CloseOnClick~=false then
-ab:Close"Action"
+Connect(a2.MouseButton1Click,function()
+b.SafeCallback(aY.Callback,ac,aY)
+if aY.Close~=false and aY.CloseOnClick~=false then
+ac:Close"Action"
 end
 end)
 end
 end
 
-local aU=ak and d:IsEnabled()and not d.Reduced
-local aV=e("Frame",{
+local aX=al and d:IsEnabled()and not d.Reduced
+local aY=e("Frame",{
 Name="ProgressTrack",
 BackgroundColor3=Color3.new(1,1,1),
 BackgroundTransparency=0.94,
@@ -3604,49 +3645,49 @@ BorderSizePixel=0,
 Size=UDim2.new(0.32,0,0,J),
 Position=UDim2.new(0.5,0,1,-5),
 AnchorPoint=Vector2.new(0.5,1),
-Visible=ak,
+Visible=al,
 ZIndex=111,
 ThemeTag={
 BackgroundColor3="NotificationDuration",
 BackgroundTransparency="NotificationDurationTransparency",
 },
-Parent=aC,
+Parent=aE,
 },{
 CreateCorner(J),
 })
 
-local aW=e("Frame",{
+local aZ=e("Frame",{
 Name="ProgressFill",
-BackgroundColor3=ab.ProgressColor,
+BackgroundColor3=ac.ProgressColor,
 BackgroundTransparency=b.ClampTransparency(T.ProgressTransparency,0.12),
 BorderSizePixel=0,
 Size=UDim2.fromScale(1,1),
 ZIndex=112,
-Parent=aV,
+Parent=aY,
 },{
 CreateCorner(J),
 e("UIGradient",{
 Color=ColorSequence.new{
-ColorSequenceKeypoint.new(0,ab.ProgressColor),
-ColorSequenceKeypoint.new(1,ab.ProgressColor:Lerp(Color3.new(1,1,1),0.22)),
+ColorSequenceKeypoint.new(0,ac.ProgressColor),
+ColorSequenceKeypoint.new(1,ac.ProgressColor:Lerp(Color3.new(1,1,1),0.22)),
 },
 }),
 })
 
-local function UpdateContainerHeight(aX)
-local aY=math.max(math.ceil(aJ.AbsoluteContentSize.Y),aK.Size.Y.Offset)
-av=ae+aY+ae
-ab.LayoutHeight=av
-az.Size=UDim2.new(1,0,0,av)
+local function UpdateContainerHeight(a_)
+local a0=math.max(math.ceil(aM.AbsoluteContentSize.Y),aN.Size.Y.Offset)
+ax=af+a0+af
+ac.LayoutHeight=ax
+aB.Size=UDim2.new(1,0,0,ax)
 
-if at then
-if aX==false then
-ax.Size=UDim2.new(1,0,0,av)
+if av then
+if a_==false then
+az.Size=UDim2.new(1,0,0,ax)
 else
 d.Play(
-ax,
+az,
 "Resize",
-{Size=UDim2.new(1,0,0,av)},
+{Size=UDim2.new(1,0,0,ax)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Resize"
@@ -3654,184 +3695,184 @@ Enum.EasingDirection.Out,
 end
 end
 
-if au then
-local aZ=math.max(ac.AbsoluteSize.Y,av)
-TrimNotifications(math.max(math.floor(tonumber(T.MaxVisible)or L),1),aZ)
+if aw then
+local a1=math.max(ad.AbsoluteSize.Y,ax)
+TrimNotifications(math.max(math.floor(tonumber(T.MaxVisible)or L),1),a1)
 end
 end
 
 local function UpdateTextHeight()
-local aX=math.max(math.ceil(aN.AbsoluteContentSize.Y),20)
-aM.Size=UDim2.new(1,-(al+am),0,aX)
-aK.Size=UDim2.new(1,0,0,math.max(aX,ab.Icon and ai or 0,20))
-UpdateContainerHeight(at)
+local a_=math.max(math.ceil(aQ.AbsoluteContentSize.Y),20)
+aP.Size=UDim2.new(1,-(am+an),0,a_)
+aN.Size=UDim2.new(1,0,0,math.max(a_,ac.Icon and aj or 0,20))
+UpdateContainerHeight(av)
 end
 
-Connect(aN:GetPropertyChangedSignal"AbsoluteContentSize",function()
+Connect(aQ:GetPropertyChangedSignal"AbsoluteContentSize",function()
 UpdateTextHeight()
 end)
-Connect(aJ:GetPropertyChangedSignal"AbsoluteContentSize",function()
-UpdateContainerHeight(at)
+Connect(aM:GetPropertyChangedSignal"AbsoluteContentSize",function()
+UpdateContainerHeight(av)
 end)
 
 local function StopProgressTween()
-if ap then
-ap:Cancel()
-ap=nil
+if ar then
+ar:Cancel()
+ar=nil
 end
 end
 
 local function CaptureRemainingTime()
-if as then
-ar=math.max(ar-(os.clock()-as),0)
-as=nil
+if au then
+at=math.max(at-(os.clock()-au),0)
+au=nil
 end
-ab.Remaining=ar
+ac.Remaining=at
 end
 
-local function SetProgressRatio(aX)
-aW.Size=UDim2.new(math.clamp(aX,0,1),0,1,0)
+local function SetProgressRatio(a_)
+aZ.Size=UDim2.new(math.clamp(a_,0,1),0,1,0)
 end
 
 local function StartTimer()
-if not ak or not at or ab.Closed or ab.Paused then
+if not al or not av or ac.Closed or ac.Paused then
 return
 end
 
-if ar<=0 then
-ab:Close"Timeout"
+if at<=0 then
+ac:Close"Timeout"
 return
 end
 
-aq=aq+1
-local aX=aq
-as=os.clock()
-ab.Remaining=ar
+as=as+1
+local a_=as
+au=os.clock()
+ac.Remaining=at
 
 StopProgressTween()
-local aY=ar/ab.Duration
-SetProgressRatio(aY)
-if aU then
-ap=f(
-aW,
-ar,
+local a0=at/ac.Duration
+SetProgressRatio(a0)
+if aX then
+ar=f(
+aZ,
+at,
 {Size=UDim2.new(0,0,1,0)},
 Enum.EasingStyle.Linear,
 Enum.EasingDirection.InOut
 )
-ap:Play()
+ar:Play()
 end
 
-task.delay(ar,function()
-if aX==aq and not ab.Closed and not ab.Paused then
-ar=0
-ab.Remaining=0
-ab:Close"Timeout"
+task.delay(at,function()
+if a_==as and not ac.Closed and not ac.Paused then
+at=0
+ac.Remaining=0
+ac:Close"Timeout"
 end
 end)
 end
 
-function ab.Pause(aX)
-if not ak or ab.Closed or ab.Paused then
-return ab
+function ac.Pause(a_)
+if not al or ac.Closed or ac.Paused then
+return ac
 end
 
-ab.Paused=true
-aq=aq+1
+ac.Paused=true
+as=as+1
 CaptureRemainingTime()
 StopProgressTween()
-SetProgressRatio(ar/ab.Duration)
-return ab
+SetProgressRatio(at/ac.Duration)
+return ac
 end
 
-function ab.Resume(aX)
-if not ak or ab.Closed or not ab.Paused then
-return ab
+function ac.Resume(a_)
+if not al or ac.Closed or not ac.Paused then
+return ac
 end
 
-ab.Paused=false
+ac.Paused=false
 StartTimer()
-return ab
+return ac
 end
 
-function ab.GetRemainingDuration(aX)
-if not ak then
+function ac.GetRemainingDuration(a_)
+if not al then
 return 0
 end
 
-local aY=ar
-if as then
-aY=math.max(aY-(os.clock()-as),0)
+local a0=at
+if au then
+a0=math.max(a0-(os.clock()-au),0)
 end
-return aY
-end
-
-function ab.Update(aX,aY)
-if typeof(aY)~="table"or ab.Closed then
-return ab
+return a0
 end
 
-if aY.Title~=nil then
-ab.Title=tostring(aY.Title)
-aO.Text=ab.Title
+function ac.Update(a_,a0)
+if typeof(a0)~="table"or ac.Closed then
+return ac
 end
 
-if aY.Content~=nil then
-ab.Content=if aY.Content==false then nil else tostring(aY.Content)
-aP.Text=ab.Content or""
-aP.Visible=ab.Content~=nil
+if a0.Title~=nil then
+ac.Title=tostring(a0.Title)
+aR.Text=ac.Title
 end
 
-if aY.Duration~=nil then
-local aZ=ab.Paused
-aq=aq+1
+if a0.Content~=nil then
+ac.Content=if a0.Content==false then nil else tostring(a0.Content)
+aS.Text=ac.Content or""
+aS.Visible=ac.Content~=nil
+end
+
+if a0.Duration~=nil then
+local a1=ac.Paused
+as=as+1
 CaptureRemainingTime()
 StopProgressTween()
-ab.Duration=ResolveDuration(aY.Duration)
-ak=typeof(ab.Duration)=="number"and ab.Duration>0
-aU=ak and d:IsEnabled()and not d.Reduced
-ar=if ak then ab.Duration else 0
-ab.Remaining=ar
-ab.Paused=aZ
-aV.Visible=ak
-SetProgressRatio(if ak then 1 else 0)
+ac.Duration=ResolveDuration(a0.Duration)
+al=typeof(ac.Duration)=="number"and ac.Duration>0
+aX=al and d:IsEnabled()and not d.Reduced
+at=if al then ac.Duration else 0
+ac.Remaining=at
+ac.Paused=a1
+aY.Visible=al
+SetProgressRatio(if al then 1 else 0)
 StartTimer()
 end
 
 UpdateTextHeight()
-return ab
+return ac
 end
 
-function ab.Close(aX,aY)
-if ab.Closed then
-return ab
+function ac.Close(a_,a0)
+if ac.Closed then
+return ac
 end
 
-ab.Closed=true
-ab.CloseReason=tostring(aY or"Manual")
-aq=aq+1
+ac.Closed=true
+ac.CloseReason=tostring(a0 or"Manual")
+as=as+1
 CaptureRemainingTime()
 DisconnectSignals()
 StopProgressTween()
 
-d.Cancel(ax,"Open")
-d.Cancel(ax,"Resize")
 d.Cancel(az,"Open")
-d.Cancel(ay,"Open")
+d.Cancel(az,"Resize")
+d.Cancel(aB,"Open")
+d.Cancel(aA,"Open")
 d.Play(
-ax,
+az,
 "NotificationClose",
 {Size=UDim2.new(1,0,0,0)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Close"
 )
-d.Play(az,"NotificationClose",{
+d.Play(aB,"NotificationClose",{
 Position=UDim2.new(0,N,0,0),
 GroupTransparency=1,
 },Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Close")
 d.Play(
-ay,
+aA,
 "NotificationClose",
 {Scale=0.98},
 Enum.EasingStyle.Quint,
@@ -3839,97 +3880,98 @@ Enum.EasingDirection.Out,
 "Close"
 )
 
-b.SafeCallback(ab.OnClose,ab,ab.CloseReason)
+b.SafeCallback(ac.OnClose,ac,ac.CloseReason)
 
-local aZ=if d:IsEnabled()and not d.Reduced
+local a1=if d:IsEnabled()and not d.Reduced
 then d.GetDuration"NotificationClose"+0.02
 else 0
-task.delay(aZ,function()
-S.Notifications[ab.Index]=nil
-if ax.Parent then
-ax:Destroy()
+task.delay(a1,function()
+S.Notifications[ac.Index]=nil
+if az.Parent then
+az:Destroy()
 end
 end)
 
-return ab
+return ac
 end
 
-if aR then
-Connect(aR.MouseButton1Click,function()
-ab:Close"Dismissed"
+if aU then
+Connect(aU.MouseButton1Click,function()
+ac:Close"Dismissed"
 end)
 end
 
-if ab.PauseOnHover then
-Connect(az.MouseEnter,function()
-ab:Pause()
+if ac.PauseOnHover then
+Connect(aB.MouseEnter,function()
+ac:Pause()
 end)
-Connect(az.MouseLeave,function()
-ab:Resume()
+Connect(aB.MouseLeave,function()
+ac:Resume()
 end)
 end
 
-ab.UIElements={
-Container=ax,
-Main=aC,
-Card=aC,
-Transition=az,
-TransitionScale=ay,
-Shadow=aA,
-NativeShadow=aD,
-Stroke=aB,
-Surface=aE,
-ToneWash=aF,
-AccentLine=aG,
-TopHighlight=aH,
-Body=aI,
-Header=aK,
-TextContainer=aM,
-Title=aO,
-Content=aP,
-Timestamp=aL,
-IconBubble=aQ,
-CloseButton=aR,
-CloseSurface=aS,
-Actions=aT,
-ProgressTrack=aV,
-ProgressFill=aW,
+ac.UIElements={
+Container=az,
+Main=aE,
+Card=aE,
+Transition=aB,
+TransitionScale=aA,
+Shadow=aC,
+NativeShadow=aF,
+Stroke=aD,
+Surface=aG,
+LiquidGlass=aH,
+ToneWash=aI,
+AccentLine=aJ,
+TopHighlight=aK,
+Body=aL,
+Header=aN,
+TextContainer=aP,
+Title=aR,
+Content=aS,
+Timestamp=aO,
+IconBubble=aT,
+CloseButton=aU,
+CloseSurface=aV,
+Actions=aW,
+ProgressTrack=aY,
+ProgressFill=aZ,
 }
 
 UpdateTextHeight()
-au=true
+aw=true
 TrimNotifications(
 math.max(math.floor(tonumber(T.MaxVisible)or L),1),
-math.max(ac.AbsoluteSize.Y,av)
+math.max(ad.AbsoluteSize.Y,ax)
 )
 
 task.spawn(function()
 task.wait()
-if ab.Closed then
+if ac.Closed then
 return
 end
 
 UpdateTextHeight()
-at=true
+av=true
 d.Play(
-ax,
+az,
 "Notification",
-{Size=UDim2.new(1,0,0,av)},
+{Size=UDim2.new(1,0,0,ax)},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Open"
 )
-d.Play(az,"Notification",{
+d.Play(aB,"Notification",{
 Position=UDim2.new(0,0,0,0),
 GroupTransparency=0,
 },Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Open")
-d.Play(ay,"Notification",{Scale=1},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Open")
+d.Play(aA,"Notification",{Scale=1},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Open")
 
-b.SafeCallback(ab.OnOpen,ab)
+b.SafeCallback(ac.OnOpen,ac)
 StartTimer()
 end)
 
-return ab
+return ac
 end
 
 return S end function a.h()
@@ -3972,23 +4014,23 @@ repeat task.wait(1)until game:IsLoaded();
 
 local aQ=false;
 local aR,aS,aT,aU,aV,aW,aX,aY,aZ=setclipboard or toclipboard,request or http_request or syn_request,string.char,tostring,string.sub,os.time,math.random,math.floor,gethwid or function()return aJ(game:GetService"Players").LocalPlayer.UserId end
-local a_,b="",0;
+local a_,a0="",0;
 
 
-local d="https://api.platoboost.app";
-local e=aS{
-Url=d.."/public/connectivity",
+local a1="https://api.platoboost.app";
+local a2=aS{
+Url=a1 .."/public/connectivity",
 Method="GET"
 };
-if e.StatusCode~=200 and e.StatusCode~=429 then
-d="https://api.platoboost.net";
+if a2.StatusCode~=200 and a2.StatusCode~=429 then
+a1="https://api.platoboost.net";
 end
 
 
 function cacheLink()
-if b+(600)<aW()then
-local f=aS{
-Url=d.."/public/start",
+if a0+(600)<aW()then
+local b=aS{
+Url=a1 .."/public/start",
 Method="POST",
 Body=aF{
 service=aM,
@@ -4000,26 +4042,26 @@ Headers={
 }
 };
 
-if f.StatusCode==200 then
-local g=aG(f.Body);
+if b.StatusCode==200 then
+local d=aG(b.Body);
 
-if g.success==true then
-a_=g.data.url;
-b=aW();
+if d.success==true then
+a_=d.data.url;
+a0=aW();
 return true,a_
 else
-aP(g.message);
-return false,g.message
+aP(d.message);
+return false,d.message
 end
-elseif f.StatusCode==429 then
-local g="you are being rate limited, please wait 20 seconds and try again.";
-aP(g);
-return false,g
+elseif b.StatusCode==429 then
+local d="you are being rate limited, please wait 20 seconds and try again.";
+aP(d);
+return false,d
 end
 
-local g="Failed to cache link.";
-aP(g);
-return false,g
+local d="Failed to cache link.";
+aP(d);
+return false,d
 else
 return true,a_
 end
@@ -4028,64 +4070,64 @@ end
 cacheLink();
 
 
-local f=function()
-local f=""
-for g=1,16 do
-f=f..aT(aY(aX()*(26))+97)
+local b=function()
+local b=""
+for d=1,16 do
+b=b..aT(aY(aX()*(26))+97)
 end
-return f
+return b
 end
 
 
-for g=1,5 do
-local h=f();
+for d=1,5 do
+local e=b();
 task.wait(0.2)
-if f()==h then
-local i="platoboost nonce error.";
-aP(i);
-error(i);
+if b()==e then
+local f="platoboost nonce error.";
+aP(f);
+error(f);
 end
 end
 
 
-local g=function()
-local g,h=cacheLink();
+local d=function()
+local d,e=cacheLink();
 
-if g then
-aR(h);
+if d then
+aR(e);
 end
 end
 
 
-local h=function(h)
-local i=f();
-local j=d.."/public/redeem/"..aU(aM);
+local e=function(e)
+local f=b();
+local g=a1 .."/public/redeem/"..aU(aM);
 
-local m={
+local h={
 identifier=aH(aZ()),
-key=h
+key=e
 }
 
 if aO then
-m.nonce=i;
+h.nonce=f;
 end
 
-local p=aS{
-Url=j,
+local i=aS{
+Url=g,
 Method="POST",
-Body=aF(m),
+Body=aF(h),
 Headers={
 ["Content-Type"]="application/json"
 }
 };
 
-if p.StatusCode==200 then
-local r=aG(p.Body);
+if i.StatusCode==200 then
+local j=aG(i.Body);
 
-if r.success==true then
-if r.data.valid==true then
+if j.success==true then
+if j.data.valid==true then
 if aO then
-if r.data.hash==aH("true".."-"..i.."-"..aN)then
+if j.data.hash==aH("true".."-"..f.."-"..aN)then
 return true
 else
 aP"failed to verify integrity.";
@@ -4099,15 +4141,15 @@ aP"key is invalid.";
 return false
 end
 else
-if aV(r.message,1,27)=="unique constraint violation"then
+if aV(j.message,1,27)=="unique constraint violation"then
 aP"you already have an active key, please wait for it to expire before redeeming it.";
 return false
 else
-aP(r.message);
+aP(j.message);
 return false
 end
 end
-elseif p.StatusCode==429 then
+elseif i.StatusCode==429 then
 aP"you are being rate limited, please wait 20 seconds and try again.";
 return false
 else
@@ -4117,34 +4159,34 @@ end
 end
 
 
-local i=function(i)
+local f=function(f)
 if aQ==true then
 return false,("A request is already being sent, please slow down.")
 else
 aQ=true;
 end
 
-local j=f();
-local m=d.."/public/whitelist/"..aU(aM).."?identifier="..aH(aZ()).."&key="..i;
+local g=b();
+local h=a1 .."/public/whitelist/"..aU(aM).."?identifier="..aH(aZ()).."&key="..f;
 
 if aO then
-m=m.."&nonce="..j;
+h=h.."&nonce="..g;
 end
 
-local p=aS{
-Url=m,
+local i=aS{
+Url=h,
 Method="GET",
 };
 
 aQ=false;
 
-if p.StatusCode==200 then
-local r=aG(p.Body);
+if i.StatusCode==200 then
+local j=aG(i.Body);
 
-if r.success==true then
-if r.data.valid==true then
+if j.success==true then
+if j.data.valid==true then
 if aO then
-if r.data.hash==aH("true".."-"..j.."-"..aN)then
+if j.data.hash==aH("true".."-"..g.."-"..aN)then
 return true,""
 else
 return false,("failed to verify integrity.")
@@ -4153,16 +4195,16 @@ else
 return true
 end
 else
-if aV(i,1,4)=="KEY_"then
-return true,h(i)
+if aV(f,1,4)=="KEY_"then
+return true,e(f)
 else
 return false,("Key is invalid.")
 end
 end
 else
-return false,(r.message)
+return false,(j.message)
 end
-elseif p.StatusCode==429 then
+elseif i.StatusCode==429 then
 return false,("You are being rate limited, please wait 20 seconds and try again.")
 else
 return false,("Server returned an invalid status code, please try again later.")
@@ -4170,35 +4212,35 @@ end
 end
 
 
-local j=function(j)
-local m=f();
-local p=d.."/public/flag/"..aU(aM).."?name="..j;
+local g=function(g)
+local h=b();
+local i=a1 .."/public/flag/"..aU(aM).."?name="..g;
 
 if aO then
-p=p.."&nonce="..m;
+i=i.."&nonce="..h;
 end
 
-local r=aS{
-Url=p,
+local j=aS{
+Url=i,
 Method="GET",
 };
 
-if r.StatusCode==200 then
-local u=aG(r.Body);
+if j.StatusCode==200 then
+local m=aG(j.Body);
 
-if u.success==true then
+if m.success==true then
 if aO then
-if u.data.hash==aH(aU(u.data.value).."-"..m.."-"..aN)then
-return u.data.value
+if m.data.hash==aH(aU(m.data.value).."-"..h.."-"..aN)then
+return m.data.value
 else
 aP"failed to verify integrity.";
 return nil
 end
 else
-return u.data.value
+return m.data.value
 end
 else
-aP(u.message);
+aP(m.message);
 return nil
 end
 else
@@ -4208,9 +4250,9 @@ end
 
 
 return{
-Verify=i,
-GetFlag=j,
-Copy=g,
+Verify=f,
+GetFlag=g,
+Copy=d,
 }
 end
 
@@ -5588,11 +5630,11 @@ for aW,aX in next,aO do
 local aY=aX.Config
 local aZ=aX.Definition
 local a_=aY.Icon or aZ.Icon or"key-round"
-local b=ab.Image(a_,a_,0,"Temp","KeySystem",true)
-b.Size=UDim2.new(0,20,0,20)
-b.ZIndex=100000
+local a0=ab.Image(a_,a_,0,"Temp","KeySystem",true)
+a0.Size=UDim2.new(0,20,0,20)
+a0.ZIndex=100000
 
-local d=ab.NewRoundFrame(10,"Squircle",{
+local a1=ab.NewRoundFrame(10,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 ThemeTag={ImageColor3="Text"},
 ImageTransparency=1,
@@ -5605,7 +5647,7 @@ FillDirection="Horizontal",
 Padding=UDim.new(0,8),
 VerticalAlignment="Center",
 }),
-b,
+a0,
 ae("UIPadding",{
 PaddingTop=UDim.new(0,9),
 PaddingLeft=UDim.new(0,10),
@@ -5653,16 +5695,16 @@ ZIndex=100001,
 }),
 },true)
 
-ab.AddSignal(d.MouseEnter,function()
-ad.Play(d,"Hover",{ImageTransparency=0.94},nil,nil,"ServiceHover")
+ab.AddSignal(a1.MouseEnter,function()
+ad.Play(a1,"Hover",{ImageTransparency=0.94},nil,nil,"ServiceHover")
 end)
-ab.AddSignal(d.InputEnded,function()
-ad.Play(d,"Hover",{ImageTransparency=1},nil,nil,"ServiceHover")
+ab.AddSignal(a1.InputEnded,function()
+ad.Play(a1,"Hover",{ImageTransparency=1},nil,nil,"ServiceHover")
 end)
-ad.AttachPress(d,ab,{
+ad.AttachPress(a1,ab,{
 Amount=0.985,
 })
-ab.AddSignal(d.MouseButton1Click,function()
+ab.AddSignal(a1.MouseButton1Click,function()
 CopyServiceLink(aX)
 end)
 end
@@ -8059,6 +8101,10 @@ AnchorPoint=Vector2.new(1,1),
 }
 
 local ai={
+hidden="Idle",
+hide="Idle",
+idle="Idle",
+island="Idle",
 closed="Collapsed",
 circle="Collapsed",
 icon="Collapsed",
@@ -8122,6 +8168,8 @@ Draggable=true,
 Position="TopCenter",
 State="Compact",
 Height=44,
+IdleWidth=78,
+IdleHeight=28,
 ExpandedHeight=68,
 ExpandedWidth=220,
 MaxWidth=380,
@@ -8138,6 +8186,15 @@ BackgroundTransparency=0.08,
 TextColor=nil,
 TextTransparency=nil,
 AutoCollapse=nil,
+AutoHide=4,
+WakeOnShow=true,
+Shadow=true,
+ShadowBlur=UDim.new(0,18),
+ShadowColor=Color3.new(0,0,0),
+ShadowOffset=UDim2.fromOffset(0,5),
+ShadowSpread=UDim2.fromOffset(2,2),
+ShadowTransparency=0.5,
+FallbackShadow=false,
 OnStateChange=nil,
 }
 
@@ -8152,11 +8209,12 @@ UIElements={},
 }
 
 local an=0
-local ao={}
-local ap
+local ao=0
+local ap={}
 local aq
+local ar
 
-local ar=ad("Frame",{
+local as=ad("Frame",{
 Name="OpenButtonContainer",
 Size=UDim2.fromOffset(al.Height,al.Height),
 Position=ah.TopCenter.Position,
@@ -8168,13 +8226,13 @@ Visible=false,
 ZIndex=98,
 })
 
-local as=ad("UIScale",{
+local at=ad("UIScale",{
 Name="Scale",
 Scale=al.Scale,
-Parent=ar,
+Parent=as,
 })
 
-local at=ad("Frame",{
+local au=ad("Frame",{
 Name="Shadow",
 Size=UDim2.new(1,4,1,4),
 Position=UDim2.fromOffset(-2,3),
@@ -8182,14 +8240,14 @@ BackgroundColor3=Color3.new(0,0,0),
 BackgroundTransparency=0.58,
 BorderSizePixel=0,
 ZIndex=98,
-Parent=ar,
+Parent=as,
 },{
 ad("UICorner",{
 CornerRadius=al.CornerRadius,
 }),
 })
 
-local au=ad("UIGradient",{
+local av=ad("UIGradient",{
 Name="UIGradient",
 Color=al.Color,
 Transparency=NumberSequence.new{
@@ -8199,17 +8257,17 @@ NumberSequenceKeypoint.new(1,0.18),
 },
 })
 
-local av=ad("UIStroke",{
+local aw=ad("UIStroke",{
 Name="UIStroke",
 Thickness=al.StrokeThickness,
 ApplyStrokeMode=Enum.ApplyStrokeMode.Border,
 Color=Color3.new(1,1,1),
 Transparency=al.StrokeTransparency,
 },{
-au,
+av,
 })
 
-local aw=ad("Frame",{
+local ax=ad("Frame",{
 Name="OpenButton",
 Size=UDim2.fromScale(1,1),
 BackgroundColor3=al.BackgroundColor,
@@ -8218,12 +8276,12 @@ BorderSizePixel=0,
 ClipsDescendants=true,
 Active=true,
 ZIndex=99,
-Parent=ar,
+Parent=as,
 },{
 ad("UICorner",{
 CornerRadius=al.CornerRadius,
 }),
-av,
+aw,
 ad("Frame",{
 Name="Surface",
 Size=UDim2.fromScale(1,1),
@@ -8246,27 +8304,39 @@ NumberSequenceKeypoint.new(1,1),
 }),
 })
 
-local ax=ad("Frame",{
+local ay=ab.CreateUIShadow(ax,{
+Name="NativeShadow",
+Enabled=al.Shadow,
+BlurRadius=al.ShadowBlur,
+Color=al.ShadowColor,
+Offset=al.ShadowOffset,
+Spread=al.ShadowSpread,
+Transparency=al.ShadowTransparency,
+ZIndex=0,
+})
+au.Visible=al.Shadow and ay==nil and al.FallbackShadow
+
+local az=ad("Frame",{
 Name="Drag",
 Size=UDim2.fromOffset(36,36),
 Position=UDim2.fromOffset(4,4),
 BackgroundTransparency=1,
 ZIndex=102,
-Parent=aw,
+Parent=ax,
 })
 
-local ay=ab.Image("move","OpenButtonDrag",0,aj.Folder,"OpenButton",true,true)
-ay.Name="Icon"
-ay.Size=UDim2.fromOffset(17,17)
-ay.Position=UDim2.fromScale(0.5,0.5)
-ay.AnchorPoint=Vector2.new(0.5,0.5)
-ay.Parent=ax
-local az=ay:FindFirstChildWhichIsA"ImageLabel"
-if az then
-az.ImageTransparency=0.42
+local aA=ab.Image("move","OpenButtonDrag",0,aj.Folder,"OpenButton",true,true)
+aA.Name="Icon"
+aA.Size=UDim2.fromOffset(17,17)
+aA.Position=UDim2.fromScale(0.5,0.5)
+aA.AnchorPoint=Vector2.new(0.5,0.5)
+aA.Parent=az
+local aB=aA:FindFirstChildWhichIsA"ImageLabel"
+if aB then
+aB.ImageTransparency=0.42
 end
 
-local aA=ad("Frame",{
+local aC=ad("Frame",{
 Name="Divider",
 Size=UDim2.new(0,1,1,-18),
 Position=UDim2.new(0,44,0.5,0),
@@ -8275,10 +8345,10 @@ BackgroundColor3=Color3.new(1,1,1),
 BackgroundTransparency=0.88,
 BorderSizePixel=0,
 ZIndex=102,
-Parent=aw,
+Parent=ax,
 })
 
-local aB=ad("TextButton",{
+local aD=ad("TextButton",{
 Name="TextButton",
 Text="",
 AutoButtonColor=false,
@@ -8289,38 +8359,38 @@ BackgroundTransparency=1,
 BorderSizePixel=0,
 ClipsDescendants=true,
 ZIndex=101,
-Parent=aw,
+Parent=ax,
 },{
 ad("UICorner",{
 CornerRadius=GetInnerCornerRadius(al.CornerRadius,4),
 }),
 })
 
-local aC=ad("Frame",{
+local aE=ad("Frame",{
 Name="HoverSurface",
 Size=UDim2.fromScale(1,1),
 BackgroundColor3=Color3.new(1,1,1),
 BackgroundTransparency=1,
 BorderSizePixel=0,
 ZIndex=101,
-Parent=aB,
+Parent=aD,
 },{
 ad("UICorner",{
 CornerRadius=GetInnerCornerRadius(al.CornerRadius,4),
 }),
 })
 
-local aD=ad("CanvasGroup",{
+local aF=ad("CanvasGroup",{
 Name="TextStack",
 Size=UDim2.new(1,-58,1,0),
 Position=UDim2.fromOffset(46,0),
 BackgroundTransparency=1,
 GroupTransparency=0,
 ZIndex=103,
-Parent=aB,
+Parent=aD,
 })
 
-local aE=ad("TextLabel",{
+local aG=ad("TextLabel",{
 Name="Title",
 Text=al.Title,
 TextSize=15,
@@ -8334,10 +8404,10 @@ ZIndex=103,
 ThemeTag={
 TextColor3="Text",
 },
-Parent=aD,
+Parent=aF,
 })
 
-local aF=ad("TextLabel",{
+local aH=ad("TextLabel",{
 Name="Content",
 Text="",
 TextSize=12,
@@ -8354,143 +8424,178 @@ ZIndex=103,
 ThemeTag={
 TextColor3="Text",
 },
-Parent=aD,
+Parent=aF,
 })
 
-local aG=ab.Image("chevron-up","OpenButtonExpand",0,aj.Folder,"OpenButton",true,true)
-aG.Name="TrailingIcon"
-aG.Size=UDim2.fromOffset(15,15)
-aG.Position=UDim2.new(1,-17,0.5,0)
-aG.AnchorPoint=Vector2.new(0.5,0.5)
-aG.Visible=false
-aG.ZIndex=103
-aG.Parent=aB
-local aH=aG:FindFirstChildWhichIsA"ImageLabel"
-if aH then
-aH.ImageTransparency=0.48
-end
-
-local function StopTween(aI)
-local aJ=ao[aI]
+local aI=ab.Image("chevron-up","OpenButtonExpand",0,aj.Folder,"OpenButton",true,true)
+aI.Name="TrailingIcon"
+aI.Size=UDim2.fromOffset(15,15)
+aI.Position=UDim2.new(1,-17,0.5,0)
+aI.AnchorPoint=Vector2.new(0.5,0.5)
+aI.Visible=false
+aI.ZIndex=103
+aI.Parent=aD
+local aJ=aI:FindFirstChildWhichIsA"ImageLabel"
 if aJ then
-aJ:Cancel()
-ao[aI]=nil
+aJ.ImageTransparency=0.48
+end
+
+local function StopTween(aK)
+local aL=ap[aK]
+if aL then
+aL:Cancel()
+ap[aK]=nil
 end
 end
 
-local function Animate(aI,aJ,aK)
-StopTween(aI)
-if aJ<=0 then
-for aL,aM in aK do
-aI[aL]=aM
+local function Animate(aK,aL,aM)
+StopTween(aK)
+if aL<=0 then
+for aN,aO in aM do
+aK[aN]=aO
 end
 return nil
 end
 
-local aL=ae(aI,aJ,aK,Enum.EasingStyle.Quint,Enum.EasingDirection.Out)
-ao[aI]=aL
-aL:Play()
-return aL
+local aN=ae(aK,aL,aM,Enum.EasingStyle.Quint,Enum.EasingDirection.Out)
+ap[aK]=aN
+aN:Play()
+return aN
 end
 
-local function ApplyPosition(aI)
-if typeof(aI)=="UDim2"then
-ar.Position=aI
-ar.AnchorPoint=Vector2.new(0.5,0.5)
+local function ApplyPosition(aK)
+if typeof(aK)=="UDim2"then
+as.Position=aK
+as.AnchorPoint=Vector2.new(0.5,0.5)
 return
 end
 
-local aJ=ah[tostring(aI or"TopCenter")]or ah.TopCenter
-ar.Position=aJ.Position
-ar.AnchorPoint=aJ.AnchorPoint
+local aL=ah[tostring(aK or"TopCenter")]or ah.TopCenter
+as.Position=aL.Position
+as.AnchorPoint=aL.AnchorPoint
 end
 
-local function GetDragWidth(aI,aJ)
-if not al.Draggable or aI=="Collapsed"then
+local function GetDragWidth(aK,aL)
+if not al.Draggable or aK=="Collapsed"or aK=="Idle"then
 return 0
 end
-return aJ
+return aL
 end
 
-local function GetTargetSize(aI)
-local aJ=if aI=="Expanded"then al.ExpandedHeight else al.Height
-if aI=="Collapsed"then
+local function GetTargetSize(aK)
+if aK=="Idle"then
+return Vector2.new(al.IdleWidth,al.IdleHeight)
+end
+
+local aL=if aK=="Expanded"then al.ExpandedHeight else al.Height
+if aK=="Collapsed"then
 return Vector2.new(al.Height,al.Height)
 end
 
-local aK=math.max(al.MaxWidth-120,80)
-local aL=MeasureText(al.Title,15,aK)
-local aM=if aI=="Expanded"and al.Content
-then MeasureText(al.Content,12,aK)
+local aM=math.max(al.MaxWidth-120,80)
+local aN=MeasureText(al.Title,15,aM)
+local aO=if aK=="Expanded"and al.Content
+then MeasureText(al.Content,12,aM)
 else 0
-local aN=math.max(aL,aM)
-local aO=GetDragWidth(aI,aJ)
-local aP=if ap then al.IconSize+al.Gap else 0
-local aQ=if aI=="Expanded"then 24 else 0
-local aR=aO+(al.Padding*2)+aP+aN+aQ
-if aI=="Expanded"then
-aR=math.max(aR,al.ExpandedWidth)
+local aP=math.max(aN,aO)
+local aQ=GetDragWidth(aK,aL)
+local aR=if aq then al.IconSize+al.Gap else 0
+local aS=if aK=="Expanded"then 24 else 0
+local aT=aQ+(al.Padding*2)+aR+aP+aS
+if aK=="Expanded"then
+aT=math.max(aT,al.ExpandedWidth)
 end
 
-return Vector2.new(math.clamp(aR,aJ,al.MaxWidth),aJ)
+return Vector2.new(math.clamp(aT,aL,al.MaxWidth),aL)
 end
 
-local function ApplyState(aI,aJ)
-aI=NormalizeState(aI)
-local aK=if aJ==false then 0 else 0.28
-local aL=GetTargetSize(aI)
-local aM=GetDragWidth(aI,aL.Y)
-local aN=al.Padding
-local aO=ap~=nil
-local aP=if aO then al.IconSize+al.Gap else 0
-local aQ=if aI=="Expanded"then 24 else 0
+local function ApplyState(aK,aL)
+aK=NormalizeState(aK)
+local aM=if aL==false then 0 else 0.28
+local aN=GetTargetSize(aK)
+local aO=GetDragWidth(aK,aN.Y)
+local aP=al.Padding
+local aQ=aq~=nil
+local aR=if aQ then al.IconSize+al.Gap else 0
+local aS=if aK=="Expanded"then 24 else 0
 
-am.State=aI
-al.State=aI
-ax.Visible=aM>0
-aA.Visible=aM>0
-aE.Visible=aI~="Collapsed"
-aF.Visible=aI=="Expanded"and al.Content~=nil and al.Content~=""
-aG.Visible=aI=="Expanded"
+am.State=aK
+al.State=aK
+az.Visible=aO>0
+aC.Visible=aO>0
+aG.Visible=aK~="Collapsed"and aK~="Idle"
+aH.Visible=aK=="Expanded"and al.Content~=nil and al.Content~=""
+aI.Visible=aK=="Expanded"
 
-Animate(ar,aK,{Size=UDim2.fromOffset(aL.X,aL.Y)})
-Animate(aB,aK,{
-Size=UDim2.new(1,-aM,1,0),
-Position=UDim2.fromOffset(aM,0),
+Animate(as,aM,{Size=UDim2.fromOffset(aN.X,aN.Y)})
+Animate(aD,aM,{
+Size=UDim2.new(1,-aO,1,0),
+Position=UDim2.fromOffset(aO,0),
 })
 
-ax.Size=UDim2.fromOffset(math.max(aL.Y-8,0),math.max(aL.Y-8,0))
-ax.Position=UDim2.fromOffset(4,4)
-aA.Position=UDim2.new(0,aM,0.5,0)
+az.Size=UDim2.fromOffset(math.max(aN.Y-8,0),math.max(aN.Y-8,0))
+az.Position=UDim2.fromOffset(4,4)
+aC.Position=UDim2.new(0,aO,0.5,0)
 
-if ap then
-local aR=if aI=="Collapsed"then aL.X/2 else aN+al.IconSize/2
-Animate(ap,aK,{
-Position=UDim2.fromOffset(aR,aL.Y/2),
-Size=UDim2.fromOffset(al.IconSize,al.IconSize),
+if aq then
+local aT=if aK=="Collapsed"or aK=="Idle"
+then aN.X/2
+else aP+al.IconSize/2
+Animate(aq,aM,{
+Position=UDim2.fromOffset(aT,aN.Y/2),
+Size=UDim2.fromOffset(
+if aK=="Idle"then 0 else al.IconSize,
+if aK=="Idle"then 0 else al.IconSize
+),
 })
 end
 
-local aR=aN+aP
-aD.Position=UDim2.fromOffset(aR,0)
-aD.Size=UDim2.new(1,-(aR+aN+aQ),1,0)
-aE.Size=if aF.Visible then UDim2.new(1,0,0,22)else UDim2.fromScale(1,1)
-aE.Position=if aF.Visible then UDim2.fromOffset(0,13)else UDim2.fromOffset(0,0)
-aF.Text=tostring(al.Content or"")
+local aT=aP+aR
+aF.Position=UDim2.fromOffset(aT,0)
+aF.Size=UDim2.new(1,-(aT+aP+aS),1,0)
+aG.Size=if aH.Visible then UDim2.new(1,0,0,22)else UDim2.fromScale(1,1)
+aG.Position=if aH.Visible then UDim2.fromOffset(0,13)else UDim2.fromOffset(0,0)
+aH.Text=tostring(al.Content or"")
 
-ab.SafeCallback(al.OnStateChange,aI,am)
+ab.SafeCallback(al.OnStateChange,aK,am)
 end
 
-function am.SetIcon(aI,aJ,aK)
-if ap then
-ap:Destroy()
-ap=nil
+local function CancelAutoHide()
+ao=ao+1
 end
 
-al.Icon=aJ
-if aJ~=nil and aJ~=false and aJ~=""then
-ap=ab.Image(
-aJ,
+local function ScheduleAutoHide(aK)
+CancelAutoHide()
+if al.AutoHide==false or am.State=="Idle"or not as.Visible then
+return
+end
+
+local aL=tonumber(aK)
+if aL==nil then
+aL=tonumber(al.AutoHide)
+end
+if aL==nil or aL<=0 then
+return
+end
+
+local aM=ao
+task.delay(aL,function()
+if aM==ao and as.Parent and as.Visible then
+am:SetState"Idle"
+end
+end)
+end
+
+function am.SetIcon(aK,aL,aM)
+if aq then
+aq:Destroy()
+aq=nil
+end
+
+al.Icon=aL
+if aL~=nil and aL~=false and aL~=""then
+aq=ab.Image(
+aL,
 al.Title..":OpenButton",
 0,
 aj.Folder,
@@ -8498,94 +8603,108 @@ aj.Folder,
 true,
 aj.IconThemed
 )
-ap.Name="Icon"
-ap.AnchorPoint=Vector2.new(0.5,0.5)
-ap.ZIndex=103
-ap.Parent=aB
+aq.Name="Icon"
+aq.AnchorPoint=Vector2.new(0.5,0.5)
+aq.ZIndex=103
+aq.Parent=aD
 end
 
-if not aK then
+if not aM then
 ApplyState(am.State,false)
 end
 return am
 end
 
-function am.SetTitle(aI,aJ)
-al.Title=tostring(aJ or"")
-aE.Text=al.Title
-ab:ChangeTranslationKey(aE,al.Title)
+function am.SetTitle(aK,aL)
+al.Title=tostring(aL or"")
+aG.Text=al.Title
+ab:ChangeTranslationKey(aG,al.Title)
 ApplyState(am.State,true)
 return am
 end
 
-function am.SetContent(aI,aJ)
-al.Content=if aJ==nil or aJ==false then nil else tostring(aJ)
-aF.Text=al.Content or""
+function am.SetContent(aK,aL)
+al.Content=if aL==nil or aL==false then nil else tostring(aL)
+aH.Text=al.Content or""
 ApplyState(am.State,true)
 return am
 end
 
-function am.SetState(aI,aJ,aK,aL)
+function am.SetState(aK,aL,aM,aN)
 an=an+1
-if typeof(aK)=="table"then
-if aK.Title~=nil then
-al.Title=tostring(aK.Title)
-aE.Text=al.Title
+CancelAutoHide()
+if typeof(aM)=="table"then
+if aM.Title~=nil then
+al.Title=tostring(aM.Title)
+aG.Text=al.Title
 end
-if aK.Content~=nil or aK.Description~=nil then
-local aM=if aK.Content~=nil then aK.Content else aK.Description
-al.Content=if aM==false then nil else tostring(aM or"")
+if aM.Content~=nil or aM.Description~=nil then
+local aO=if aM.Content~=nil then aM.Content else aM.Description
+al.Content=if aO==false then nil else tostring(aO or"")
 end
-if aK.Icon~=nil then
-am:SetIcon(aK.Icon,true)
+if aM.Icon~=nil then
+am:SetIcon(aM.Icon,true)
 end
 end
 
-ApplyState(aJ,aL)
+ApplyState(aL,aN)
+ScheduleAutoHide()
 return am
 end
 
-function am.GetState(aI)
+function am.GetState(aK)
 return am.State
 end
 
-function am.Expand(aI,aJ,aK)
-am:SetState("Expanded",aJ)
-local aL=an
-local aM=tonumber(aK)or tonumber(al.AutoCollapse)
-if aM and aM>0 then
-task.delay(aM,function()
-if aL==an and ar.Parent then
-am:SetState"Compact"
+function am.Expand(aK,aL,aM)
+am:SetState("Expanded",aL)
+local aN=an
+local aO=tonumber(aM)or tonumber(al.AutoCollapse)
+if aO and aO>0 then
+CancelAutoHide()
+task.delay(aO,function()
+if aN==an and as.Parent then
+am:Compact()
 end
 end)
 end
 return am
 end
 
-function am.Collapse(aI,aJ)
-return am:SetState("Collapsed",aJ)
+function am.Collapse(aK,aL)
+return am:SetState("Collapsed",aL)
 end
 
-function am.Compact(aI,aJ)
-return am:SetState("Compact",aJ)
+function am.Compact(aK,aL)
+return am:SetState("Compact",aL)
 end
 
-function am.ToggleExpanded(aI,aJ)
+function am.Idle(aK,aL)
+return am:SetState("Idle",aL)
+end
+
+am.Hide=am.Idle
+
+function am.Wake(aK,aL)
+return am:Compact(aL)
+end
+
+function am.ToggleExpanded(aK,aL)
 if am.State=="Expanded"then
-return am:Compact(aJ)
+return am:Compact(aL)
 end
-return am:Expand(aJ)
+return am:Expand(aL)
 end
 
-function am.Push(aI,aJ,aK)
-local aL=am.State
-am:SetState("Expanded",aJ)
-local aM=an
-local aN=math.max(tonumber(aK)or 3,0)
-task.delay(aN,function()
-if aM==an and ar.Parent then
-am:SetState(aL)
+function am.Push(aK,aL,aM)
+local aN=am.State
+am:SetState("Expanded",aL)
+CancelAutoHide()
+local aO=an
+local aP=math.max(tonumber(aM)or 3,0)
+task.delay(aP,function()
+if aO==an and as.Parent then
+am:SetState(aN)
 end
 end)
 return am
@@ -8593,159 +8712,199 @@ end
 
 am.Notify=am.Push
 
-function am.Visible(aI,aJ)
-ar.Visible=aJ==true
+function am.Visible(aK,aL)
+as.Visible=aL==true
+if as.Visible then
+if al.WakeOnShow and am.State=="Idle"then
+am:SetState"Compact"
+else
+ScheduleAutoHide()
+end
+else
+CancelAutoHide()
+end
 return am
 end
 
-function am.SetScale(aI,aJ)
-al.Scale=math.max(tonumber(aJ)or 1,0.1)
+function am.SetScale(aK,aL)
+al.Scale=math.max(tonumber(aL)or 1,0.1)
 am.Scale=al.Scale
-StopTween(as)
-as.Scale=al.Scale
+StopTween(at)
+at.Scale=al.Scale
 return am
 end
 
-function am.Pulse(aI)
-local aJ=al.Scale
-Animate(as,0.08,{Scale=aJ*0.94})
+function am.Pulse(aK)
+local aL=al.Scale
+Animate(at,0.08,{Scale=aL*0.94})
 task.delay(0.08,function()
-if as.Parent then
-Animate(as,0.16,{Scale=aJ})
+if at.Parent then
+Animate(at,0.16,{Scale=aL})
 end
 end)
 return am
 end
 
-function am.Edit(aI,aJ)
-aJ=if typeof(aJ)=="table"then aJ else{}
-al.Title=tostring(Pick(aJ.Title,al.Title))
-local aK=Pick(aJ.Content,Pick(aJ.Description,al.Content))
-al.Content=if aK==false or aK==nil then nil else tostring(aK)
-al.Enabled=Pick(aJ.Enabled,al.Enabled)
-al.OnlyMobile=Pick(aJ.OnlyMobile,al.OnlyMobile)
-al.Draggable=Pick(aJ.Draggable,al.Draggable)
-al.Position=Pick(aJ.Position,Pick(aJ.Preset,al.Position))
-al.Height=math.max(tonumber(Pick(aJ.Height,al.Height))or 44,34)
+function am.Edit(aK,aL)
+aL=if typeof(aL)=="table"then aL else{}
+al.Title=tostring(Pick(aL.Title,al.Title))
+local aM=Pick(aL.Content,Pick(aL.Description,al.Content))
+al.Content=if aM==false or aM==nil then nil else tostring(aM)
+al.Enabled=Pick(aL.Enabled,al.Enabled)
+al.OnlyMobile=Pick(aL.OnlyMobile,al.OnlyMobile)
+al.Draggable=Pick(aL.Draggable,al.Draggable)
+al.Position=Pick(aL.Position,Pick(aL.Preset,al.Position))
+al.Height=math.max(tonumber(Pick(aL.Height,al.Height))or 44,34)
+al.IdleWidth=math.max(tonumber(Pick(aL.IdleWidth,al.IdleWidth))or 78,44)
+al.IdleHeight=math.max(tonumber(Pick(aL.IdleHeight,al.IdleHeight))or 28,20)
 al.ExpandedHeight=
-math.max(tonumber(Pick(aJ.ExpandedHeight,al.ExpandedHeight))or 68,al.Height)
-al.ExpandedWidth=math.max(tonumber(Pick(aJ.ExpandedWidth,al.ExpandedWidth))or 220,120)
-al.MaxWidth=math.max(tonumber(Pick(aJ.MaxWidth,al.MaxWidth))or 380,al.ExpandedWidth)
-al.IconSize=math.max(tonumber(Pick(aJ.IconSize,al.IconSize))or 22,12)
-al.Padding=math.max(tonumber(Pick(aJ.Padding,al.Padding))or 12,4)
-al.Gap=math.max(tonumber(Pick(aJ.Gap,al.Gap))or 9,0)
-al.CornerRadius=Pick(aJ.CornerRadius,al.CornerRadius)
-al.StrokeThickness=math.max(tonumber(Pick(aJ.StrokeThickness,al.StrokeThickness))or 1,0)
+math.max(tonumber(Pick(aL.ExpandedHeight,al.ExpandedHeight))or 68,al.Height)
+al.ExpandedWidth=math.max(tonumber(Pick(aL.ExpandedWidth,al.ExpandedWidth))or 220,120)
+al.MaxWidth=math.max(tonumber(Pick(aL.MaxWidth,al.MaxWidth))or 380,al.ExpandedWidth)
+al.IconSize=math.max(tonumber(Pick(aL.IconSize,al.IconSize))or 22,12)
+al.Padding=math.max(tonumber(Pick(aL.Padding,al.Padding))or 12,4)
+al.Gap=math.max(tonumber(Pick(aL.Gap,al.Gap))or 9,0)
+al.CornerRadius=Pick(aL.CornerRadius,al.CornerRadius)
+al.StrokeThickness=math.max(tonumber(Pick(aL.StrokeThickness,al.StrokeThickness))or 1,0)
 al.StrokeTransparency=
-ab.ClampTransparency(Pick(aJ.StrokeTransparency,al.StrokeTransparency),0.7)
-al.Scale=math.max(tonumber(Pick(aJ.Scale,al.Scale))or 1,0.1)
-al.Color=NormalizeColorSequence(aJ.Color,al.Color)
-al.BackgroundColor=Pick(aJ.BackgroundColor,al.BackgroundColor)
+ab.ClampTransparency(Pick(aL.StrokeTransparency,al.StrokeTransparency),0.7)
+al.Scale=math.max(tonumber(Pick(aL.Scale,al.Scale))or 1,0.1)
+al.Color=NormalizeColorSequence(aL.Color,al.Color)
+al.BackgroundColor=Pick(aL.BackgroundColor,al.BackgroundColor)
 al.BackgroundTransparency=ab.ClampTransparency(
-Pick(aJ.BackgroundTransparency,Pick(aJ.Transparency,al.BackgroundTransparency)),
+Pick(aL.BackgroundTransparency,Pick(aL.Transparency,al.BackgroundTransparency)),
 0.08
 )
-al.TextColor=Pick(aJ.TextColor,al.TextColor)
+al.TextColor=Pick(aL.TextColor,al.TextColor)
 al.TextTransparency=ab.ClampTransparency(
-Pick(aJ.TextTransparency,al.TextTransparency),
+Pick(aL.TextTransparency,al.TextTransparency),
 al.TextTransparency
 )
-al.AutoCollapse=Pick(aJ.AutoCollapse,al.AutoCollapse)
-al.OnStateChange=Pick(aJ.OnStateChange,al.OnStateChange)
+al.AutoCollapse=Pick(aL.AutoCollapse,al.AutoCollapse)
+al.AutoHide=Pick(aL.AutoHide,al.AutoHide)
+al.WakeOnShow=Pick(aL.WakeOnShow,al.WakeOnShow)
+al.Shadow=Pick(aL.Shadow,al.Shadow)
+al.ShadowBlur=ab.ToUDimRadius(aL.ShadowBlur,al.ShadowBlur)
+al.ShadowColor=if typeof(aL.ShadowColor)=="Color3"
+then aL.ShadowColor
+else al.ShadowColor
+al.ShadowOffset=if typeof(aL.ShadowOffset)=="UDim2"
+then aL.ShadowOffset
+else al.ShadowOffset
+al.ShadowSpread=if typeof(aL.ShadowSpread)=="UDim2"
+then aL.ShadowSpread
+else al.ShadowSpread
+al.ShadowTransparency=
+ab.ClampTransparency(Pick(aL.ShadowTransparency,al.ShadowTransparency),0.5)
+al.FallbackShadow=Pick(aL.FallbackShadow,al.FallbackShadow)
+al.OnStateChange=Pick(aL.OnStateChange,al.OnStateChange)
 
-local aL=aJ.State or aJ.Mode
-if aJ.OnlyIcon==true or aJ.Style=="Circle"then
-aL=aL or"Collapsed"
-elseif aJ.OnlyIcon==false and aL==nil then
-aL="Compact"
+local aN=aL.State or aL.Mode
+if aL.OnlyIcon==true or aL.Style=="Circle"then
+aN=aN or"Collapsed"
+elseif aL.OnlyIcon==false and aN==nil then
+aN="Compact"
 end
 
 aj.IsOpenButtonEnabled=al.Enabled~=false
 if al.OnlyMobile==false then
 aj.IsPC=false
 end
-if aq then
-aq:Set(al.Draggable)
+if ar then
+ar:Set(al.Draggable)
 end
 
 ApplyPosition(al.Position)
 am:SetScale(al.Scale)
-aw.BackgroundColor3=al.BackgroundColor
-aw.BackgroundTransparency=al.BackgroundTransparency
-aw.UICorner.CornerRadius=al.CornerRadius
-aB.UICorner.CornerRadius=GetInnerCornerRadius(al.CornerRadius,4)
-aC.UICorner.CornerRadius=GetInnerCornerRadius(al.CornerRadius,4)
-at.UICorner.CornerRadius=al.CornerRadius
-av.Thickness=al.StrokeThickness
-av.Transparency=al.StrokeTransparency
-au.Color=al.Color
-aE.Text=al.Title
-aF.Text=tostring(al.Content or"")
+ax.BackgroundColor3=al.BackgroundColor
+ax.BackgroundTransparency=al.BackgroundTransparency
+ax.UICorner.CornerRadius=al.CornerRadius
+aD.UICorner.CornerRadius=GetInnerCornerRadius(al.CornerRadius,4)
+aE.UICorner.CornerRadius=GetInnerCornerRadius(al.CornerRadius,4)
+au.UICorner.CornerRadius=al.CornerRadius
+au.Visible=al.Shadow and ay==nil and al.FallbackShadow
+if ay then
+ay.Enabled=al.Shadow
+ay.BlurRadius=al.ShadowBlur
+ay.Color=al.ShadowColor
+ay.Offset=al.ShadowOffset
+ay.Spread=al.ShadowSpread
+ay.Transparency=al.ShadowTransparency
+end
+aw.Thickness=al.StrokeThickness
+aw.Transparency=al.StrokeTransparency
+av.Color=al.Color
+aG.Text=al.Title
+aH.Text=tostring(al.Content or"")
 if al.TextColor then
-aE.TextColor3=al.TextColor
-aF.TextColor3=al.TextColor
+aG.TextColor3=al.TextColor
+aH.TextColor3=al.TextColor
 end
 if al.TextTransparency~=nil then
-aE.TextTransparency=al.TextTransparency
+aG.TextTransparency=al.TextTransparency
 end
 
-if aJ.Icon~=nil then
-am:SetIcon(aJ.Icon,true)
-elseif not ap and al.Icon then
+if aL.Icon~=nil then
+am:SetIcon(aL.Icon,true)
+elseif not aq and al.Icon then
 am:SetIcon(al.Icon,true)
 end
 
-ApplyState(aL or am.State,aJ.Animate~=false)
-if aJ.Visible~=nil then
-am:Visible(aJ.Visible)
+ApplyState(aN or am.State,aL.Animate~=false)
+if aL.Visible~=nil then
+am:Visible(aL.Visible)
+elseif as.Visible then
+ScheduleAutoHide()
 end
 return am
 end
 
-function am.Destroy(aI)
+function am.Destroy(aK)
 an=an+1
-local aJ={}
-for aK in ao do
-table.insert(aJ,aK)
+CancelAutoHide()
+local aL={}
+for aM in ap do
+table.insert(aL,aM)
 end
-for aK,aL in aJ do
-StopTween(aL)
+for aM,aN in aL do
+StopTween(aN)
 end
-ar:Destroy()
+as:Destroy()
 end
 
-ab.AddSignal(aB.MouseEnter,function()
-Animate(aC,0.12,{BackgroundTransparency=0.94})
+ab.AddSignal(aD.MouseEnter,function()
+Animate(aE,0.12,{BackgroundTransparency=0.94})
 end)
-ab.AddSignal(aB.MouseLeave,function()
-Animate(aC,0.16,{BackgroundTransparency=1})
+ab.AddSignal(aD.MouseLeave,function()
+Animate(aE,0.16,{BackgroundTransparency=1})
 end)
-ab.AddSignal(aB.InputBegan,function(aI)
+ab.AddSignal(aD.InputBegan,function(aK)
 if
-aI.UserInputType==Enum.UserInputType.MouseButton1
-or aI.UserInputType==Enum.UserInputType.Touch
+aK.UserInputType==Enum.UserInputType.MouseButton1
+or aK.UserInputType==Enum.UserInputType.Touch
 then
 am:Pulse()
 end
 end)
 
-aq=ab.Drag(ar)
-am.Button=aw
-am.Container=ar
+ar=ab.Drag(as)
+am.Button=ax
+am.Container=as
 am.UIElements={
-Container=ar,
-Button=aw,
-MainAction=aB,
-Drag=ax,
-Divider=aA,
-Title=aE,
-Content=aF,
-TextStack=aD,
-HoverSurface=aC,
-TrailingIcon=aG,
-Stroke=av,
-Shadow=at,
-Scale=as,
+Container=as,
+Button=ax,
+MainAction=aD,
+Drag=az,
+Divider=aC,
+Title=aG,
+Content=aH,
+TextStack=aF,
+HoverSurface=aE,
+TrailingIcon=aI,
+Stroke=aw,
+Shadow=au,
+NativeShadow=ay,
+Scale=at,
 }
 
 if al.Icon then
@@ -16647,17 +16806,17 @@ a_,
 })
 end
 
-function aA.Round(a_,b,d)
-if d==0 then
-return math.floor(b)
+function aA.Round(a_,a0,a1)
+if a1==0 then
+return math.floor(a0)
 end
-b=tostring(b)
-return b:find"%."and tonumber(b:sub(1,b:find"%."+d))or b
+a0=tostring(a0)
+return a0:find"%."and tonumber(a0:sub(1,a0:find"%."+a1))or a0
 end
 
-function aA.Update(a_,b,d)
-if b then
-aF,aG,aH=Color3.toHSV(b)
+function aA.Update(a_,a0,a1)
+if a0 then
+aF,aG,aH=Color3.toHSV(a0)
 else
 aF,aG,aH=aA.Hue,aA.Sat,aA.Vib
 end
@@ -16674,14 +16833,14 @@ aR.Frame.Frame.TextBox.Text=ToRGB(Color3.fromHSV(aF,aG,aH)).R
 aS.Frame.Frame.TextBox.Text=ToRGB(Color3.fromHSV(aF,aG,aH)).G
 aT.Frame.Frame.TextBox.Text=ToRGB(Color3.fromHSV(aF,aG,aH)).B
 
-if d or aC then
-aL.BackgroundTransparency=aA.Transparency or d
+if a1 or aC then
+aL.BackgroundTransparency=aA.Transparency or a1
 aZ.BackgroundColor3=Color3.fromHSV(aF,aG,aH)
 aY.BackgroundColor3=Color3.fromHSV(aF,aG,aH)
-aY.BackgroundTransparency=aA.Transparency or d
-aY.Position=UDim2.new(0.5,0,1-aA.Transparency or d,0)
+aY.BackgroundTransparency=aA.Transparency or a1
+aY.Position=UDim2.new(0.5,0,1-aA.Transparency or a1,0)
 aU.Frame.Frame.TextBox.Text=aA:Round(
-(1-aA.Transparency or d)*100,
+(1-aA.Transparency or a1)*100,
 0
 ).."%"
 end
@@ -16696,36 +16855,36 @@ end
 
 
 
-local function clamp(a_,b,d)
-return math.clamp(tonumber(a_)or 0,b,d)
+local function clamp(a_,a0,a1)
+return math.clamp(tonumber(a_)or 0,a0,a1)
 end
 
 table.insert(
 aB,
 aa.AddSignal(aQ.Frame.Frame.TextBox.FocusLost,function(a_)
 if a_ then
-local b=aQ.Frame.Frame.TextBox.Text:gsub("#","")
-local d,e=pcall(Color3.fromHex,b)
-if d and typeof(e)=="Color3"then
-aA.Hue,aA.Sat,aA.Vib=Color3.toHSV(e)
+local a0=aQ.Frame.Frame.TextBox.Text:gsub("#","")
+local a1,a2=pcall(Color3.fromHex,a0)
+if a1 and typeof(a2)=="Color3"then
+aA.Hue,aA.Sat,aA.Vib=Color3.toHSV(a2)
 aA:Update()
-aA.Default=e
+aA.Default=a2
 end
 end
 end)
 )
 
-local function updateColorFromInput(a_,b)
-aa.AddSignal(a_.Frame.Frame.TextBox.FocusLost,function(d)
-if d then
-local e=a_.Frame.Frame.TextBox
-local f=GetRGB()
-local g=clamp(e.Text,0,255)
-e.Text=tostring(g)
+local function updateColorFromInput(a_,a0)
+aa.AddSignal(a_.Frame.Frame.TextBox.FocusLost,function(a1)
+if a1 then
+local a2=a_.Frame.Frame.TextBox
+local b=GetRGB()
+local d=clamp(a2.Text,0,255)
+a2.Text=tostring(d)
 
-f[b]=g
-local h=Color3.fromRGB(f.R,f.G,f.B)
-aA.Hue,aA.Sat,aA.Vib=Color3.toHSV(h)
+b[a0]=d
+local e=Color3.fromRGB(b.R,b.G,b.B)
+aA.Hue,aA.Sat,aA.Vib=Color3.toHSV(e)
 aA:Update()
 end
 end)
@@ -16738,11 +16897,11 @@ updateColorFromInput(aT,"B")
 if aC then
 aa.AddSignal(aU.Frame.Frame.TextBox.FocusLost,function(a_)
 if a_ then
-local b=aU.Frame.Frame.TextBox
-local d=clamp(b.Text,0,100)
-b.Text=tostring(d)
+local a0=aU.Frame.Frame.TextBox
+local a1=clamp(a0.Text,0,100)
+a0.Text=tostring(a1)
 
-aA.Transparency=1-d*0.01
+aA.Transparency=1-a1*0.01
 aA:Update(nil,aA.Transparency)
 end
 end)
@@ -16750,51 +16909,51 @@ end
 
 
 
-local function UpdateSatVib(a_,b)
-local d=a_.AbsolutePosition.X
-local e=d+a_.AbsoluteSize.X
-local f=a_.AbsolutePosition.Y
-local g=f+a_.AbsoluteSize.Y
+local function UpdateSatVib(a_,a0)
+local a1=a_.AbsolutePosition.X
+local a2=a1+a_.AbsoluteSize.X
+local b=a_.AbsolutePosition.Y
+local d=b+a_.AbsoluteSize.Y
 
-local h=math.clamp(aq.X,d,e)
-local i=math.clamp(aq.Y,f,g)
+local e=math.clamp(aq.X,a1,a2)
+local f=math.clamp(aq.Y,b,d)
 
-b.Sat=(h-d)/(e-d)
-b.Vib=1-((i-f)/(g-f))
+a0.Sat=(e-a1)/(a2-a1)
+a0.Vib=1-((f-b)/(d-b))
 
-b:Update()
+a0:Update()
 end
 
-local function UpdateHue(a_,b)
-local d=a_.AbsolutePosition.Y
-local e=d+a_.AbsoluteSize.Y
+local function UpdateHue(a_,a0)
+local a1=a_.AbsolutePosition.Y
+local a2=a1+a_.AbsoluteSize.Y
 
-local f=math.clamp(aq.Y,d,e)
+local b=math.clamp(aq.Y,a1,a2)
 
-b.Hue=(f-d)/(e-d)
+a0.Hue=(b-a1)/(a2-a1)
 
-b:Update()
+a0:Update()
 end
 
-local function UpdateTransparency(a_,b)
-local d=a_.AbsolutePosition.Y
-local e=d+a_.AbsoluteSize.Y
+local function UpdateTransparency(a_,a0)
+local a1=a_.AbsolutePosition.Y
+local a2=a1+a_.AbsoluteSize.Y
 
-local f=math.clamp(aq.Y,d,e)
+local b=math.clamp(aq.Y,a1,a2)
 
-b.Transparency=1-((f-d)/(e-d))
+a0.Transparency=1-((b-a1)/(a2-a1))
 
-b:Update()
+a0:Update()
 end
 
 local a_=ay.GenerateGUID()
 
 table.insert(
 aB,
-al.InputChanged:Connect(function(b)
+al.InputChanged:Connect(function(a0)
 if
-b.UserInputType~=Enum.UserInputType.MouseMovement
-and b.UserInputType~=Enum.UserInputType.Touch
+a0.UserInputType~=Enum.UserInputType.MouseMovement
+and a0.UserInputType~=Enum.UserInputType.Touch
 then
 return
 end
@@ -16811,10 +16970,10 @@ end)
 
 table.insert(
 aB,
-aA.UIElements.SatVibMap.InputBegan:Connect(function(b)
+aA.UIElements.SatVibMap.InputBegan:Connect(function(a0)
 if
-b.UserInputType~=Enum.UserInputType.MouseButton1
-and b.UserInputType~=Enum.UserInputType.Touch
+a0.UserInputType~=Enum.UserInputType.MouseButton1
+and a0.UserInputType~=Enum.UserInputType.Touch
 then
 return
 end
@@ -16836,10 +16995,10 @@ end)
 
 table.insert(
 aB,
-aP.InputBegan:Connect(function(b)
+aP.InputBegan:Connect(function(a0)
 if
-b.UserInputType~=Enum.UserInputType.MouseButton1
-and b.UserInputType~=Enum.UserInputType.Touch
+a0.UserInputType~=Enum.UserInputType.MouseButton1
+and a0.UserInputType~=Enum.UserInputType.Touch
 then
 return
 end
@@ -16862,10 +17021,10 @@ end)
 if aX then
 table.insert(
 aB,
-aX.InputBegan:Connect(function(b)
+aX.InputBegan:Connect(function(a0)
 if
-b.UserInputType~=Enum.UserInputType.MouseButton1
-and b.UserInputType~=Enum.UserInputType.Touch
+a0.UserInputType~=Enum.UserInputType.MouseButton1
+and a0.UserInputType~=Enum.UserInputType.Touch
 then
 return
 end
@@ -16888,7 +17047,7 @@ end
 
 table.insert(
 aB,
-al.InputEnded:Connect(function(b)
+al.InputEnded:Connect(function(a0)
 au=nil
 
 if ay.CurrentInput and ay.CurrentInput~=a_ then
@@ -25925,53 +26084,53 @@ return aS:FindFirstChildWhichIsA"ImageLabel"or aS:FindFirstChildWhichIsA"ImageBu
 end
 
 function az.CreateTopbarButton(aS,aT,aU,aV,aW,aX,aY,aZ,a_)
-local b=aW or 999
+local a0=aW or 999
 a_=a_ or{}
-local d=a_.ForceIcon==true
-local e=az.Topbar.ButtonsType=="Default"or d
-local f=az.Topbar.ButtonsType~="Default"and not d
-local g=ao.Image(
+local a1=a_.ForceIcon==true
+local a2=az.Topbar.ButtonsType=="Default"or a1
+local b=az.Topbar.ButtonsType~="Default"and not a1
+local d=ao.Image(
 aU,
 aU,
 0,
 az.Folder,
 "WindowTopbarIcon",
-e,
+a2,
 aX,
 "WindowTopbarButtonIcon"
 )
-g.Size=e
+d.Size=a2
 and UDim2.new(0,aZ or az.TopBarButtonIconSize,0,aZ or az.TopBarButtonIconSize)
 or UDim2.new(0,0,0,0)
-g.AnchorPoint=Vector2.new(0.5,0.5)
-g.Position=UDim2.new(0.5,0,0.5,0)
-local h=GetImageTarget(g)
-if h then
-h.ImageTransparency=e and 0 or 1
+d.AnchorPoint=Vector2.new(0.5,0.5)
+d.Position=UDim2.new(0.5,0,0.5,0)
+local e=GetImageTarget(d)
+if e then
+e.ImageTransparency=a2 and 0 or 1
 end
 
-if f and h then
-h.ImageColor3=ao.GetTextColorForHSB(aY or Color3.fromHex"#ff3030")
+if b and e then
+e.ImageColor3=ao.GetTextColorForHSB(aY or Color3.fromHex"#ff3030")
 end
 
-local i=ao.NewRoundFrame(
-e and az.UICorner-(az.UIPadding/2)or 999,
+local f=ao.NewRoundFrame(
+a2 and az.UICorner-(az.UIPadding/2)or 999,
 "Squircle",
 {
-Size=e
+Size=a2
 and UDim2.new(0,az.Topbar.Height-16,0,az.Topbar.Height-16)
 or UDim2.new(0,14,0,14),
-LayoutOrder=b,
+LayoutOrder=a0,
 
 
 ZIndex=9999,
 AnchorPoint=Vector2.new(0.5,0.5),
 Position=UDim2.new(0.5,0,0.5,0),
-ImageColor3=f and(aY or Color3.fromHex"#ff3030")or nil,
-ThemeTag=e and{
+ImageColor3=b and(aY or Color3.fromHex"#ff3030")or nil,
+ThemeTag=a2 and{
 ImageColor3="Text",
 }or nil,
-ImageTransparency=e and 1 or 0,
+ImageTransparency=a2 and 1 or 0,
 },
 {
 
@@ -25986,7 +26145,7 @@ ImageTransparency=e and 1 or 0,
 
 
 
-g,
+d,
 aq("UIScale",{
 Scale=1,
 }),
@@ -25994,44 +26153,44 @@ Scale=1,
 true
 )
 
-local j=aq("Frame",{
-Size=f and UDim2.new(0,24,0,24)
+local g=aq("Frame",{
+Size=b and UDim2.new(0,24,0,24)
 or UDim2.new(0,az.Topbar.Height-16,0,az.Topbar.Height-16),
 BackgroundTransparency=1,
 Parent=az.UIElements.Main.Main.Topbar.Right,
-LayoutOrder=b,
+LayoutOrder=a0,
 },{
-i,
+f,
 })
 
 
 
-az.TopBarButtons[100-b]={
+az.TopBarButtons[100-a0]={
 Name=aT,
-Object=j,
+Object=g,
 }
 
-ao.AddSignal(i.MouseButton1Click,function()
+ao.AddSignal(f.MouseButton1Click,function()
 if aV then
 aV()
 end
 end)
-ao.AddSignal(i.MouseEnter,function()
-if e then
-ap.Play(i,"Hover",{ImageTransparency=0.93},nil,nil,"Hover")
+ao.AddSignal(f.MouseEnter,function()
+if a2 then
+ap.Play(f,"Hover",{ImageTransparency=0.93},nil,nil,"Hover")
 
 
 else
 
 ap.Play(
-h,
+e,
 "Hover",
 {ImageTransparency=0},
 Enum.EasingStyle.Quint,
 Enum.EasingDirection.Out,
 "Hover"
 )
-ap.Play(g,"Hover",{
+ap.Play(d,"Hover",{
 Size=UDim2.new(
 0,
 aZ or az.TopBarButtonIconSize,
@@ -26042,19 +26201,19 @@ aZ or az.TopBarButtonIconSize
 end
 end)
 
-ao.AddSignal(i.MouseButton1Down,function()
-ap.Play(i.UIScale,"Press",{Scale=0.9},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Press")
+ao.AddSignal(f.MouseButton1Down,function()
+ap.Play(f.UIScale,"Press",{Scale=0.9},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Press")
 end)
 
-ao.AddSignal(i.MouseLeave,function()
-if e then
-ap.Play(i,"Hover",{ImageTransparency=1},nil,nil,"Hover")
+ao.AddSignal(f.MouseLeave,function()
+if a2 then
+ap.Play(f,"Hover",{ImageTransparency=1},nil,nil,"Hover")
 
 
 else
 
 ap.Play(
-h,
+e,
 "Hover",
 {ImageTransparency=1},
 Enum.EasingStyle.Quint,
@@ -26062,7 +26221,7 @@ Enum.EasingDirection.Out,
 "Hover"
 )
 ap.Play(
-g,
+d,
 "Hover",
 {Size=UDim2.new(0,0,0,0)},
 Enum.EasingStyle.Quint,
@@ -26072,11 +26231,11 @@ Enum.EasingDirection.Out,
 end
 end)
 
-ao.AddSignal(i.InputEnded,function()
-ap.Play(i.UIScale,"Press",{Scale=1},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Press")
+ao.AddSignal(f.InputEnded,function()
+ap.Play(f.UIScale,"Press",{Scale=1},Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Press")
 end)
 
-return i
+return f
 end
 
 function az.Topbar.Button(aS,aT:{
@@ -26460,13 +26619,13 @@ end
 local aX,aY,aZ=GetBackgroundKind(aV)
 local a_={}
 if typeof(aZ)=="table"then
-for b,d in next,aZ do
-a_[b]=d
+for a0,a1 in next,aZ do
+a_[a0]=a1
 end
 end
 if typeof(aW)=="table"then
-for b,d in next,aW do
-a_[b]=d
+for a0,a1 in next,aW do
+a_[a0]=a1
 end
 elseif aW~=nil then
 a_.Transparency=aW
@@ -27013,21 +27172,21 @@ if not az.IsFullscreen and az.AutoScale then
 local aZ=aX.X-(aW*2)
 local a_=aX.Y-(aW*2)
 
-local b=aZ/aY.X
-local d=a_/aY.Y
+local a0=aZ/aY.X
+local a1=a_/aY.Y
 
-local e=math.min(b,d)
+local a2=math.min(a0,a1)
 
-local f=0.3
-local g=1.0
+local b=0.3
+local d=1.0
 
-local h=math.clamp(e,f,g)
+local e=math.clamp(a2,b,d)
 
-local i=az:GetUIScale()or 1
-local j=0.05
+local f=az:GetUIScale()or 1
+local g=0.05
 
-if math.abs(h-i)>j then
-az:SetUIScale(h)
+if math.abs(e-f)>g then
+az:SetUIScale(e)
 end
 end
 end
@@ -27081,6 +27240,14 @@ function az.CompactOpenButton(aW,aX)
 return az.OpenButtonMain:Compact(aX)
 end
 
+function az.HideOpenButton(aW,aX)
+return az.OpenButtonMain:Idle(aX)
+end
+
+function az.WakeOpenButton(aW,aX)
+return az.OpenButtonMain:Wake(aX)
+end
+
 function az.PushOpenButton(aW,aX,aY)
 return az.OpenButtonMain:Push(aX,aY)
 end
@@ -27129,13 +27296,13 @@ az.HidePanelBackground=a_
 az.UIElements.MainBar.Background.Visible=a_
 
 if aY then
-for b,d in next,aY.Containers do
-d.ScrollingFrame.UIPadding.PaddingTop=UDim.new(0,az.HidePanelBackground and 20 or 10)
-d.ScrollingFrame.UIPadding.PaddingLeft=
+for a0,a1 in next,aY.Containers do
+a1.ScrollingFrame.UIPadding.PaddingTop=UDim.new(0,az.HidePanelBackground and 20 or 10)
+a1.ScrollingFrame.UIPadding.PaddingLeft=
 UDim.new(0,az.HidePanelBackground and 20 or 10)
-d.ScrollingFrame.UIPadding.PaddingRight=
+a1.ScrollingFrame.UIPadding.PaddingRight=
 UDim.new(0,az.HidePanelBackground and 20 or 10)
-d.ScrollingFrame.UIPadding.PaddingBottom=
+a1.ScrollingFrame.UIPadding.PaddingBottom=
 UDim.new(0,az.HidePanelBackground and 20 or 10)
 end
 end
@@ -27152,7 +27319,7 @@ ThemeTag={
 BackgroundColor3="Text",
 },
 })
-local b=aq("Frame",{
+local a0=aq("Frame",{
 Parent=az.UIElements.SideBar.Frame,
 
 Size=UDim2.new(1,-7,0,5),
@@ -27161,101 +27328,101 @@ BackgroundTransparency=1,
 a_,
 })
 
-return b
+return a0
 end
 
 local aZ=a.load'p'
-function az.Dialog(a_,b)
-local d={
-Title=b.Title or"Dialog",
-Width=b.Width or 320,
-Content=b.Content,
-Buttons=b.Buttons or{},
+function az.Dialog(a_,a0)
+local a1={
+Title=a0.Title or"Dialog",
+Width=a0.Width or 320,
+Content=a0.Content,
+Buttons=a0.Buttons or{},
 
 TextPadding=14,
 }
-local e=aZ.Create(false,"Dialog",az,ax.WindUI,az.UIElements.Main.Main)
+local a2=aZ.Create(false,"Dialog",az,ax.WindUI,az.UIElements.Main.Main)
 
-e.UIElements.Main.Size=UDim2.new(0,d.Width,0,0)
+a2.UIElements.Main.Size=UDim2.new(0,a1.Width,0,0)
 
-local f=aq("Frame",{
+local b=aq("Frame",{
 Size=UDim2.new(1,0,1,0),
 AutomaticSize="Y",
 BackgroundTransparency=1,
-Parent=e.UIElements.Main,
+Parent=a2.UIElements.Main,
 },{
 aq("UIListLayout",{
 FillDirection="Vertical",
 
-Padding=UDim.new(0,e.UIPadding),
+Padding=UDim.new(0,a2.UIPadding),
 }),
 })
 
-local g=aq("Frame",{
+local d=aq("Frame",{
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 BackgroundTransparency=1,
-Parent=f,
+Parent=b,
 },{
 aq("UIListLayout",{
 FillDirection="Horizontal",
-Padding=UDim.new(0,e.UIPadding),
+Padding=UDim.new(0,a2.UIPadding),
 VerticalAlignment="Center",
 }),
 aq("UIPadding",{
-PaddingTop=UDim.new(0,d.TextPadding/2),
-PaddingLeft=UDim.new(0,d.TextPadding/2),
-PaddingRight=UDim.new(0,d.TextPadding/2),
+PaddingTop=UDim.new(0,a1.TextPadding/2),
+PaddingLeft=UDim.new(0,a1.TextPadding/2),
+PaddingRight=UDim.new(0,a1.TextPadding/2),
 }),
 })
 
-local h
-if b.Icon then
-h=ao.Image(
-b.Icon,
-d.Title..":"..b.Icon,
+local e
+if a0.Icon then
+e=ao.Image(
+a0.Icon,
+a1.Title..":"..a0.Icon,
 0,
 az,
 "Dialog",
 true,
-b.IconThemed
+a0.IconThemed
 )
-h.Size=UDim2.new(0,22,0,22)
-h.Parent=g
+e.Size=UDim2.new(0,22,0,22)
+e.Parent=d
 end
 
-e.UIElements.UIListLayout=aq("UIListLayout",{
+a2.UIElements.UIListLayout=aq("UIListLayout",{
 Padding=UDim.new(0,12),
 FillDirection="Vertical",
 HorizontalAlignment="Left",
 VerticalFlex="SpaceBetween",
-Parent=e.UIElements.Main,
+Parent=a2.UIElements.Main,
 })
 
 aq("UISizeConstraint",{
 MinSize=Vector2.new(180,20),
 MaxSize=Vector2.new(400,math.huge),
-Parent=e.UIElements.Main,
+Parent=a2.UIElements.Main,
 })
 
-e.UIElements.Title=aq("TextLabel",{
-Text=d.Title,
+a2.UIElements.Title=aq("TextLabel",{
+Text=a1.Title,
 TextSize=20,
 FontFace=Font.new(ao.Font,Enum.FontWeight.SemiBold),
 TextXAlignment="Left",
 TextWrapped=true,
 RichText=true,
-Size=UDim2.new(1,h and-26-e.UIPadding or 0,0,0),
+Size=UDim2.new(1,e and-26-a2.UIPadding or 0,0,0),
 AutomaticSize="Y",
 ThemeTag={
 TextColor3="Text",
 },
 BackgroundTransparency=1,
-Parent=g,
+Parent=d,
 })
-if d.Content then
+if a1.Content then
 aq("TextLabel",{
-Text=d.Content,
+Text=a1.Content,
 TextSize=18,
 TextTransparency=0.4,
 TextWrapped=true,
@@ -27269,31 +27436,31 @@ ThemeTag={
 TextColor3="Text",
 },
 BackgroundTransparency=1,
-Parent=f,
+Parent=b,
 },{
 aq("UIPadding",{
-PaddingLeft=UDim.new(0,d.TextPadding/2),
-PaddingRight=UDim.new(0,d.TextPadding/2),
-PaddingBottom=UDim.new(0,d.TextPadding/2),
+PaddingLeft=UDim.new(0,a1.TextPadding/2),
+PaddingRight=UDim.new(0,a1.TextPadding/2),
+PaddingBottom=UDim.new(0,a1.TextPadding/2),
 }),
 })
 end
 
-local i=aq("UIListLayout",{
+local f=aq("UIListLayout",{
 Padding=UDim.new(0,6),
 FillDirection="Horizontal",
 HorizontalAlignment="Center",
 HorizontalFlex="Fill",
 })
 
-local j=aq("Frame",{
+local g=aq("Frame",{
 Size=UDim2.new(1,0,0,36),
 AutomaticSize="None",
 BackgroundTransparency=1,
-Parent=e.UIElements.Main,
+Parent=a2.UIElements.Main,
 LayoutOrder=4,
 },{
-i,
+f,
 
 
 
@@ -27302,13 +27469,13 @@ i,
 
 })
 
-local m={}
+local h={}
 
-for p,r in next,d.Buttons do
-local u=
-at(r.Title,r.Icon,r.Callback,r.Variant,j,e,true)
-table.insert(m,u)
-u.Size=UDim2.new(1,0,1,0)
+for i,j in next,a1.Buttons do
+local m=
+at(j.Title,j.Icon,j.Callback,j.Variant,g,a2,true)
+table.insert(h,m)
+m.Size=UDim2.new(1,0,1,0)
 end
 
 
@@ -27363,9 +27530,9 @@ end
 
 
 
-e:Open()
+a2:Open()
 
-return e
+return a2
 end
 
 local a_=false
@@ -27405,29 +27572,29 @@ end
 end
 end,(az.Topbar.ButtonsType=="Default"and 999 or 997),nil,Color3.fromHex"#F4695F")
 
-function az.Tag(b,d)
+function az.Tag(a0,a1)
 if az.UIElements.Main.Main.Topbar.Center.Visible==false then
 az.UIElements.Main.Main.Topbar.Center.Visible=true
 end
-d.Window=az
-return av:New(d,az.UIElements.Main.Main.Topbar.Center.Holder)
+a1.Window=az
+return av:New(a1,az.UIElements.Main.Main.Topbar.Center.Holder)
 end
 
-local b=ax.WindUI.GenerateGUID()
+local a0=ax.WindUI.GenerateGUID()
 
-local function startResizing(d)
+local function startResizing(a1)
 if az.CanResize then
 isResizing=true
 aD.Active=true
 initialSize=az.UIElements.Main.Size
-initialInputPosition=d.Position
+initialInputPosition=a1.Position
 
 
 ar(aC.ImageLabel,0.1,{ImageTransparency=0.35}):Play()
 
-ao.AddSignal(d.Changed,function()
-if d.UserInputState==Enum.UserInputState.End then
-if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=b then
+ao.AddSignal(a1.Changed,function()
+if a1.UserInputState==Enum.UserInputState.End then
+if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=a0 then
 return
 end
 
@@ -27443,49 +27610,49 @@ end)
 end
 end
 
-ao.AddSignal(aC.InputBegan,function(d)
+ao.AddSignal(aC.InputBegan,function(a1)
 if
-d.UserInputType==Enum.UserInputType.MouseButton1
-or d.UserInputType==Enum.UserInputType.Touch
+a1.UserInputType==Enum.UserInputType.MouseButton1
+or a1.UserInputType==Enum.UserInputType.Touch
 then
-if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=b then
+if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=a0 then
 return
 end
-ax.WindUI.CurrentInput=b
+ax.WindUI.CurrentInput=a0
 
 if az.CanResize then
-startResizing(d)
+startResizing(a1)
 end
 end
 end)
 
-ao.AddSignal(ag.InputChanged,function(d)
+ao.AddSignal(ag.InputChanged,function(a1)
 if
-d.UserInputType==Enum.UserInputType.MouseMovement
-or d.UserInputType==Enum.UserInputType.Touch
+a1.UserInputType==Enum.UserInputType.MouseMovement
+or a1.UserInputType==Enum.UserInputType.Touch
 then
 if isResizing and az.CanResize then
-local e=d.Position-initialInputPosition
-local f=UDim2.new(0,initialSize.X.Offset+e.X*2,0,initialSize.Y.Offset+e.Y*2)
+local a2=a1.Position-initialInputPosition
+local b=UDim2.new(0,initialSize.X.Offset+a2.X*2,0,initialSize.Y.Offset+a2.Y*2)
 
-f=UDim2.new(
-f.X.Scale,
-math.clamp(f.X.Offset,az.MinSize.X,az.MaxSize.X),
-f.Y.Scale,
-math.clamp(f.Y.Offset,az.MinSize.Y,az.MaxSize.Y)
+b=UDim2.new(
+b.X.Scale,
+math.clamp(b.X.Offset,az.MinSize.X,az.MaxSize.X),
+b.Y.Scale,
+math.clamp(b.Y.Offset,az.MinSize.Y,az.MaxSize.Y)
 )
 
 ar(az.UIElements.Main,0.08,{
-Size=f,
+Size=b,
 },Enum.EasingStyle.Quad,Enum.EasingDirection.Out):Play()
 
-az.Size=f
+az.Size=b
 end
 end
 end)
 
 ao.AddSignal(aC.MouseEnter,function()
-if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=b then
+if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=a0 then
 return
 end
 if not isResizing then
@@ -27493,7 +27660,7 @@ ar(aC.ImageLabel,0.1,{ImageTransparency=0.35}):Play()
 end
 end)
 ao.AddSignal(aC.MouseLeave,function()
-if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=b then
+if ax.WindUI.CurrentInput and ax.WindUI.CurrentInput~=a0 then
 return
 end
 if not isResizing then
@@ -27503,52 +27670,52 @@ end)
 
 
 
+local a1=0
+local a2=0.4
+local b
 local d=0
-local e=0.4
-local f
-local g=0
 
 function onDoubleClick()
 az:SetToTheCenter()
 end
 
 ao.AddSignal(aO.Frame.MouseButton1Up,function()
-local h=tick()
-local i=az.Position
+local e=tick()
+local f=az.Position
 
-g=g+1
+d=d+1
 
-if g==1 then
-d=h
-f=i
+if d==1 then
+a1=e
+b=f
 
 task.spawn(function()
-task.wait(e)
-if g==1 then
-g=0
-f=nil
+task.wait(a2)
+if d==1 then
+d=0
+b=nil
 end
 end)
-elseif g==2 then
-if h-d<=e and i==f then
+elseif d==2 then
+if e-a1<=a2 and f==b then
 onDoubleClick()
 end
 
-g=0
-f=nil
 d=0
+b=nil
+a1=0
 else
-g=1
-d=h
-f=i
+d=1
+a1=e
+b=f
 end
 end)
 
 
 
 if not az.HideSearchBar then
-local h=a.load'aG'
-local i=false
+local e=a.load'aG'
+local f=false
 
 
 
@@ -27570,18 +27737,18 @@ local i=false
 
 
 
-local j=as("Search","search",az.UIElements.SideBarContainer,true)
-j.Size=UDim2.new(1,-az.UIPadding/2,0,39)
-j.Position=UDim2.new(0,az.UIPadding/2,0,0)
+local g=as("Search","search",az.UIElements.SideBarContainer,true)
+g.Size=UDim2.new(1,-az.UIPadding/2,0,39)
+g.Position=UDim2.new(0,az.UIPadding/2,0,0)
 
-ao.AddSignal(j.MouseButton1Click,function()
-if i then
+ao.AddSignal(g.MouseButton1Click,function()
+if f then
 return
 end
 
-h.new(az.TabModule,az.UIElements.Main,function()
+e.new(az.TabModule,az.UIElements.Main,function()
 
-i=false
+f=false
 if az.Resizable then
 az.CanResize=true
 end
@@ -27592,18 +27759,18 @@ end)
 ar(aE,0.1,{ImageTransparency=0.65}):Play()
 aE.Active=true
 
-i=true
+f=true
 az.CanResize=false
 end)
 end
 
 
 
-function az.DisableTopbarButtons(h,i)
-for j,m in next,i do
-for p,r in next,az.TopBarButtons do
-if r.Name==m then
-r.Object.Visible=false
+function az.DisableTopbarButtons(e,f)
+for g,h in next,f do
+for i,j in next,az.TopBarButtons do
+if j.Name==h then
+j.Object.Visible=false
 end
 end
 end

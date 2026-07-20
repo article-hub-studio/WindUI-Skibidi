@@ -25,7 +25,7 @@ assert(Notification.UIElements.CloseButton.Size.X.Offset >= 44)
 assert(Notification.UIElements.CloseSurface.Size.X.Offset == 24)
 assert(Notification.UIElements.Container.Size.Y.Offset == 0)
 assert(Notification.UIElements.Transition:IsA("CanvasGroup"))
-assert(Notification.UIElements.Main:GetAttribute("LayoutVersion") == 2)
+assert(Notification.UIElements.Main:GetAttribute("LayoutVersion") == 3)
 assert(type(Notification.Pause) == "function")
 assert(type(Notification.Resume) == "function")
 assert(type(Notification.Update) == "function")
@@ -49,3 +49,14 @@ local CardNotification = WindUI:Notify({
 assert(CardNotification.Appearance == "Card")
 assert(CardNotification.UIElements.Timestamp.Text == "May 23, 2025")
 assert(CardNotification.UIElements.IconBubble.Size.X.Offset == 40)
+
+local GlassNotification = WindUI:Notify({
+	Title = "Liquid glass",
+	Content = "Native shadow without the dark fallback overlay",
+	LiquidGlass = true,
+	Duration = false,
+})
+
+assert(GlassNotification.LiquidGlass == true)
+assert(GlassNotification.UIElements.Main:GetAttribute("LiquidGlass") == true)
+assert(GlassNotification.UIElements.LiquidGlass.Visible == true)

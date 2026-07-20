@@ -261,12 +261,19 @@ code={`OpenButton = {
     Title = "Open Example UI",
     Icon = "monitor",
     Content = "Ready",
-    State = "Compact", -- Collapsed, Compact, Expanded
+    State = "Compact", -- Idle, Collapsed, Compact, Expanded
     CornerRadius = UDim.new(1, 0),
     ExpandedHeight = 68,
     ExpandedWidth = 240,
     MaxWidth = 380,
     AutoCollapse = 3,
+    AutoHide = 4,       -- shrink into an iPhone-style idle pill
+    WakeOnShow = true,  -- wake to Compact whenever the window closes
+    IdleWidth = 78,
+    IdleHeight = 28,
+    Shadow = true,      -- native UIShadow
+    ShadowBlur = 18,
+    ShadowTransparency = 0.5,
     StrokeThickness = 1,
     Color = ColorSequence.new( -- only gradient 
         Color3.fromHex("FF0F7B"), 
@@ -325,13 +332,18 @@ code={`OpenButton = {
 
 ## Dynamic Island Open Button
 
-`EditOpenButton` now returns a controller. Its width, height, icon, title, and content animate between three states without recreating the UI.
+`EditOpenButton` returns a controller. Its width, height, icon, title, and content animate between four states without recreating the UI. After `AutoHide` seconds, the button contracts into the small `Idle` pill while remaining tappable, like an iPhone Dynamic Island.
 
 ```luau
 local Island = Window:EditOpenButton({
     Title = "WindUI",
     Icon = "geist:sparkles",
     State = "Compact",
+    AutoHide = 4,
+    IdleWidth = 78,
+    IdleHeight = 28,
+    Shadow = true,
+    ShadowBlur = 18,
     OnlyMobile = false,
 })
 
@@ -343,6 +355,8 @@ Island:Expand({
 
 Island:Collapse()       -- icon-only circle
 Island:Compact()        -- icon + title pill
+Island:Idle()           -- small black pill; Hide() is an alias
+Island:Wake()           -- return to Compact and restart AutoHide
 Island:ToggleExpanded()
 Island:Push({ Title = "Saved", Content = "Config updated" }, 2)
 print(Island:GetState())
@@ -354,6 +368,8 @@ The same operations are available directly on the window:
 Window:ExpandOpenButton({ Title = "Working", Content = "Please wait" })
 Window:CompactOpenButton()
 Window:CollapseOpenButton()
+Window:HideOpenButton()
+Window:WakeOpenButton()
 Window:SetOpenButtonState("Expanded", { Content = "Custom state" })
 ```
 

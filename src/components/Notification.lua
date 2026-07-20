@@ -82,6 +82,9 @@ local APPEARANCE_ALIASES = {
 	card = "Card",
 	avatar = "Card",
 	glass = "Glass",
+	liquid = "Glass",
+	liquidglass = "Glass",
+	frosted = "Glass",
 	legacy = "Glass",
 }
 
@@ -280,6 +283,7 @@ function NotificationModule.New(Config)
 	else
 		IconValue = Style.Icon
 	end
+	local LiquidGlass = Config.LiquidGlass == true or Config.Glass == true or Appearance == "Glass"
 	local Decorated = Config.Decorated == true or Config.Accented == true or Appearance == "Glass"
 
 	local Notification = {
@@ -298,6 +302,7 @@ function NotificationModule.New(Config)
 		),
 		Style = StyleName,
 		Appearance = Appearance,
+		LiquidGlass = LiquidGlass,
 		Decorated = Decorated,
 		Timestamp = Config.Timestamp ~= nil and tostring(Config.Timestamp)
 			or (Config.Time ~= nil and tostring(Config.Time) or nil),
@@ -341,11 +346,14 @@ function NotificationModule.New(Config)
 	local LeftSpace = Notification.Icon and (IconSize + 9) or 0
 	local RightSpace = (Notification.CanClose and CLOSE_RESERVED or 0) + TimestampWidth
 	local UseShadow = Config.Shadow ~= false
+	local UseFallbackShadow = Config.FallbackShadow == true
 	local CardThemeTag = {
-		BackgroundColor3 = "Notification",
+		BackgroundColor3 = if Notification.LiquidGlass then "NotificationGlass" else "Notification",
 	}
 	if Config.Transparency == nil then
-		CardThemeTag.BackgroundTransparency = "NotificationTransparency"
+		CardThemeTag.BackgroundTransparency = if Notification.LiquidGlass
+			then "NotificationGlassTransparency"
+			else "NotificationTransparency"
 	end
 	local ProgressTween
 	local TimerToken = 0
@@ -471,7 +479,10 @@ function NotificationModule.New(Config)
 	local Card = New("Frame", {
 		Name = "Notification",
 		BackgroundColor3 = Color3.fromRGB(24, 25, 29),
-		BackgroundTransparency = Creator.ClampTransparency(Config.Transparency, 0.08),
+		BackgroundTransparency = Creator.ClampTransparency(
+			Config.Transparency,
+			if Notification.LiquidGlass then 0.28 else 0.08
+		),
 		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
 		ClipsDescendants = true,
@@ -483,7 +494,8 @@ function NotificationModule.New(Config)
 		CardStroke,
 	})
 	Card:SetAttribute("Appearance", Notification.Appearance)
-	Card:SetAttribute("LayoutVersion", 2)
+	Card:SetAttribute("LiquidGlass", Notification.LiquidGlass)
+	Card:SetAttribute("LayoutVersion", 3)
 
 	local NativeShadow
 	if UseShadow then
@@ -497,22 +509,42 @@ function NotificationModule.New(Config)
 			ZIndex = 0,
 		})
 	end
-	Shadow.Visible = UseShadow and NativeShadow == nil
+	Shadow.Visible = UseShadow and NativeShadow == nil and UseFallbackShadow
 
 	local CapsuleSurface = New("Frame", {
 		Name = "CapsuleSurface",
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
-		BackgroundTransparency = if Notification.Appearance == "Glass" then 0.955 else 0.985,
+		BackgroundTransparency = if Notification.LiquidGlass then 0.91 else 0.985,
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 103,
 		ThemeTag = {
-			BackgroundColor3 = "Notification2",
-			BackgroundTransparency = "Notification2Transparency",
+			BackgroundColor3 = if Notification.LiquidGlass then "NotificationGlassSurface" else "Notification2",
+			BackgroundTransparency = if Notification.LiquidGlass
+				then "NotificationGlassSurfaceTransparency"
+				else "Notification2Transparency",
 		},
 		Parent = Card,
 	}, {
 		CreateCorner(CardRadius, CardCorners),
+	})
+
+	local LiquidGlassLayer = Creator.NewRoundFrame(CardRadius, "SquircleGlass", {
+		Name = "LiquidGlass",
+		ImageColor3 = Color3.new(1, 1, 1),
+		ImageTransparency = Creator.ClampTransparency(Config.GlassTransparency, 0.78),
+		Size = UDim2.fromScale(1, 1),
+		Visible = Notification.LiquidGlass,
+		ZIndex = 104,
+		ThemeTag = if Config.GlassTransparency == nil
+			then {
+				ImageColor3 = "NotificationGlassHighlight",
+				ImageTransparency = "NotificationGlassTextureTransparency",
+			}
+			else {
+				ImageColor3 = "NotificationGlassHighlight",
+			},
+		Parent = Card,
 	})
 
 	if typeof(Notification.Background) == "string" and Notification.Background ~= "" then
@@ -1189,6 +1221,7 @@ function NotificationModule.New(Config)
 		NativeShadow = NativeShadow,
 		Stroke = CardStroke,
 		Surface = CapsuleSurface,
+		LiquidGlass = LiquidGlassLayer,
 		ToneWash = ToneWash,
 		AccentLine = AccentLine,
 		TopHighlight = TopHighlight,

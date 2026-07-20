@@ -44,12 +44,18 @@ const checks = {
 		/function Creator\.CreateUIShadow/.test(creator) &&
 		/Instance\.new\("UIShadow"\)/.test(creator) &&
 		/Creator\.CreateUIShadow\(Card/.test(source) &&
-		/Shadow\.Visible = UseShadow and NativeShadow == nil/.test(source),
+		/Shadow\.Visible = UseShadow and NativeShadow == nil and UseFallbackShadow/.test(source) &&
+		/UseFallbackShadow = Config\.FallbackShadow == true/.test(source),
+	liquidGlass:
+		/LiquidGlass = Config\.LiquidGlass == true/.test(source) &&
+		/Name = "LiquidGlass"/.test(source) &&
+		/"SquircleGlass"/.test(source) &&
+		/Card:SetAttribute\("LiquidGlass", Notification\.LiquidGlass\)/.test(source),
 	individualCorners:
 		/Creator\.ApplyCornerRadii\(Corner, Radius, Corners\)/.test(source) &&
 		/TopLeftRadius/.test(creator) &&
 		/CardCorners/.test(source),
-	layoutVersion: /Card:SetAttribute\("LayoutVersion", 2\)/.test(source),
+	layoutVersion: /Card:SetAttribute\("LayoutVersion", 3\)/.test(source),
 	pausableTimer:
 		/function Notification:Pause\(\)/.test(source) &&
 		/function Notification:Resume\(\)/.test(source) &&

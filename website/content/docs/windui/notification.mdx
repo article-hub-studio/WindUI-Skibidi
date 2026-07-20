@@ -15,7 +15,7 @@ Notifications are temporary messages displayed to inform users about events or s
 
 The notification stack is responsive from mobile to desktop, keeps the newest item at the top, and limits the visible stack to four items by default. The default `Compact` appearance uses a small toast surface, optional icon, and a short two-pixel timer. Long text stays clear of metadata, the close target, actions, and progress. Timed notifications pause while hovered.
 
-WindUI uses Roblox's native [`UIShadow`](https://create.roblox.com/docs/reference/engine/classes/UIShadow) and individual `UICorner` radii when available. Older clients automatically receive a lightweight frame-shadow fallback instead of failing the notification.
+WindUI uses Roblox's native [`UIShadow`](https://create.roblox.com/docs/reference/engine/classes/UIShadow) and individual `UICorner` radii when available. The old dark frame overlay is disabled by default; unsupported clients simply render without a shadow unless `FallbackShadow = true` is requested.
 
 <Tabs defaultValue="small">
     <TabsList>
@@ -47,7 +47,7 @@ WindUI:Notify({
 
 ## Capsule and Card Appearances
 
-`Compact` is the default and matches a small system-notification capsule. `Card` increases the icon area and supports avatar plus timestamp metadata. `Glass` keeps the accented glass treatment for scripts that want it.
+`Compact` is the default and matches a small system-notification capsule. `Card` increases the icon area and supports avatar plus timestamp metadata. `Glass` enables the Liquid Glass surface and keeps the accented treatment for scripts that want it.
 
 ```luau
 WindUI:Notify({
@@ -69,9 +69,24 @@ WindUI:Notify({
 
 Set `Decorated = true` to add the style color wash and a quiet accent rail while keeping the compact layout.
 
+## Liquid Glass
+
+Use `Appearance = "Glass"` or add `LiquidGlass = true` to any compact/card notification. The glass texture, translucent surface, border, and native shadow are separate layers, so the card stays readable without a solid black overlay.
+
+```luau
+WindUI:Notify({
+    Title = "Saved successfully",
+    Content = "Liquid Glass is active.",
+    Appearance = "Compact",
+    LiquidGlass = true,
+    GlassTransparency = 0.78,
+    Style = "Success",
+})
+```
+
 ## Native Shadow and Individual Corners
 
-Use `Corners` to set each radius independently. `Shadow = false` disables both the native shadow and its compatibility fallback.
+Use `Corners` to set each radius independently. `Shadow = false` disables the native shadow. Set `FallbackShadow = true` only when a non-native compatibility shadow is required.
 
 ```luau
 WindUI:Notify({
@@ -189,6 +204,8 @@ WindUI:Notify({
         { name: "Title", type: "string", description: "Notification title", default: "Notification" },
         { name: "Content", type: "string", description: "Notification message text", default: "nil" },
 		{ name: "Appearance / Layout", type: '"Compact" | "Card" | "Glass"', description: "Capsule, metadata card, or accented glass presentation.", default: "Compact" },
+		{ name: "LiquidGlass / Glass", type: "boolean?", description: "Apply the translucent Liquid Glass texture to any appearance.", default: "true for Glass appearance" },
+		{ name: "GlassTransparency", type: "number?", description: "Liquid Glass texture transparency from 0 to 1.", default: "0.78" },
         { name: "Style / Type / Variant", type: '"Info" | "Notice" | "Success" | "Warning" | "Error" | "Neutral"', description: "Visual preset. Common aliases like warn, successful and green are supported.", default: "Info" },
 		{ name: "Icon", type: "string | number | table | Instance?", description: "Icon from any registered source, Roblox asset, URL, descriptor, or image instance.", default: "style icon" },
         { name: "Icon = false", type: "boolean?", description: "Disable the style icon bubble.", default: "nil" },
@@ -197,7 +214,8 @@ WindUI:Notify({
 		{ name: "Decorated", type: "boolean?", description: "Enable the accent wash and top line on Compact or Card.", default: "false" },
 		{ name: "Radius", type: "number?", description: "Default radius used by all four corners.", default: "18 (Compact), 20 (Card)" },
 		{ name: "Corners / CornerRadii", type: "{ TopLeft: number | UDim?, TopRight: number | UDim?, BottomRight: number | UDim?, BottomLeft: number | UDim? }?", description: "Override each native UICorner radius independently.", default: "Radius" },
-		{ name: "Shadow", type: "boolean?", description: "Enable native UIShadow with an automatic legacy fallback.", default: "true" },
+		{ name: "Shadow", type: "boolean?", description: "Enable native UIShadow.", default: "true" },
+		{ name: "FallbackShadow", type: "boolean?", description: "Opt in to the legacy frame shadow if UIShadow is unavailable.", default: "false" },
 		{ name: "ShadowBlur", type: "number | UDim?", description: "Native shadow blur radius.", default: "16" },
 		{ name: "ShadowOffset", type: "UDim2?", description: "Native shadow offset.", default: "UDim2.fromOffset(0, 5)" },
 		{ name: "ShadowSpread", type: "UDim2?", description: "Native shadow spread.", default: "UDim2.fromOffset(2, 2)" },

@@ -44,16 +44,30 @@ const checks = {
 		/function OpenButtonMain:Expand/.test(openButton) &&
 		/function OpenButtonMain:Collapse/.test(openButton) &&
 		/function OpenButtonMain:Compact/.test(openButton) &&
+		/function OpenButtonMain:Idle/.test(openButton) &&
+		/OpenButtonMain\.Hide = OpenButtonMain\.Idle/.test(openButton) &&
 		/function OpenButtonMain:Push/.test(openButton) &&
 		/function OpenButtonMain:GetState/.test(openButton),
 	dynamicIslandTween:
 		/Name = "OpenButtonContainer"/.test(openButton) &&
 		/Animate\(Container, Duration, \{ Size = UDim2\.fromOffset/.test(openButton) &&
 		/STATE_ALIASES/.test(openButton),
+	dynamicIslandAutoHide:
+		/AutoHide = 4/.test(openButton) &&
+		/function ScheduleAutoHide/.test(openButton) &&
+		/State == "Idle"/.test(openButton) &&
+		/IdleWidth/.test(openButton) &&
+		/IdleHeight/.test(openButton),
+	dynamicIslandShadow:
+		/Creator\.CreateUIShadow\(Button/.test(openButton) &&
+		/NativeShadow/.test(openButton) &&
+		/FallbackShadow = false/.test(openButton),
 	windowIslandApi:
 		/function Window:ExpandOpenButton/.test(windowModule) &&
 		/function Window:CollapseOpenButton/.test(windowModule) &&
-		/function Window:SetOpenButtonState/.test(windowModule),
+		/function Window:SetOpenButtonState/.test(windowModule) &&
+		/function Window:HideOpenButton/.test(windowModule) &&
+		/function Window:WakeOpenButton/.test(windowModule),
 	advancedLinkedCorners:
 		/Options\.InnerRadius/.test(creator) &&
 		/Options\.BridgeSparse/.test(creator) &&
@@ -83,12 +97,16 @@ const checks = {
 		runtime.includes("AdapterVersion=3") &&
 		runtime.includes("Unable to load the base icon catalog; custom sources remain available"),
 	builtNativeUi:
-		runtime.includes("CreateUIShadow") && runtime.includes("UIShadow") && runtime.includes("LayoutVersion"),
+		runtime.includes("CreateUIShadow") &&
+		runtime.includes("UIShadow") &&
+		runtime.includes("LayoutVersion") &&
+		runtime.includes("LiquidGlass") &&
+		runtime.includes("AutoHide"),
 	exampleRuntimeCompatibility:
 		/HasIconSourceAPI/.test(example) &&
 		/HasDynamicIslandAPI/.test(example) &&
 		/NotifyOutdatedRuntime/.test(example) &&
-		/ui-runtime-5/.test(example),
+		/ui-runtime-6/.test(example),
 }
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok)
