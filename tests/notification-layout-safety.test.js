@@ -5,7 +5,7 @@ const creator = fs.readFileSync("src/modules/Creator.lua", "utf8")
 const checks = {
 	responsiveHolder:
 		/UISizeConstraint/.test(source) &&
-		/HOLDER_MAX_WIDTH = 356/.test(source) &&
+		/HOLDER_MAX_WIDTH = 420/.test(source) &&
 		/MinSize/.test(source) &&
 		/MaxSize/.test(source),
 	bottomProgress: /Name = "ProgressTrack"/.test(source) && /Name = "ProgressFill"/.test(source),
@@ -41,7 +41,7 @@ const checks = {
 		/NotificationBorder/.test(source) &&
 		/NotificationBorderTransparency/.test(source),
 	compactProgress:
-		/Name = "ProgressTrack"[\s\S]{0,260}Size = UDim2\.new\(0\.32, 0, 0, PROGRESS_HEIGHT\)/.test(source),
+		/Name = "ProgressTrack"[\s\S]{0,420}UDim2\.new\(0\.32, 0, 0, PROGRESS_HEIGHT\)/.test(source),
 	nativeShadow:
 		/function Creator\.CreateUIShadow/.test(creator) &&
 		/Instance\.new\("UIShadow"\)/.test(creator) &&
@@ -61,7 +61,16 @@ const checks = {
 		/Creator\.ApplyCornerRadii\(Corner, Radius, Corners\)/.test(source) &&
 		/TopLeftRadius/.test(creator) &&
 		/CardCorners/.test(source),
-	layoutVersion: /Card:SetAttribute\("LayoutVersion", 3\)/.test(source),
+	layoutVersion: /Card:SetAttribute\("LayoutVersion", 4\)/.test(source),
+	notificationTypes:
+		/NOTIFICATION_TYPE_ALIASES/.test(source) &&
+		/window = "Window"/.test(source) &&
+		/originally = "Originally"/.test(source) &&
+		/Card:SetAttribute\("Type", Notification\.Type\)/.test(source),
+	windowCard:
+		/Name = "AppHeader"/.test(source) &&
+		/Name = "Selection"/.test(source) &&
+		/SelectionConfig\.Callback/.test(source),
 	pausableTimer:
 		/function Notification:Pause\(\)/.test(source) &&
 		/function Notification:Resume\(\)/.test(source) &&

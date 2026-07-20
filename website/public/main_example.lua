@@ -1,5 +1,5 @@
 local WindUI =
-	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-8"))()
+	loadstring(game:HttpGet("https://article-hub-studio.github.io/WindUI-Skibidi/loader.lua?v=1.6.65-ui-runtime-9"))()
 
 local HasIconSourceAPI = (tonumber(WindUI.IconAdapterVersion) or 0) >= 3
 	and type(WindUI.RegisterIconPack) == "function"
@@ -50,6 +50,8 @@ local Window = WindUI:CreateWindow({
 	NewElements = true,
 	ElementTransparency = 0.18,
 	ElementGap = 1,
+	TabHolderType = "sidebar", -- "sidebar" or "top"
+	SidebarCompact = true, -- icon-only sidebar; ignored when TabHolderType = "top"
 	LinkElementCorners = true,
 	CornerLink = {
 		InnerRadius = 0,
@@ -199,6 +201,7 @@ OverviewTab:KeyValue({
 		{ Title = "Loader", Value = "loadstring" },
 		{ Title = "Theme", Value = WindUI:GetCurrentTheme() },
 		{ Title = "Topbar", Value = "Mac + Settings Gear" },
+		{ Title = "Tab holder", Value = "Compact sidebar / top" },
 		{ Title = "Icon sources", Value = tostring(#IconSources) },
 	},
 })
@@ -290,9 +293,47 @@ SystemTab:ActionList({
 			Value = "Glass",
 			Icon = "gravity:triangle-exclamation",
 		},
+		{
+			Title = "Windows Card",
+			Desc = "Desktop-style app header, selector and actions.",
+			Value = "Window",
+			Icon = "lucide:app-window",
+		},
+		{
+			Title = "Original WindUI",
+			Desc = "Classic WindUI notification layout and surface.",
+			Value = "Originally",
+			Icon = "lucide:history",
+		},
 	},
 	Callback = function(Action)
-		if Action.Value == "Card" then
+		if Action.Value == "Window" then
+			WindUI:Notify({
+				Type = "Window",
+				AppName = "WindUI",
+				AppIcon = "lucide:app-window",
+				Title = "Feature Launch Party",
+				Content = "Studio S / Ballroom\n4:00 PM, 10/31/2026",
+				Timestamp = os.date("%H:%M"),
+				Selection = {
+					Value = "Going",
+					Values = { "Going", "Maybe", "Not going" },
+				},
+				Buttons = {
+					{ Title = "RSVP", Close = false },
+					{ Title = "Dismiss" },
+				},
+				Duration = false,
+			})
+		elseif Action.Value == "Originally" then
+			WindUI:Notify({
+				Type = "Originally",
+				Title = "Original WindUI",
+				Content = "Classic notification presentation with the original compact width.",
+				Icon = "lucide:bell",
+				Duration = 5,
+			})
+		elseif Action.Value == "Card" then
 			WindUI:Notify({
 				Title = "Anonim",
 				Content = "Metadata notification with an avatar and timestamp.",
@@ -349,6 +390,7 @@ SystemTab:ActionList({
 			})
 		else
 			WindUI:Notify({
+				Type = "Normal",
 				Title = "Notification example",
 				Content = "Compact toast using a table-based Solar icon reference.",
 				Appearance = "Compact",

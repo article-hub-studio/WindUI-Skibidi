@@ -29,6 +29,7 @@ local Notified = false
 
 return function(Config)
 	local UseDefaultPreset = Config.Default == true or Config.Preset == "Default" or Config.Preset == "Obsidian"
+	local HasExplicitSideBarWidth = Config.SideBarWidth ~= nil
 	local function Pick(Value, Default)
 		if Value ~= nil then
 			return Value
@@ -75,6 +76,26 @@ return function(Config)
 		}
 	end
 
+	local RequestedTabHolderType =
+		tostring(Config.TabHolderType or Config.TabHolder or "sidebar"):lower():gsub("[%s_%-]", "")
+	local RequestedCompactSidebar = RequestedTabHolderType == "compact"
+		or RequestedTabHolderType == "sidebarcompact"
+		or RequestedTabHolderType == "icon"
+		or RequestedTabHolderType == "icononly"
+	local TabHolderType = if RequestedTabHolderType == "top" or RequestedTabHolderType == "horizontal"
+		then "top"
+		else "sidebar"
+	local SidebarCompact = TabHolderType == "sidebar"
+		and (
+			RequestedCompactSidebar
+			or Config.SidebarCompact == true
+			or Config.SideBarCompact == true
+			or Config.CompactSidebar == true
+		)
+	local SideBarWidth = if SidebarCompact
+		then (Config.CompactSideBarWidth or (HasExplicitSideBarWidth and Config.SideBarWidth or 68))
+		else (Config.SideBarWidth or 200)
+
 	local Window = {
 		Title = Config.Title or "UI Library",
 		Author = Config.Author,
@@ -111,19 +132,21 @@ return function(Config)
 		LiquidGlass = Config.LiquidGlass or Config.GlassLiquid or Config.ElementGlass or false,
 		ElementCornerStyle = Config.ElementCornerStyle or Config.ElementsCornerStyle or Config.CornerStyle,
 		ElementGap = Config.ElementGap or Config.ElementsGap,
-		LinkElementCorners = Config.LinkElementCorners == true
-			or Config.ElementsLinkCorners == true
-			or typeof(Config.LinkElementCorners) == "table"
-			or typeof(Config.ElementsLinkCorners) == "table",
+		LinkElementCorners = Config.LinkElementCorners == true or Config.ElementsLinkCorners == true or typeof(
+			Config.LinkElementCorners
+		) == "table" or typeof(Config.ElementsLinkCorners) == "table",
 		ElementCornerLink = Config.CornerLink
 			or Config.LinkedCornerOptions
 			or (typeof(Config.LinkElementCorners) == "table" and Config.LinkElementCorners)
 			or (typeof(Config.ElementsLinkCorners) == "table" and Config.ElementsLinkCorners),
 		Watermark = Config.Watermark ~= nil and Config.Watermark or Config.WaterMark,
 		KeyBindMenu = Config.KeyBindMenu == false and false or (Config.KeyBindMenu or {}),
-		HideSearchBar = Config.HideSearchBar ~= false,
+		HideSearchBar = Config.HideSearchBar ~= false or SidebarCompact,
 		ScrollBarEnabled = Config.ScrollBarEnabled or false,
-		SideBarWidth = Config.SideBarWidth or 200,
+		SideBarWidth = SideBarWidth,
+		TabHolderType = TabHolderType,
+		SidebarCompact = SidebarCompact,
+		TopTabHeight = math.max(tonumber(Config.TopTabHeight or Config.TabHolderHeight) or 48, 38),
 		Acrylic = Config.Acrylic or false,
 		NewElements = Config.NewElements or false,
 		Motion = Config.Motion,
@@ -331,7 +354,7 @@ return function(Config)
 		),
 		Position = UDim2.new(0, 0, 0, Window.Topbar.Height),
 		BackgroundTransparency = 1,
-		Visible = true,
+		Visible = Window.TabHolderType == "sidebar",
 	}, {
 		New("Frame", {
 			Name = "Content",
@@ -343,7 +366,42 @@ return function(Config)
 		Window.UIElements.SideBar,
 	})
 
-	if Window.ScrollBarEnabled then
+	Window.UIElements.TopTabHolder = New("ScrollingFrame", {
+		Name = "TopTabHolder",
+		Size = UDim2.new(1, -Window.UIPadding, 0, Window.TopTabHeight),
+		Position = UDim2.new(0, Window.UIPadding / 2, 0, Window.Topbar.Height),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 0,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		Visible = Window.TabHolderType == "top",
+		ClipsDescendants = true,
+	}, {
+		New("Frame", {
+			Name = "Frame",
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.new(0, 0, 1, 0),
+			BackgroundTransparency = 1,
+		}, {
+			New("UIListLayout", {
+				FillDirection = Enum.FillDirection.Horizontal,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 6),
+			}),
+			New("UIPadding", {
+				PaddingLeft = UDim.new(0, Window.UIPadding / 2),
+				PaddingRight = UDim.new(0, Window.UIPadding / 2),
+			}),
+		}),
+	})
+	Window.UIElements.TabHolder = if Window.TabHolderType == "top"
+		then Window.UIElements.TopTabHolder.Frame
+		else Window.UIElements.SideBar.Frame
+
+	if Window.TabHolderType == "sidebar" and Window.ScrollBarEnabled then
 		CreateScrollSlider(
 			Window.UIElements.SideBar,
 			Window.UIElements.SideBarContainer.Content,
@@ -354,7 +412,9 @@ return function(Config)
 	end
 
 	Window.UIElements.MainBar = New("Frame", {
-		Size = UDim2.new(1, -Window.UIElements.SideBarContainer.AbsoluteSize.X, 1, -Window.Topbar.Height),
+		Size = if Window.TabHolderType == "top"
+			then UDim2.new(1, 0, 1, -(Window.Topbar.Height + Window.TopTabHeight))
+			else UDim2.new(1, -Window.SideBarWidth, 1, -Window.Topbar.Height),
 		Position = UDim2.new(1, 0, 1, 0),
 		AnchorPoint = Vector2.new(1, 1),
 		BackgroundTransparency = 1,
@@ -430,7 +490,7 @@ return function(Config)
 			Position = UDim2.new(0, Window.UIPadding / 2, 1, -(Window.UIPadding / 2)),
 			AnchorPoint = Vector2.new(0, 1),
 			BackgroundTransparency = 1,
-			Visible = Window.User.Enabled or false,
+			Visible = Window.TabHolderType == "sidebar" and (Window.User.Enabled or false),
 		}, {
 			Creator.NewRoundFrame(Window.UICorner - (Window.UIPadding / 2), "SquircleOutline", {
 				Size = UDim2.new(1, 0, 1, 0),
@@ -534,7 +594,7 @@ return function(Config)
 				Enum.EasingStyle.Quint,
 				Enum.EasingDirection.Out
 			):Play()
-			UserIcon.Visible = true
+			UserIcon.Visible = Window.TabHolderType == "sidebar"
 		end
 		function Window.User:Disable()
 			Window.User.Enabled = false
@@ -907,6 +967,7 @@ return function(Config)
 				CornerRadius = UDim.new(0, Window.UICorner),
 			}),
 			Window.UIElements.SideBarContainer,
+			Window.UIElements.TopTabHolder,
 			Window.UIElements.MainBar,
 
 			UserIcon,
@@ -1065,15 +1126,17 @@ return function(Config)
 		local ButtonLayoutOrder = LayoutOrder or 999
 		Options = Options or {}
 		local ForceIconButton = Options.ForceIcon == true
+		local IsMacAccent = Window.Topbar.ButtonsType == "Mac" and Options.MacAccent == true
 		local IsIconButton = Window.Topbar.ButtonsType == "Default" or ForceIconButton
 		local IsTrafficButton = Window.Topbar.ButtonsType ~= "Default" and not ForceIconButton
+		local AccentSize = math.max(tonumber(Options.Size) or Window.Topbar.Height - 18, 20)
 		local IconFrame = Creator.Image(
 			Icon,
 			Icon,
 			0,
 			Window.Folder,
 			"WindowTopbarIcon",
-			IsIconButton,
+			IsIconButton and not IsMacAccent,
 			IconThemed,
 			"WindowTopbarButtonIcon"
 		)
@@ -1086,29 +1149,34 @@ return function(Config)
 		if IconTarget then
 			IconTarget.ImageTransparency = IsIconButton and 0 or 1
 		end
+		if IsMacAccent and IconTarget then
+			IconTarget.ImageColor3 = Creator.GetTextColorForHSB(Color or Color3.fromHex("#A78BFA"), 0.72)
+			IconTarget.ImageTransparency = 0
+		end
 
 		if IsTrafficButton and IconTarget then
 			IconTarget.ImageColor3 = Creator.GetTextColorForHSB(Color or Color3.fromHex("#ff3030"))
 		end
 
 		local Button = Creator.NewRoundFrame(
-			IsIconButton and Window.UICorner - (Window.UIPadding / 2) or 999,
+			IsIconButton and (IsMacAccent and 999 or Window.UICorner - (Window.UIPadding / 2)) or 999,
 			"Squircle",
 			{
-				Size = IsIconButton
-						and UDim2.new(0, Window.Topbar.Height - 16, 0, Window.Topbar.Height - 16)
-					or UDim2.new(0, 14, 0, 14),
+				Size = IsIconButton and UDim2.fromOffset(
+					IsMacAccent and AccentSize or Window.Topbar.Height - 16,
+					IsMacAccent and AccentSize or Window.Topbar.Height - 16
+				) or UDim2.new(0, 14, 0, 14),
 				LayoutOrder = ButtonLayoutOrder,
 				--Parent = Window.Topbar.ButtonsType == "Default" and Window.UIElements.Main.Main.Topbar.Right or nil,
 				--Active = true,
 				ZIndex = 9999,
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
-				ImageColor3 = IsTrafficButton and (Color or Color3.fromHex("#ff3030")) or nil,
-				ThemeTag = IsIconButton and {
+				ImageColor3 = (IsTrafficButton or IsMacAccent) and (Color or Color3.fromHex("#ff3030")) or nil,
+				ThemeTag = IsIconButton and not IsMacAccent and {
 					ImageColor3 = "Text",
 				} or nil,
-				ImageTransparency = IsIconButton and 1 or 0, -- .93
+				ImageTransparency = IsIconButton and (IsMacAccent and 0.08 or 1) or 0, -- .93
 			},
 			{
 				--[[Creator.NewRoundFrame(
@@ -1133,6 +1201,7 @@ return function(Config)
 
 		local ButtonContainer = New("Frame", {
 			Size = IsTrafficButton and UDim2.new(0, 24, 0, 24)
+				or IsMacAccent and UDim2.fromOffset(AccentSize + 4, AccentSize + 4)
 				or UDim2.new(0, Window.Topbar.Height - 16, 0, Window.Topbar.Height - 16),
 			BackgroundTransparency = 1,
 			Parent = Window.UIElements.Main.Main.Topbar.Right,
@@ -1155,7 +1224,7 @@ return function(Config)
 		end)
 		Creator.AddSignal(Button.MouseEnter, function()
 			if IsIconButton then
-				Motion.Play(Button, "Hover", { ImageTransparency = 0.93 }, nil, nil, "Hover")
+				Motion.Play(Button, "Hover", { ImageTransparency = if IsMacAccent then 0 else 0.93 }, nil, nil, "Hover")
 				--Tween(Button.Outline, 0.15, { ImageTransparency = 0.75 }):Play()
 				--Tween(IconFrame.ImageLabel, .15, {ImageTransparency = 0}):Play()
 			else
@@ -1180,12 +1249,19 @@ return function(Config)
 		end)
 
 		Creator.AddSignal(Button.MouseButton1Down, function()
-			Motion.Play(Button.UIScale, "Press", { Scale = 0.9 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Press")
+			Motion.Play(
+				Button.UIScale,
+				"Press",
+				{ Scale = 0.9 },
+				Enum.EasingStyle.Quint,
+				Enum.EasingDirection.Out,
+				"Press"
+			)
 		end)
 
 		Creator.AddSignal(Button.MouseLeave, function()
 			if IsIconButton then
-				Motion.Play(Button, "Hover", { ImageTransparency = 1 }, nil, nil, "Hover")
+				Motion.Play(Button, "Hover", { ImageTransparency = if IsMacAccent then 0.08 else 1 }, nil, nil, "Hover")
 				--Tween(Button.Outline, 0.1, { ImageTransparency = 1 }):Play()
 				--Tween(IconFrame.ImageLabel, .1, {ImageTransparency = .2}):Play()
 			else
@@ -1210,7 +1286,14 @@ return function(Config)
 		end)
 
 		Creator.AddSignal(Button.InputEnded, function()
-			Motion.Play(Button.UIScale, "Press", { Scale = 1 }, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Press")
+			Motion.Play(
+				Button.UIScale,
+				"Press",
+				{ Scale = 1 },
+				Enum.EasingStyle.Quint,
+				Enum.EasingDirection.Out,
+				"Press"
+			)
 		end)
 
 		return Button
@@ -1688,6 +1771,7 @@ return function(Config)
 			nil,
 			{
 				ForceIcon = true,
+				MacAccent = true,
 			}
 		)
 		SettingsMenu:SetButton(SettingsButton)
@@ -1704,10 +1788,11 @@ return function(Config)
 			end,
 			Window.Topbar.ButtonsType == "Default" and 996 or 1001,
 			true,
-			Color3.fromHex("#38BDF8"),
+			Color3.fromHex("#F472B6"),
 			nil,
 			{
 				ForceIcon = true,
+				MacAccent = true,
 			}
 		)
 		KeyBindMenu:SetButton(KeyBindButton)
@@ -2343,7 +2428,7 @@ return function(Config)
 	Window.TabModule = TabModule
 
 	function Window:Tab(TabConfig)
-		TabConfig.Parent = Window.UIElements.SideBar.Frame
+		TabConfig.Parent = Window.UIElements.TabHolder
 		return TabModule.New(TabConfig, Config.WindUI.UIScale)
 	end
 
@@ -2354,7 +2439,7 @@ return function(Config)
 	function Window:Section(SectionConfig)
 		return SectionModule.New(
 			SectionConfig,
-			Window.UIElements.SideBar.Frame,
+			Window.UIElements.TabHolder,
 			Window.Folder,
 			Config.WindUI.UIScale,
 			Window
@@ -2790,7 +2875,7 @@ return function(Config)
 
 	-- / Search Bar /
 
-	if not Window.HideSearchBar then
+	if Window.TabHolderType == "sidebar" and not Window.HideSearchBar then
 		local SearchBar = require("../search/Init")
 		local IsOpen = false
 		local CurrentSearchBar

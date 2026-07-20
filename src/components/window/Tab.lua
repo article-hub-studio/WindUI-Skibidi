@@ -51,6 +51,9 @@ function TabModule.Init(WindowTable, WindUITable, ToolTipParent, TabHighlight)
 end
 
 function TabModule.New(Config, UIScale)
+	local IsTopHolder = Window.TabHolderType == "top"
+	local IsCompactSidebar = Window.TabHolderType == "sidebar" and Window.SidebarCompact == true
+	local IsIconOnly = IsCompactSidebar
 	local LinkCorners = if Config.LinkCorners ~= nil
 		then Config.LinkCorners == true or typeof(Config.LinkCorners) == "table"
 		else Window.LinkElementCorners == true
@@ -64,7 +67,7 @@ function TabModule.New(Config, UIScale)
 		__type = "Tab",
 		Title = Config.Title or "Tab",
 		Desc = Config.Desc,
-		Icon = Config.Icon,
+		Icon = Config.Icon or (IsIconOnly and "circle" or nil),
 		Golden = Config.Golden == true or Config.Premium == true,
 		Premium = Config.Premium == true or Config.Golden == true,
 		IconColor = Config.IconColor
@@ -83,7 +86,9 @@ function TabModule.New(Config, UIScale)
 		UIElements = {},
 		Elements = {},
 		ContainerFrame = nil,
-		UICorner = Window.UICorner - (Window.UIPadding / 2),
+		UICorner = if IsTopHolder then 12 else Window.UICorner - (Window.UIPadding / 2),
+		HolderType = Window.TabHolderType,
+		IconOnly = IsIconOnly,
 		LinkCorners = LinkCorners,
 		CornerLink = CornerLink,
 
@@ -92,8 +97,8 @@ function TabModule.New(Config, UIScale)
 			or Window.ElementGap
 			or (Window.NewElements and (Window.LiquidGlass and 6 or 1) or 6),
 
-		TabPaddingX = 4 + (Window.UIPadding / 2),
-		TabPaddingY = 3 + (Window.UIPadding / 2),
+		TabPaddingX = if IsTopHolder then 12 elseif IsIconOnly then 8 else 4 + (Window.UIPadding / 2),
+		TabPaddingY = if IsTopHolder then 7 elseif IsIconOnly then 8 else 3 + (Window.UIPadding / 2),
 		TitlePaddingY = 0,
 	}
 
@@ -118,8 +123,14 @@ function TabModule.New(Config, UIScale)
 
 	Tab.UIElements.Main = Creator.NewRoundFrame(Tab.UICorner, "Squircle", {
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -7, 0, 0),
-		AutomaticSize = "Y",
+		Size = if IsTopHolder
+			then UDim2.new(0, 0, 0, 36)
+			elseif IsIconOnly then UDim2.new(1, -8, 0, 44)
+			else UDim2.new(1, -7, 0, 0),
+		AutomaticSize = if IsTopHolder
+			then Enum.AutomaticSize.X
+			elseif IsIconOnly then Enum.AutomaticSize.None
+			else Enum.AutomaticSize.Y,
 		Parent = Config.Parent,
 		ThemeTag = {
 			ImageColor3 = "TabBackground",
@@ -152,17 +163,23 @@ function TabModule.New(Config, UIScale)
 		}),
 		Creator.NewRoundFrame(999, "Squircle", {
 			Name = "ActiveRail",
-			Size = UDim2.new(0, 3, 0, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 2, 0.5, 0),
+			Size = if IsTopHolder then UDim2.new(0, 0, 0, 3) else UDim2.new(0, 3, 0, 0),
+			AnchorPoint = if IsTopHolder then Vector2.new(0.5, 1) else Vector2.new(0, 0.5),
+			Position = if IsTopHolder then UDim2.new(0.5, 0, 1, -1) else UDim2.new(0, 2, 0.5, 0),
 			ImageTransparency = 1,
 			ThemeTag = {
 				ImageColor3 = "Primary",
 			},
 		}),
 		Creator.NewRoundFrame(Tab.UICorner, "Squircle", {
-			Size = UDim2.new(1, 0, 0, 0),
-			AutomaticSize = "Y",
+			Size = if IsTopHolder
+				then UDim2.new(0, 0, 1, 0)
+				elseif IsIconOnly then UDim2.fromScale(1, 1)
+				else UDim2.new(1, 0, 0, 0),
+			AutomaticSize = if IsTopHolder
+				then Enum.AutomaticSize.X
+				elseif IsIconOnly then Enum.AutomaticSize.None
+				else Enum.AutomaticSize.Y,
 			ThemeTag = {
 				ImageColor3 = "Text",
 			},
@@ -174,6 +191,9 @@ function TabModule.New(Config, UIScale)
 				Padding = UDim.new(0, 2 + (Window.UIPadding / 2)),
 				FillDirection = "Horizontal",
 				VerticalAlignment = "Center",
+				HorizontalAlignment = if IsIconOnly
+					then Enum.HorizontalAlignment.Center
+					else Enum.HorizontalAlignment.Left,
 			}),
 			New("TextLabel", {
 				Text = Tab.Title,
@@ -183,11 +203,12 @@ function TabModule.New(Config, UIScale)
 				TextColor3 = Tab.Golden and Color3.fromRGB(255, 232, 144) or nil,
 				TextTransparency = not Tab.Locked and (Tab.Golden and 0.12 or 0.4) or 0.7,
 				TextSize = 15,
-				Size = UDim2.new(1, 0, 0, 0),
+				Size = if IsTopHolder then UDim2.new(0, 0, 1, 0) else UDim2.new(1, 0, 0, 0),
 				FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
 				TextWrapped = true,
 				RichText = true,
-				AutomaticSize = "Y",
+				AutomaticSize = if IsTopHolder then Enum.AutomaticSize.X else Enum.AutomaticSize.Y,
+				Visible = not IsIconOnly,
 				LayoutOrder = 2,
 				TextXAlignment = "Left",
 				BackgroundTransparency = 1,
@@ -253,9 +274,10 @@ function TabModule.New(Config, UIScale)
 	local Icon2
 
 	if Tab.Icon then
+		local IconCacheName = tostring(Tab.Icon) .. ":" .. Tab.Title
 		Icon = Creator.Image(
 			Tab.Icon,
-			Tab.Icon .. ":" .. Tab.Title,
+			IconCacheName,
 			0,
 			Window.Folder,
 			Tab.__type,
@@ -263,19 +285,21 @@ function TabModule.New(Config, UIScale)
 			Tab.IconThemed,
 			"TabIcon"
 		)
-		Icon.Size = UDim2.new(0, 16, 0, 16)
+		Icon.Size = UDim2.fromOffset(IsIconOnly and 20 or 16, IsIconOnly and 20 or 16)
 		local IconTarget = GetImageTarget(Icon)
 		if Tab.IconColor and IconTarget then
 			IconTarget.ImageColor3 = Tab.IconColor
 		end
-		if not Tab.IconShape then
+		if not Tab.IconShape or IsIconOnly then
 			Icon.Parent = Tab.UIElements.Main.Frame
 			Tab.UIElements.Icon = Icon
 			if IconTarget then
 				IconTarget.ImageTransparency = not Tab.Locked and 0 or 0.7
 			end
 			TextOffset = -16 - 2 - (Window.UIPadding / 2)
-			Tab.UIElements.Main.Frame.TextLabel.Size = UDim2.new(1, TextOffset, 0, 0)
+			if not IsTopHolder and not IsIconOnly then
+				Tab.UIElements.Main.Frame.TextLabel.Size = UDim2.new(1, TextOffset, 0, 0)
+			end
 		elseif Tab.IconColor then
 			local _IconBG = Creator.NewRoundFrame(
 				Tab.IconShape ~= "Circle" and (Tab.UICorner + 5 - (2 + (Window.UIPadding / 4))) or 9999,
@@ -326,8 +350,7 @@ function TabModule.New(Config, UIScale)
 			Tab.UIElements.Main.Frame.TextLabel.Size = UDim2.new(1, TextOffset, 0, 0)
 		end
 
-		Icon2 =
-			Creator.Image(Tab.Icon, Tab.Icon .. ":" .. Tab.Title, 0, Window.Folder, Tab.__type, true, Tab.IconThemed)
+		Icon2 = Creator.Image(Tab.Icon, IconCacheName, 0, Window.Folder, Tab.__type, true, Tab.IconThemed)
 		Icon2.Size = UDim2.new(0, 16, 0, 16)
 		local Icon2Target = GetImageTarget(Icon2)
 		if Icon2Target then
@@ -459,18 +482,19 @@ function TabModule.New(Config, UIScale)
 	end
 
 	local ToolTip
+	local TooltipText = if IsIconOnly then Tab.Desc or Tab.Title else Tab.Desc
 	local hoverTimer
 	local MouseConn
 	local IsHovering = false
 
 	-- ToolTip
-	if Tab.Desc then
+	if TooltipText then
 		Creator.AddSignal(Tab.UIElements.Main.InputBegan, function()
 			IsHovering = true
 			hoverTimer = task.spawn(function()
 				task.wait(0.35)
 				if IsHovering and not ToolTip then
-					ToolTip = CreateToolTip(Tab.Desc, TabModule.ToolTipParent, true)
+					ToolTip = CreateToolTip(TooltipText, TabModule.ToolTipParent, true)
 					ToolTip.Container.AnchorPoint = Vector2.new(0.5, 0.5)
 
 					local function updatePosition()
@@ -503,7 +527,7 @@ function TabModule.New(Config, UIScale)
 		end
 	end)
 	Creator.AddSignal(Tab.UIElements.Main.InputEnded, function()
-		if Tab.Desc then
+		if TooltipText then
 			IsHovering = false
 			if hoverTimer then
 				task.cancel(hoverTimer)
@@ -641,28 +665,32 @@ function TabModule.New(Config, UIScale)
 			-- 	ImageTransparency = 0.6,
 			-- }),
 			EmptyPageIcon,
-			Tab.CustomEmptyPage.Title and New("TextLabel", { -- Title
-				AutomaticSize = "XY",
-				Text = Tab.CustomEmptyPage.Title,
-				ThemeTag = {
-					TextColor3 = "Text",
-				},
-				TextSize = 18,
-				TextTransparency = 0.5,
-				BackgroundTransparency = 1,
-				FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
-			}) or nil,
-			Tab.CustomEmptyPage.Desc and New("TextLabel", { -- Desc
-				AutomaticSize = "XY",
-				Text = Tab.CustomEmptyPage.Desc,
-				ThemeTag = {
-					TextColor3 = "Text",
-				},
-				TextSize = 15,
-				TextTransparency = 0.65,
-				BackgroundTransparency = 1,
-				FontFace = Font.new(Creator.Font, Enum.FontWeight.Regular),
-			}) or nil,
+			Tab.CustomEmptyPage.Title
+					and New("TextLabel", { -- Title
+						AutomaticSize = "XY",
+						Text = Tab.CustomEmptyPage.Title,
+						ThemeTag = {
+							TextColor3 = "Text",
+						},
+						TextSize = 18,
+						TextTransparency = 0.5,
+						BackgroundTransparency = 1,
+						FontFace = Font.new(Creator.Font, Enum.FontWeight.Medium),
+					})
+				or nil,
+			Tab.CustomEmptyPage.Desc
+					and New("TextLabel", { -- Desc
+						AutomaticSize = "XY",
+						Text = Tab.CustomEmptyPage.Desc,
+						ThemeTag = {
+							TextColor3 = "Text",
+						},
+						TextSize = 15,
+						TextTransparency = 0.65,
+						BackgroundTransparency = 1,
+						FontFace = Font.new(Creator.Font, Enum.FontWeight.Regular),
+					})
+				or nil,
 		})
 
 		-- Empty.TextLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
@@ -721,8 +749,15 @@ local function ApplyTabMotionVisual(TabObject, Active)
 			Rail.ImageColor3 = Active and Color3.fromRGB(255, 232, 132) or Color3.fromRGB(255, 214, 92)
 		end
 
+		local RailSize
+		if TabObject.HolderType == "top" then
+			RailSize = Active and UDim2.new(1, -16, 0, 3) or UDim2.new(0, 0, 0, 3)
+		else
+			RailSize = Active and UDim2.new(0, 3, 1, -12) or UDim2.new(0, 3, 0, 0)
+		end
+
 		Motion.Play(Rail, "Switch", {
-			Size = Active and UDim2.new(0, 3, 1, -12) or UDim2.new(0, 3, 0, 0),
+			Size = RailSize,
 			ImageTransparency = Active and 0.08 or 1,
 		}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "TabRail")
 	end

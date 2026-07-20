@@ -17,6 +17,35 @@ The notification stack is responsive from mobile to desktop, keeps the newest it
 
 WindUI uses Roblox's native [`UIShadow`](https://create.roblox.com/docs/reference/engine/classes/UIShadow) and individual `UICorner` radii when available. The dark surface overlay and old frame-shadow fallback are both disabled by default; unsupported clients simply render without a shadow unless `FallbackShadow = true` is requested.
 
+## Notification Types
+
+`Type` selects the renderer while `Style` selects its status color. `Normal` is the modern capsule/card renderer, `Window` is a Windows-inspired app card with an optional selector and actions, and `Originally` restores the compact classic WindUI presentation.
+
+```luau
+WindUI:Notify({
+    Type = "Window",
+    AppName = "WindUI",
+    AppIcon = "lucide:app-window",
+    Title = "Feature Launch Party",
+    Content = "Studio S / Ballroom\n4:00 PM",
+    Selection = {
+        Value = "Going",
+        Values = { "Going", "Maybe", "Not going" },
+    },
+    Buttons = {
+        { Title = "RSVP", Close = false },
+        { Title = "Dismiss" },
+    },
+    Duration = false,
+})
+
+WindUI:Notify({
+    Type = "Originally",
+    Title = "Classic WindUI",
+    Content = "The original compact notification surface.",
+})
+```
+
 <Tabs defaultValue="small">
     <TabsList>
         <TabsTrigger value="small">Basic</TabsTrigger>
@@ -175,7 +204,7 @@ Close reasons include `Timeout`, `Dismissed`, `Action`, `Overflow`, and `Manual`
 
 ## Styles
 
-Use `Style`, `Type`, or `Variant` to pick the notification preset. Aliases like `warn`, `successful`, and `green` are normalized automatically.
+Use `Style` or `Variant` to pick the status preset. Aliases like `warn`, `successful`, and `green` are normalized automatically. For backward compatibility, `Type = "Success"` still works when the value is not one of the three renderer names.
 
 ```luau
 WindUI:Notify({
@@ -202,12 +231,16 @@ WindUI:Notify({
 
 <TypeTable
     data={[
-        { name: "Title", type: "string", description: "Notification title", default: "Notification" },
-        { name: "Content", type: "string", description: "Notification message text", default: "nil" },
+		{ name: "Title", type: "string", description: "Notification title", default: "Notification" },
+		{ name: "Content", type: "string", description: "Notification message text", default: "nil" },
+		{ name: "Type / NotificationType", type: '"Normal" | "Window" | "Originally"', description: "Select the modern, Windows-inspired, or classic WindUI renderer.", default: "Normal" },
 		{ name: "Appearance / Layout", type: '"Compact" | "Card" | "Glass"', description: "Capsule, metadata card, or accented glass presentation.", default: "Compact" },
 		{ name: "LiquidGlass / Glass", type: "boolean?", description: "Apply the translucent Liquid Glass texture to any appearance.", default: "true for Glass appearance" },
 		{ name: "GlassTransparency", type: "number?", description: "Liquid Glass texture transparency from 0 to 1.", default: "0.78" },
-        { name: "Style / Type / Variant", type: '"Info" | "Notice" | "Success" | "Warning" | "Error" | "Neutral"', description: "Visual preset. Common aliases like warn, successful and green are supported.", default: "Info" },
+		{ name: "Style / Variant", type: '"Info" | "Notice" | "Success" | "Warning" | "Error" | "Neutral"', description: "Status color preset. Common aliases like warn, successful and green are supported.", default: "Info" },
+		{ name: "AppName / App", type: "string?", description: "Application label shown by Window notifications.", default: "WindUI" },
+		{ name: "AppIcon", type: "icon?", description: "Application icon shown by Window notifications.", default: "Icon or bell" },
+		{ name: "Selection", type: "{ Value: any?, Values: { any }?, Callback: function? }?", description: "Optional in-card selector for Window notifications; each press advances to the next value.", default: "nil" },
 		{ name: "Icon", type: "string | number | table | Instance?", description: "Icon from any registered source, Roblox asset, URL, descriptor, or image instance.", default: "style icon" },
         { name: "Icon = false", type: "boolean?", description: "Disable the style icon bubble.", default: "nil" },
 		{ name: "Avatar", type: "string | number | table | Instance?", description: "Avatar rendered as a directly clipped ImageLabel; selects Card appearance when Appearance is omitted.", default: "nil" },

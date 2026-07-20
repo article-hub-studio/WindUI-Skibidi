@@ -124,7 +124,8 @@ function Element:New(Config)
 		if Toggle.Type == "Toggle" then
 			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.InputBegan, function(Input)
 				if
-					not Config.Window.IsToggleDragging
+					not Toggle.Locked
+					and not Config.Window.IsToggleDragging
 					and (
 						Input.UserInputType == Enum.UserInputType.MouseButton1
 						or Input.UserInputType == Enum.UserInputType.Touch
@@ -146,8 +147,32 @@ function Element:New(Config)
 		-- end)
 	else
 		if Toggle.Type == "Toggle" then
+			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.InputBegan, function(Input)
+				if
+					not Toggle.Locked
+					and (
+						Input.UserInputType == Enum.UserInputType.MouseButton1
+						or Input.UserInputType == Enum.UserInputType.Touch
+					)
+				then
+					ToggleFunc:BeginHold()
+				end
+			end)
+			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.InputEnded, function(Input)
+				if
+					Input.UserInputType == Enum.UserInputType.MouseButton1
+					or Input.UserInputType == Enum.UserInputType.Touch
+				then
+					ToggleFunc:EndHold()
+				end
+			end)
+			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.MouseLeave, function()
+				ToggleFunc:EndHold()
+			end)
 			Creator.AddSignal(ToggleFrame.ToggleFrame.Hitbox.MouseButton1Click, function()
-				Toggle:Toggle(nil, false)
+				if not Toggle.Locked then
+					Toggle:Toggle(nil, false)
+				end
 			end)
 		elseif Toggle.Type == "Checkbox" then
 			Creator.AddSignal(ToggleFrame.MouseButton1Click, function()

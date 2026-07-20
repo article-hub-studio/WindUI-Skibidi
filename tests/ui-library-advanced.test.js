@@ -117,9 +117,22 @@ const checks = {
 	optimizedToggle:
 		/UseGlassSpritesheet = Config\.GlassSpritesheet == true/.test(toggle) &&
 		/UseDrag = Config\.Drag == true/.test(toggle) &&
+		/UseHoldAnimation = Config\.HoldAnimation ~= false/.test(toggle) &&
+		/function Control:BeginHold/.test(toggle) &&
+		/function Control:EndHold/.test(toggle) &&
 		/task\.defer/.test(toggle) &&
 		/ToggleFunc\.UseDrag/.test(toggleElement) &&
 		!/task\.spawn/.test(toggle),
+	tabHolderModes:
+		/TabHolderType = TabHolderType/.test(windowModule) &&
+		/Name = "TopTabHolder"/.test(windowModule) &&
+		/SidebarCompact = SidebarCompact/.test(windowModule) &&
+		/Window\.UIElements\.TabHolder/.test(windowModule) &&
+		/IsIconOnly/.test(fs.readFileSync("src/components/window/Tab.lua", "utf8")),
+	macMenuAccents:
+		/IsMacAccent/.test(windowModule) &&
+		/MacAccent = true/.test(windowModule) &&
+		/#F472B6/.test(windowModule),
 	loadingPlayback:
 		/Name = "Body"/.test(loading) &&
 		/Name = "Percent"/.test(loading) &&
@@ -154,13 +167,16 @@ const checks = {
 		runtime.includes("DropdownBackdrop") &&
 		runtime.includes("InternalCenter") &&
 		runtime.includes("UseGlassSpritesheet") &&
+		runtime.includes("UseHoldAnimation") &&
+		runtime.includes("TopTabHolder") &&
+		runtime.includes("Originally") &&
 		runtime.includes("DarkOverlay") &&
 		runtime.includes("LoadingProgress"),
 	exampleRuntimeCompatibility:
 		/HasIconSourceAPI/.test(example) &&
 		/HasDynamicIslandAPI/.test(example) &&
 		/NotifyOutdatedRuntime/.test(example) &&
-		/ui-runtime-8/.test(example),
+		/ui-runtime-9/.test(example),
 }
 
 const failed = Object.entries(checks).filter(([, ok]) => !ok)

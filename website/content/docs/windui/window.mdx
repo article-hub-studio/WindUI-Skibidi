@@ -43,6 +43,10 @@ local Window = WindUI:CreateWindow({
     Theme = "Dark", -- library theme
     Resizable = true, -- the ability to rezize window
     SideBarWidth = 200, -- sidebar (tabs) width
+    TabHolderType = "sidebar", -- "sidebar" or "top"
+    SidebarCompact = false, -- icon-only sidebar at compact width
+    CompactSideBarWidth = 68,
+    TopTabHeight = 48,
     HideSearchBar = true, -- hide search bar
     ScrollBarEnabled = false, -- scrollbars that are located to the right of the scroll frame
 
@@ -158,10 +162,26 @@ local Window = WindUI:CreateWindow({
             type: 'boolean',
             description: 'Allow users to resize the window by dragging. Default is true.',
         },
-        'SideBarWidth': {
-            type: 'number',
-            description: 'Width of the sidebar containing tabs. Default is 200.',
-        },
+		'SideBarWidth': {
+			type: 'number',
+			description: 'Width of the sidebar containing tabs. Default is 200.',
+		},
+		'TabHolderType': {
+			type: '"sidebar" | "top"',
+			description: 'Place tabs in the vertical sidebar or in a horizontally scrolling row below the topbar.',
+		},
+		'SidebarCompact': {
+			type: 'boolean',
+			description: 'Use an icon-only sidebar with title tooltips. Applies only when TabHolderType is sidebar.',
+		},
+		'CompactSideBarWidth': {
+			type: 'number',
+			description: 'Width of the icon-only compact sidebar. Default is 68.',
+		},
+		'TopTabHeight': {
+			type: 'number',
+			description: 'Height of the horizontal top tab holder. Default is 48.',
+		},
         'HideSearchBar': {
             type: 'boolean',
             description: 'Hide the search bar in the window. Default is true (hidden).',
@@ -242,6 +262,7 @@ local Window = WindUI:CreateWindow({
     ButtonsType = "Default" -- "Default" or "Mac" style
 }`}
                     />
+					<p>In Mac mode, the built-in Settings and KeyBind buttons use purple and pink accent circles. Default mode keeps the standard themed buttons.</p>
                 </>
             ),
         },

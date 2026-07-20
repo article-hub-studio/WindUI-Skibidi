@@ -11,9 +11,11 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 
 	local UseGlassSpritesheet = Config.GlassSpritesheet == true or Config.Spritesheet == true
 	local UseDrag = Config.Drag == true or Config.Draggable == true or Config.Swipe == true
+	local UseHoldAnimation = Config.HoldAnimation ~= false and Config.Hold ~= false
 	local Control = {
 		UseGlassSpritesheet = UseGlassSpritesheet,
 		UseDrag = UseDrag,
+		UseHoldAnimation = UseHoldAnimation,
 		GlassSpritesheet = {
 			Id = "rbxassetid://77297718671545",
 			MirroredId = "rbxassetid://92258969882244",
@@ -264,7 +266,34 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 		end
 	end
 
-	local function FinishPress()
+	function Control:BeginHold()
+		if not UseHoldAnimation then
+			return
+		end
+
+		Motion.Play(
+			ToggleFrame.Frame.Bar.UIScale,
+			"Focus",
+			{ Scale = 1.22 },
+			Enum.EasingStyle.Quint,
+			Enum.EasingDirection.Out,
+			"Press"
+		)
+		Motion.Play(
+			ToggleFrame.Frame.Bar.Highlight.BarOverlay,
+			"Focus",
+			{ ImageTransparency = 0.84 },
+			Enum.EasingStyle.Quint,
+			Enum.EasingDirection.Out,
+			"Press"
+		)
+	end
+
+	function Control:EndHold()
+		if not UseHoldAnimation then
+			return
+		end
+
 		Motion.Play(
 			ToggleFrame.Frame.Bar.UIScale,
 			"Focus",
@@ -306,22 +335,7 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 		local IsScrolling = false
 		local HasDragged = false
 
-		Motion.Play(
-			ToggleFrame.Frame.Bar.UIScale,
-			"Focus",
-			{ Scale = 1.35 },
-			Enum.EasingStyle.Quint,
-			Enum.EasingDirection.Out,
-			"Press"
-		)
-		Motion.Play(
-			ToggleFrame.Frame.Bar.Highlight.BarOverlay,
-			"Focus",
-			{ ImageTransparency = 0.86 },
-			Enum.EasingStyle.Quint,
-			Enum.EasingDirection.Out,
-			"Press"
-		)
+		Control:BeginHold()
 
 		DisconnectDrag()
 		DragConnection = UserInputService.InputChanged:Connect(function(InputChanged)
@@ -384,12 +398,13 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 				ToggleObject:Set(NewValue, true, false)
 			end
 
-			FinishPress()
+			Control:EndHold()
 		end)
 	end
 
 	function Control:Destroy()
 		DisconnectDrag()
+		Control:EndHold()
 		if Config.Window then
 			Config.Window.IsToggleDragging = false
 		end
