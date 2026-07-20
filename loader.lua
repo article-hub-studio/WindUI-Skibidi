@@ -1,4 +1,4 @@
-local CACHE_KEY = "1.6.65-ui-runtime-8"
+local CACHE_KEY = "1.6.65-ui-runtime-9"
 local REQUIRED_API = {
 	"RegisterIconPack",
 	"GetIconSources",
@@ -6,13 +6,17 @@ local REQUIRED_API = {
 	"HideOpenButton",
 	"AdapterVersion=3",
 	"CreateUIShadow",
-	'LayoutVersion",3',
+	'LayoutVersion",4',
 	"WindUILinkedCorner",
 	"WindowMorphScale",
 	"DropdownBackdrop",
 	"InternalCenter",
 	"DirectImageLabel",
 	"UseGlassSpritesheet",
+	"UseHoldAnimation",
+	"TopTabHolder",
+	"Originally",
+	"MacAccent",
 	"DarkOverlay",
 	"LoadingProgress",
 }
