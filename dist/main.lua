@@ -14508,7 +14508,6 @@ if ap then return end
 if aE and not(aE.UserInputType==Enum.UserInputType.MouseButton1 or aE.UserInputType==Enum.UserInputType.Touch)then
 aE=nil
 end
-
 if aE then
 
 if not aL then
@@ -14520,10 +14519,12 @@ am=(aE.UserInputType==Enum.UserInputType.Touch)
 aA.ScrollingEnabled=false
 ap=true
 
-local aM=am and aE.Position.X or ad:GetMouseLocation().X
-local aN=aF.UIElements.SliderIcon.AbsolutePosition.X
-local aO=aF.UIElements.SliderIcon.AbsoluteSize.X
-local aP=math.clamp((aM-aN)/aO,0,1)
+
+local aM=am and(aE.Position and aE.Position.X or 0)or(ad and ad:GetMouseLocation().X or 0)
+local aN=(aF.UIElements and aF.UIElements.SliderIcon and aF.UIElements.SliderIcon.AbsolutePosition)and aF.UIElements.SliderIcon.AbsolutePosition.X or 0
+local aO=(aF.UIElements and aF.UIElements.SliderIcon and aF.UIElements.SliderIcon.AbsoluteSize)and aF.UIElements.SliderIcon.AbsoluteSize.X or 1
+
+local aP=aO>0 and math.clamp((aM-aN)/aO,0,1)or 0
 
 local aQ=aG+aP*(aH-aG)
 aD=snapValue(aQ)
@@ -14543,10 +14544,12 @@ end
 
 an=af.AddSignal(ae.RenderStepped,function()
 if not aL then return end
-local aR=am and aE.Position.X or ad:GetMouseLocation().X
-local aS=aF.UIElements.SliderIcon.AbsolutePosition.X
-local aT=aF.UIElements.SliderIcon.AbsoluteSize.X
-local aU=math.clamp((aR-aS)/aT,0,1)
+
+local aR=am and(aE.Position and aE.Position.X or 0)or(ad and ad:GetMouseLocation().X or 0)
+local aS=(aF.UIElements and aF.UIElements.SliderIcon and aF.UIElements.SliderIcon.AbsolutePosition)and aF.UIElements.SliderIcon.AbsolutePosition.X or 0
+local aT=(aF.UIElements and aF.UIElements.SliderIcon and aF.UIElements.SliderIcon.AbsoluteSize)and aF.UIElements.SliderIcon.AbsoluteSize.X or 1
+
+local aU=aT>0 and math.clamp((aR-aS)/aT,0,1)or 0
 local aV=aG+aU*(aH-aG)
 aD=snapValue(aV)
 if aD~=ar then
@@ -14592,29 +14595,35 @@ af.SafeCallback(aF.Callback,formatValue(aD))
 end
 end
 end
-
 function al.SetMax(aC,aD)
+aD=aD or 100
 al.Value.Max=aD
 
-local aE=tonumber(al.Value.Default)or ar
-if aE>aD then
+local aE=al.Value.Min or 0
+local aF=tonumber(al.Value.Default)or ar or aE
+
+if aF>aD then
 al:Set(aD)
 else
-local aF=
-math.clamp((aE-(al.Value.Min or 0))/(aD-(al.Value.Min or 0)),0,1)
-SetFillSize(aF,"Fast")
+local aG=aD-aE
+local aH=aG~=0 and math.clamp((aF-aE)/aG,0,1)or 0
+SetFillSize(aH,"Fast")
 end
 end
 
 function al.SetMin(aC,aD)
+aD=aD or 0
 al.Value.Min=aD
 
-local aE=tonumber(al.Value.Default)or ar
-if aE<aD then
+local aE=al.Value.Max or 100
+local aF=tonumber(al.Value.Default)or ar or aD
+
+if aF<aD then
 al:Set(aD)
 else
-local aF=math.clamp((aE-aD)/((al.Value.Max or 100)-aD),0,1)
-SetFillSize(aF,"Fast")
+local aG=aE-aD
+local aH=aG~=0 and math.clamp((aF-aD)/aG,0,1)or 0
+SetFillSize(aH,"Fast")
 end
 end
 
