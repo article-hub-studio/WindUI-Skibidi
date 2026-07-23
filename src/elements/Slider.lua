@@ -283,7 +283,11 @@ function Element:New(Config)
 	function Slider:Set(Value, input)
 		-- Safety Guards 1
 		if not Slider then return end
-
+        if not Slider.Value then
+        Slider.Value = { Min = 0, Max = 100, Default = 1 }
+    end
+    Slider.Value.Min = Slider.Value.Min or 0
+    Slider.Value.Max = Slider.Value.Max or 100
 		-- Safety Guards 3
 		if not Slider.Value then
 			Slider.Value = { Min = 0, Max = 100, Default = 0 }
