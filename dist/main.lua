@@ -14154,7 +14154,10 @@ Title=ak.Title or nil,
 Desc=ak.Desc or nil,
 Locked=ak.Locked or nil,
 LockedTitle=ak.LockedTitle,
-Value=ak.Value or{},
+Value=ak.Value or{
+Min=ak.Min or 0,
+Max=ak.Max or 100,
+Default=ak.Default or ak.Min or 0,},
 Icons=ak.Icons or nil,
 IsTooltip=ak.IsTooltip or false,
 IsTextbox=ak.IsTextbox,
@@ -14184,7 +14187,11 @@ local am
 local an
 local ao
 local ap=false
-local aq=al.Value.Default or al.Value.Min or 0
+al.Value.Min=al.Value.Min or 0
+al.Value.Max=al.Value.Max or 100
+al.Value.Default=al.Value.Default or al.Value.Min
+
+local aq=al.Value.Default
 
 local ar=aq
 local as=(aq-(al.Value.Min or 0))/((al.Value.Max or 100)-(al.Value.Min or 0))
@@ -14565,11 +14572,16 @@ end)
 else
 
 aD=math.clamp(aD,aG,aH)
-local aM=(aD-aG)/(aH-aG)
+if typeof(aD)~="number"then
+aD=aG
+end
+
+local aM=aH-aG
+local aN=aM~=0 and((aD-aG)/aM)or 0
 aD=snapValue(aD)
 
 if aD~=ar then
-SetFillSize(aM,"Fast")
+SetFillSize(aN,"Fast")
 aF.UIElements.SliderContainer.TextBox.Text=formatValue(aD)
 if az then
 az.TitleFrame.Text=formatValue(aD)
