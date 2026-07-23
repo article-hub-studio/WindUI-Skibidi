@@ -14420,35 +14420,29 @@ end
 end
 
 function al.Set(aB,aC,aD)
-
 if not al then return end
 if not al.Value then
 al.Value={Min=0,Max=100,Default=1}
 end
 al.Value.Min=al.Value.Min or 0
 al.Value.Max=al.Value.Max or 100
-
 if not al.Value then
-al.Value={Min=0,Max=100,Default=0}
+al.Value={Min=0,Max=100,Default=1}
 end
-
 
 al.Value.Min=al.Value.Min or 0
 al.Value.Max=al.Value.Max or 100
-
 
 if aC==nil then
 warn"Slider:Set() called with nil value – using current default"
 aC=al.Value.Default or al.Value.Min or 0
 end
 
-
 local aE=al.UIElements
 and al.UIElements.SliderIcon
 and al.UIElements.SliderIcon.AbsolutePosition
 and al.UIElements.SliderIcon.AbsoluteSize
 and al.UIElements.SliderIcon.AbsoluteSize.X>0
-
 
 if at then
 if
