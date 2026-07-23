@@ -14422,10 +14422,15 @@ end
 end
 
 function al.Set(aB,aC,aD)
-al.Value.Min=al.Value.Min or 0
-al.Value.Max=al.Value.Max or 100
-if not al then return end
-
+aB.Value.Min=al.Value.Min or 0
+aB.Value.Max=al.Value.Max or 100
+if not aB.Value then return end
+if not aC then aC = aB.Value.Default or aB.Value.Min or 0 end
+if not aB.UIElements or not aB.UIElements.SliderIcon then return end
+local sliderSize = aB.UIElements.SliderIcon.AbsoluteSize and aB.UIElements.SliderIcon.AbsoluteSize.X
+if not sliderSize or sliderSize == 0 then return end                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+if not aB then return end
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 if aC==nil then
 warn"Slider:Set() called with nil value – using current default"
 aC=al.Value.Default or al.Value.Min or 0
@@ -14522,7 +14527,15 @@ local aF=math.clamp(
 0,
 1
 )
-aC=CalculateValue(al.Value.Min+aF*(al.Value.Max-al.Value.Min))
+local newVal = pcall(function()
+    return CalculateValue(al.Value.Min + aF * (al.Value.Max - al.Value.Min))
+end)
+if newVal then
+    aC = newVal
+else
+    warn("Slider arithmetic failed – using current value")
+    aC = LastValue or 0
+end
 
 if aC~=ar then
 SetFillSize(aF,"Fast")
