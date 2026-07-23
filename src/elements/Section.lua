@@ -132,10 +132,10 @@ function Element:New(Config)
 		Parent = Config.Parent,
 		--ClipsDescendants = true,
 		AutomaticSize = "Y",
-		ThemeTag = {
-			ImageTransparency = Section.Box and "SectionBoxBackgroundTransparency" or nil,
+		ThemeTag = Section.Box and {
+			ImageTransparency = "SectionBoxBackgroundTransparency",
 			ImageColor3 = "SectionBoxBackground",
-		},
+		} or nil,
 		ImageTransparency = not Section.Box and 1 or nil,
 	}, {
 		Creator.NewRoundFrame(Config.Window.ElementConfig.UICorner - 1, "SquircleOutline", {

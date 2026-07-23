@@ -18,7 +18,7 @@ local lEncode, lDecode, lDigest = a3, aw, Z;
 
 local Platoboost = {}
 
-local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local cloneref = require("../cloneref")
 
 
 function Platoboost.New(Service, Secret)

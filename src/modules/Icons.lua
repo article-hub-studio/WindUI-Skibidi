@@ -1,6 +1,4 @@
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../utils/cloneref")
 
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local HttpService = cloneref(game:GetService("HttpService"))

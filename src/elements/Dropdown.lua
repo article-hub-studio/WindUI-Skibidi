@@ -1,10 +1,7 @@
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../utils/cloneref")
 
 local UserInputService = cloneref(game:GetService("UserInputService"))
-local Mouse = cloneref(game:GetService("Players")).LocalPlayer:GetMouse()
-local Camera = cloneref(game:GetService("Workspace")).CurrentCamera
+local Players = cloneref(game:GetService("Players"))
 
 local Creator = require("../modules/Creator")
 local New = Creator.New
@@ -155,7 +152,7 @@ function Element:New(Config)
 
 	function Dropdown:Lock()
 		Dropdown.Locked = true
-		if Dropdown.Opened or Dropdown.UIElements.MenuCanvas.Visible then
+		if Dropdown.Opened or (Dropdown.UIElements.MenuCanvas and Dropdown.UIElements.MenuCanvas.Visible) then
 			Dropdown:Close()
 		end
 		return Dropdown.DropdownFrame:Lock(Dropdown.LockedTitle)

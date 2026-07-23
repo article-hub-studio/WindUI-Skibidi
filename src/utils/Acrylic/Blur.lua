@@ -1,6 +1,6 @@
 -- Credits: Fluent - Dawid
 
-local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local cloneref = require("../cloneref")
 
 
 local Creator = require("../../modules/Creator")

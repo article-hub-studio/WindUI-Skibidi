@@ -1,6 +1,4 @@
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../utils/cloneref")
 
 local UserInputService = cloneref(game:GetService("UserInputService"))
 
@@ -160,9 +158,15 @@ function Element:New(Config: ConfigType)
 	end)
 
 	Creator.AddSignal(UserInputService.TouchPinch, function(touchPositions, scale, velocity, state)
+		if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			Pinching = false
+			return
+		end
+
 		if not IsTouchInsideViewport(touchPositions[1]) or not IsTouchInsideViewport(touchPositions[2]) then
 			return
 		end
+
 		if Viewport.Interactive then
 			if state == Enum.UserInputState.Begin then
 				Pinching = true
@@ -175,8 +179,6 @@ function Element:New(Config: ConfigType)
 					LastPinchDist = currentDist
 					Viewport.Camera.CFrame += Viewport.Camera.CFrame.LookVector * delta
 				end
-			elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-				Pinching = false
 			end
 		end
 	end)

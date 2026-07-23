@@ -1,8 +1,6 @@
 -- /* src/components/Window/Init.lua */
 
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../../utils/cloneref")
 
 local UserInputService = cloneref(game:GetService("UserInputService"))
 local RunService = cloneref(game:GetService("RunService"))
@@ -44,6 +42,18 @@ return function(Config)
 			return Alias
 		end
 		return Default
+	end
+
+	if Config.TypeWindow then
+		local TypeWindowPresets = require("../../themes/TypeWindow")
+		local Preset = TypeWindowPresets[Config.TypeWindow]
+		if Preset then
+			for key, value in next, Preset do
+				if Config[key] == nil then
+					Config[key] = value
+				end
+			end
+		end
 	end
 
 	if UseDefaultPreset then
@@ -141,6 +151,7 @@ return function(Config)
 			or (typeof(Config.ElementsLinkCorners) == "table" and Config.ElementsLinkCorners),
 		Watermark = Config.Watermark ~= nil and Config.Watermark or Config.WaterMark,
 		KeyBindMenu = Config.KeyBindMenu == false and false or (Config.KeyBindMenu or {}),
+		TypeWindow = Config.TypeWindow,
 		HideSearchBar = Config.HideSearchBar ~= false or SidebarCompact,
 		ScrollBarEnabled = Config.ScrollBarEnabled or false,
 		SideBarWidth = SideBarWidth,

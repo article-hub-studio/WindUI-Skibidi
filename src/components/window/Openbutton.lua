@@ -4,9 +4,7 @@ local Creator = require("../../modules/Creator")
 local New = Creator.New
 local Tween = Creator.Tween
 
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../../utils/cloneref")
 
 local TextService = cloneref(game:GetService("TextService"))
 

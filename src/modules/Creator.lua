@@ -1,6 +1,4 @@
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../utils/cloneref")
 
 local RunService = cloneref(game:GetService("RunService"))
 local UserInputService = cloneref(game:GetService("UserInputService"))
@@ -932,6 +930,14 @@ function Creator.Drag(mainFrame, dragFrames, ondrag)
 			end
 		end)
 	end
+
+	TrackConnection(UserInputService.TouchEnded, function(touchInput)
+		if activeInput and activeInput.UserInputType == Enum.UserInputType.Touch then
+			if touchInput == activeInput then
+				StopDragging()
+			end
+		end
+	end)
 
 	TrackConnection(UserInputService.InputChanged, function(input)
 		if not dragging then

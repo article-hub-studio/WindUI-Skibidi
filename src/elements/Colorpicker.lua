@@ -2,12 +2,9 @@ local Creator = require("../modules/Creator")
 local New = Creator.New
 local Tween = Creator.Tween
 
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../utils/cloneref")
 
 local UserInputService = cloneref(game:GetService("UserInputService"))
-local TouchInputService = cloneref(game:GetService("TouchInputService"))
 local RunService = cloneref(game:GetService("RunService"))
 local Players = cloneref(game:GetService("Players"))
 
@@ -537,8 +534,12 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 		if Factor == 0 then
 			return math.floor(Number)
 		end
-		Number = tostring(Number)
-		return Number:find("%.") and tonumber(Number:sub(1, Number:find("%.") + Factor)) or Number
+		local Str = tostring(Number)
+		local DotPos = Str:find("%.")
+		if DotPos then
+			return tonumber(Str:sub(1, DotPos + Factor))
+		end
+		return tonumber(Str) or 0
 	end
 
 	function Colorpicker:Update(color, transparency)
@@ -561,13 +562,14 @@ function Element:Colorpicker(Config, Window, WindUI, OnApply)
 		BlueInput.Frame.Frame.TextBox.Text = ToRGB(Color3.fromHSV(Hue, Sat, Vib))["B"]
 
 		if transparency or IsTransparency then
-			NewDisplayFrame.BackgroundTransparency = Colorpicker.Transparency or transparency
+			local CurrentTransparency = Colorpicker.Transparency or transparency
+			NewDisplayFrame.BackgroundTransparency = CurrentTransparency
 			TransparencyColor.BackgroundColor3 = Color3.fromHSV(Hue, Sat, Vib)
 			TransparencyDrag.BackgroundColor3 = Color3.fromHSV(Hue, Sat, Vib)
-			TransparencyDrag.BackgroundTransparency = Colorpicker.Transparency or transparency
-			TransparencyDrag.Position = UDim2.new(0.5, 0, 1 - Colorpicker.Transparency or transparency, 0)
+			TransparencyDrag.BackgroundTransparency = CurrentTransparency
+			TransparencyDrag.Position = UDim2.new(0.5, 0, 1 - CurrentTransparency, 0)
 			AlphaInput.Frame.Frame.TextBox.Text = Colorpicker:Round(
-				(1 - Colorpicker.Transparency or transparency) * 100,
+				(1 - CurrentTransparency) * 100,
 				0
 			) .. "%"
 		end

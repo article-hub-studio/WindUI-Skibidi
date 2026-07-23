@@ -4,9 +4,7 @@
     
 ]]
 
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("../cloneref")
 
 local HttpService = cloneref(game:GetService("HttpService"))
 local PandaDevelopment = {}

@@ -31,9 +31,7 @@ WindUI.IconAdapterVersion = WindUI.Creator.IconAdapterVersion
 
 local Creator = WindUI.Creator
 
-local cloneref = (cloneref or clonereference or function(instance)
-	return instance
-end)
+local cloneref = require("./utils/cloneref")
 
 WindUI.cloneref = cloneref
 

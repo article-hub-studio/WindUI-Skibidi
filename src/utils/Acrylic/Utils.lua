@@ -1,7 +1,7 @@
 -- Credits: Fluent - Dawid
 
 
-local cloneref = (cloneref or clonereference or function(instance) return instance end)
+local cloneref = require("../cloneref")
 
 
 local function map(value, inMin, inMax, outMin, outMax)
