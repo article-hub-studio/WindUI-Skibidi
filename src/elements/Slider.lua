@@ -302,132 +302,145 @@ function Element:New(Config)
 			Tooltip:Close(false)
 		end
 	end
+function Slider:Set(Value, input)
+    local self = Slider  -- alias
 
-	function Slider:Set(Value, input)
-		if not Slider then return end
+    if not self.Value then
+        self.Value = { Min = 0, Max = 100, Default = 0 }
+    end
 
-		if not Slider.Value then
-			Slider.Value = { Min = 0, Max = 100, Default = 0 }
-		end
+    local min = self.Value.Min or 0
+    local max = self.Value.Max or 100
+    self.Value.Min = min
+    self.Value.Max = max
 
-		-- Ensure min and Max are numbers
-		Slider.Value.Min = Slider.Value.Min or 0
-		Slider.Value.Max = Slider.Value.Max or 100
+    if Value == nil then
+        Value = self.Value.Default or min
+    end
 
-		if Value == nil then
-			warn("Slider:Set() called with nil value – using current default")
-			Value = Slider.Value.Default or Slider.Value.Min or 0
-		end
+    local step = self.Step or 1
+    self.Step = step
 
-		local uiReady = Slider.UIElements
-			and Slider.UIElements.SliderIcon
-			and Slider.UIElements.SliderIcon.AbsolutePosition
-			and Slider.UIElements.SliderIcon.AbsoluteSize
-			and Slider.UIElements.SliderIcon.AbsoluteSize.X > 0
+    local isFloat = step % 1 ~= 0
+    local decimalPlaces = 0
+    if isFloat then
+        local stepStr = tostring(step)
+        local dotIdx = stepStr:find("%.")
+        if dotIdx then
+            decimalPlaces = #stepStr:sub(dotIdx + 1)
+        end
+    end
 
-		-- Main Logic
-		if CanCallback then
-			if
-				not Slider.IsFocusing
-				and not IsSliderHolding
-				and (
-					not input
-					or (
-						input.UserInputType == Enum.UserInputType.MouseButton1
-						or input.UserInputType == Enum.UserInputType.Touch
-					)
-				)
-			then
-				if input then
-					-- Drag input
-					if not uiReady then
-						warn("Slider:Set() – UI not rendered, skipping drag input")
-						return
-					end
+    local function formatValue(val)
+        if isFloat then
+            local mult = 10 ^ decimalPlaces
+            return tonumber(string.format("%." .. decimalPlaces .. "f", math.floor(val * mult + 0.5) / mult))
+        else
+            return math.floor(val + 0.5)
+        end
+    end
 
-					isTouch = (input.UserInputType == Enum.UserInputType.Touch)
-					ScrollingFrameParent.ScrollingEnabled = false
-					IsSliderHolding = true
+    local function snapValue(raw)
+        if isFloat then
+            local mult = 10 ^ decimalPlaces
+            return math.floor(raw / step + 0.5) * step
+        else
+            return math.floor(raw / step + 0.5) * step
+        end
+    end
 
-					local inputPosition = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
-					local delta = math.clamp(
-						(inputPosition - Slider.UIElements.SliderIcon.AbsolutePosition.X)
-							/ Slider.UIElements.SliderIcon.AbsoluteSize.X,
-						0,
-						1
-					)
-					Value = CalculateValue(Slider.Value.Min + delta * (Slider.Value.Max - Slider.Value.Min))
-					Value = math.clamp(Value, Slider.Value.Min, Slider.Value.Max)
+    local uiReady = self.UIElements
+        and self.UIElements.SliderIcon
+        and self.UIElements.SliderIcon.AbsolutePosition
+        and self.UIElements.SliderIcon.AbsoluteSize
+        and self.UIElements.SliderIcon.AbsoluteSize.X > 0
 
-					if Value ~= LastValue then
-						SetFillSize(delta, 0)
-						Slider.UIElements.SliderContainer.TextBox.Text = FormatValue(Value)
-						if Tooltip then
-							Tooltip.TitleFrame.Text = FormatValue(Value)
-						end
-						Slider.Value.Default = FormatValue(Value)
-						LastValue = Value
-						Creator.SafeCallback(Slider.Callback, FormatValue(Value))
-					end
+    if not CanCallback then return end
+    if self.IsFocusing then return end
+    if IsSliderHolding then return end
 
-					moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
-						if not uiReady then
-							return
-						end
-						local inputPosition = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
-						local delta = math.clamp(
-							(inputPosition - Slider.UIElements.SliderIcon.AbsolutePosition.X)
-								/ Slider.UIElements.SliderIcon.AbsoluteSize.X,
-							0,
-							1
-						)
-						Value = CalculateValue(Slider.Value.Min + delta * (Slider.Value.Max - Slider.Value.Min))
+    if input and not (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+        input = nil
+    end
 
-						if Value ~= LastValue then
-							SetFillSize(delta, 0)
-							Slider.UIElements.SliderContainer.TextBox.Text = FormatValue(Value)
-							if Tooltip then
-								Tooltip.TitleFrame.Text = FormatValue(Value)
-							end
-							Slider.Value.Default = FormatValue(Value)
-							LastValue = Value
-							Creator.SafeCallback(Slider.Callback, FormatValue(Value))
-						end
-					end)
+    if input then
+        -- Drag input – requires UI to be ready
+        if not uiReady then
+            warn("Slider:Set – UI not ready for drag, skipping")
+            return
+        end
 
-					releaseconnection = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
-						local ReleasedTouch = input.UserInputType == Enum.UserInputType.Touch and endInput == input
-						local ReleasedMouse = input.UserInputType == Enum.UserInputType.MouseButton1
-							and endInput.UserInputType == Enum.UserInputType.MouseButton1
-						if ReleasedTouch or ReleasedMouse then
-							FinishSliderInput()
-						end
-					end)
-				else
-					-- Programmatic set (no input) – safe even if UI not ready
-					Value = math.clamp(Value, Slider.Value.Min, Slider.Value.Max)
+        isTouch = (input.UserInputType == Enum.UserInputType.Touch)
+        ScrollingFrameParent.ScrollingEnabled = false
+        IsSliderHolding = true
 
-					local delta = math.clamp(
-						(Value - Slider.Value.Min) / (Slider.Value.Max - Slider.Value.Min),
-						0,
-						1
-					)
-					Value = CalculateValue(Slider.Value.Min + delta * (Slider.Value.Max - Slider.Value.Min))
+        local inputX = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
+        local iconPos = self.UIElements.SliderIcon.AbsolutePosition.X
+        local iconSize = self.UIElements.SliderIcon.AbsoluteSize.X
+        local delta = math.clamp((inputX - iconPos) / iconSize, 0, 1)
 
-					if Value ~= LastValue then
-						SetFillSize(delta, "Fast")
-						Slider.UIElements.SliderContainer.TextBox.Text = FormatValue(Value)
-						if Tooltip then
-							Tooltip.TitleFrame.Text = FormatValue(Value)
-						end
-						Slider.Value.Default = FormatValue(Value)
-						LastValue = Value
-						Creator.SafeCallback(Slider.Callback, FormatValue(Value))
-					end
-				end
-			end
-		end
-	end
+        local rawValue = min + delta * (max - min)
+        Value = snapValue(rawValue)
+        Value = math.clamp(Value, min, max)
+
+        if Value ~= LastValue then
+            SetFillSize(delta, 0)
+            self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
+            if Tooltip then
+                Tooltip.TitleFrame.Text = formatValue(Value)
+            end
+            self.Value.Default = formatValue(Value)
+            LastValue = Value
+            Creator.SafeCallback(self.Callback, formatValue(Value))
+        end
+
+        -- RenderStepped update
+        moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
+            if not uiReady then return end
+            local inputX = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
+            local iconPos = self.UIElements.SliderIcon.AbsolutePosition.X
+            local iconSize = self.UIElements.SliderIcon.AbsoluteSize.X
+            local delta = math.clamp((inputX - iconPos) / iconSize, 0, 1)
+            local rawValue = min + delta * (max - min)
+            Value = snapValue(rawValue)
+            if Value ~= LastValue then
+                SetFillSize(delta, 0)
+                self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
+                if Tooltip then
+                    Tooltip.TitleFrame.Text = formatValue(Value)
+                end
+                self.Value.Default = formatValue(Value)
+                LastValue = Value
+                Creator.SafeCallback(self.Callback, formatValue(Value))
+            end
+        end)
+
+        releaseconnection = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
+            local isTouchRelease = input.UserInputType == Enum.UserInputType.Touch and endInput == input
+            local isMouseRelease = input.UserInputType == Enum.UserInputType.MouseButton1
+                and endInput.UserInputType == Enum.UserInputType.MouseButton1
+            if isTouchRelease or isMouseRelease then
+                FinishSliderInput()
+            end
+        end)
+    else
+        -- Programmatic set (no input) – safe even without UI
+        Value = math.clamp(Value, min, max)
+        local delta = (Value - min) / (max - min)
+        Value = snapValue(Value)
+
+        if Value ~= LastValue then
+            SetFillSize(delta, "Fast")
+            self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
+            if Tooltip then
+                Tooltip.TitleFrame.Text = formatValue(Value)
+            end
+            self.Value.Default = formatValue(Value)
+            LastValue = Value
+            Creator.SafeCallback(self.Callback, formatValue(Value))
+        end
+    end
+end
 
 	function Slider:SetMax(newMax)
 		Slider.Value.Max = newMax
@@ -454,9 +467,7 @@ function Element:New(Config)
 		end
 	end
 
-	-- ============================================================
 	--  UPDATED: TextBox FocusLost – accepts decimal input
-	-- ============================================================
 	Creator.AddSignal(Slider.UIElements.SliderContainer.TextBox.FocusLost, function(enterPressed)
 		local newValue = tonumber(Slider.UIElements.SliderContainer.TextBox.Text)
 		if newValue then
