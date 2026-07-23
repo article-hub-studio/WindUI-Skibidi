@@ -14393,102 +14393,116 @@ if ay then
 ay:Close(false)
 end
 end
-
+                                                       
 function al.Set(aB,aC,aD)
-if at then
-if
-not al.IsFocusing
-and not ap
-and(
-not aD
-or(
-aD.UserInputType==Enum.UserInputType.MouseButton1
-or aD.UserInputType==Enum.UserInputType.Touch
-)
-)
-then
-if aD then
-am=(aD.UserInputType==Enum.UserInputType.Touch)
-az.ScrollingEnabled=false
-ap=true
+    if not aB then return end
+    if aC == nil then
+        warn("WindUI-Slider: Set() called with nil value")
+        return
+    end
+    if not aB.Value or aB.Value.Min == nil or aB.Value.Max == nil then
+        warn("WindUI-Slider: Min or Max is nil")
+        return
+    end
+    if not aB.UIElements or not aB.UIElements.SliderIcon then
+        warn("WindUI-Slider: UI Elements not built yet")
+        return
+    end
 
-local aE=am and aD.Position.X or ad:GetMouseLocation().X
-local aF=math.clamp(
-(aE-al.UIElements.SliderIcon.AbsolutePosition.X)
-/al.UIElements.SliderIcon.AbsoluteSize.X,
-0,
-1
-)
-aC=CalculateValue(al.Value.Min+aF*(al.Value.Max-al.Value.Min))
-aC=math.clamp(aC,al.Value.Min or 0,al.Value.Max or 100)
+    if at then
+    if
+    not al.IsFocusing
+    and not ap
+    and(
+    not aD
+    or(
+    aD.UserInputType==Enum.UserInputType.MouseButton1
+    or aD.UserInputType==Enum.UserInputType.Touch
+    )
+    )
+    then
+    if aD then
+    am=(aD.UserInputType==Enum.UserInputType.Touch)
+    az.ScrollingEnabled=false
+    ap=true
 
-if aC~=ar then
-SetFillSize(aF,0)
-al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
-if ay then
-ay.TitleFrame.Text=FormatValue(aC)
-end
-al.Value.Default=FormatValue(aC)
-ar=aC
-af.SafeCallback(al.Callback,FormatValue(aC))
-end
+    local aE=am and aD.Position.X or ad:GetMouseLocation().X
+    local aF=math.clamp(
+    (aE-al.UIElements.SliderIcon.AbsolutePosition.X)
+    /al.UIElements.SliderIcon.AbsoluteSize.X,
+    0,
+    1
+    )
+    aC=CalculateValue(al.Value.Min+aF*(al.Value.Max-al.Value.Min))
+    aC=math.clamp(aC,al.Value.Min or 0,al.Value.Max or 100)
 
-an=af.AddSignal(ae.RenderStepped,function()
-local aG=am and aD.Position.X or ad:GetMouseLocation().X
-local aH=math.clamp(
-(aG-al.UIElements.SliderIcon.AbsolutePosition.X)
-/al.UIElements.SliderIcon.AbsoluteSize.X,
-0,
-1
-)
-aC=CalculateValue(al.Value.Min+aH*(al.Value.Max-al.Value.Min))
+    if aC~=ar then
+    SetFillSize(aF,0)
+    al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
+    if ay then
+    ay.TitleFrame.Text=FormatValue(aC)
+    end
+    al.Value.Default=FormatValue(aC)
+    ar=aC
+    af.SafeCallback(al.Callback,FormatValue(aC))
+    end
 
-if aC~=ar then
-SetFillSize(aH,0)
-al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
-if ay then
-ay.TitleFrame.Text=FormatValue(aC)
-end
-al.Value.Default=FormatValue(aC)
-ar=aC
-af.SafeCallback(al.Callback,FormatValue(aC))
-end
-end)
+    an=af.AddSignal(ae.RenderStepped,function()
+    local aG=am and aD.Position.X or ad:GetMouseLocation().X
+    local aH=math.clamp(
+    (aG-al.UIElements.SliderIcon.AbsolutePosition.X)
+    /al.UIElements.SliderIcon.AbsoluteSize.X,
+    0,
+    1
+    )
+    aC=CalculateValue(al.Value.Min+aH*(al.Value.Max-al.Value.Min))
+
+    if aC~=ar then
+    SetFillSize(aH,0)
+    al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
+    if ay then
+    ay.TitleFrame.Text=FormatValue(aC)
+    end
+    al.Value.Default=FormatValue(aC)
+    ar=aC
+    af.SafeCallback(al.Callback,FormatValue(aC))
+    end
+    end)
 
 
-ao=af.AddSignal(ad.InputEnded,function(aG)
-local aH=aD.UserInputType==Enum.UserInputType.Touch and aG==aD
-local aI=aD.UserInputType==Enum.UserInputType.MouseButton1
-and aG.UserInputType==Enum.UserInputType.MouseButton1
-if aH or aI then
-FinishSliderInput()
-end
-end)
-else
-aC=math.clamp(aC,al.Value.Min or 0,al.Value.Max or 100)
+    ao=af.AddSignal(ad.InputEnded,function(aG)
+    local aH=aD.UserInputType==Enum.UserInputType.Touch and aG==aD
+    local aI=aD.UserInputType==Enum.UserInputType.MouseButton1
+    and aG.UserInputType==Enum.UserInputType.MouseButton1
+    if aH or aI then
+    FinishSliderInput()
+    end
+    end)
+    else
+    aC=math.clamp(aC,al.Value.Min or 0,al.Value.Max or 100)
 
-local aE=math.clamp(
-(aC-(al.Value.Min or 0))/((al.Value.Max or 100)-(al.Value.Min or 0)),
-0,
-1
-)
-aC=CalculateValue(al.Value.Min+aE*(al.Value.Max-al.Value.Min))
+    local aE=math.clamp(
+    (aC-(al.Value.Min or 0))/((al.Value.Max or 100)-(al.Value.Min or 0)),
+    0,
+    1
+    )
+    aC=CalculateValue(al.Value.Min+aE*(al.Value.Max-al.Value.Min))
 
-if aC~=ar then
-SetFillSize(aE,"Fast")
-al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
-if ay then
-ay.TitleFrame.Text=FormatValue(aC)
-end
-al.Value.Default=FormatValue(aC)
-ar=aC
-af.SafeCallback(al.Callback,FormatValue(aC))
-end
-end
-end
-end
-end
-
+    if aC~=ar then
+    SetFillSize(aE,"Fast")
+    al.UIElements.SliderContainer.TextBox.Text=FormatValue(aC)
+    if ay then
+    ay.TitleFrame.Text=FormatValue(aC)
+    end
+    al.Value.Default=FormatValue(aC)
+    ar=aC
+    af.SafeCallback(al.Callback,FormatValue(aC))
+    end
+    end
+    end
+    end
+    end
+                                                            
 function al.SetMax(aB,aC)
 al.Value.Max=aC
 
