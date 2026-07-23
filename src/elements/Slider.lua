@@ -369,7 +369,6 @@ function Slider:Set(Value, input)
     if input and not (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
         input = nil
     end
-
     if input then
         -- Drag input – requires UI to be ready
         if not uiReady then
@@ -381,10 +380,12 @@ function Slider:Set(Value, input)
         ScrollingFrameParent.ScrollingEnabled = false
         IsSliderHolding = true
 
-        local inputX = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
-        local iconPos = self.UIElements.SliderIcon.AbsolutePosition.X
-        local iconSize = self.UIElements.SliderIcon.AbsoluteSize.X
-        local delta = math.clamp((inputX - iconPos) / iconSize, 0, 1)
+        -- SAFE FALLBACKS ADDED HERE:
+        local inputX = isTouch and (input.Position and input.Position.X or 0) or (UserInputService and UserInputService:GetMouseLocation().X or 0)
+        local iconPos = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsolutePosition) and self.UIElements.SliderIcon.AbsolutePosition.X or 0
+        local iconSize = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsoluteSize) and self.UIElements.SliderIcon.AbsoluteSize.X or 1
+
+        local delta = iconSize > 0 and math.clamp((inputX - iconPos) / iconSize, 0, 1) or 0
 
         local rawValue = min + delta * (max - min)
         Value = snapValue(rawValue)
@@ -404,10 +405,12 @@ function Slider:Set(Value, input)
         -- RenderStepped update
         moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
             if not uiReady then return end
-            local inputX = isTouch and input.Position.X or UserInputService:GetMouseLocation().X
-            local iconPos = self.UIElements.SliderIcon.AbsolutePosition.X
-            local iconSize = self.UIElements.SliderIcon.AbsoluteSize.X
-            local delta = math.clamp((inputX - iconPos) / iconSize, 0, 1)
+            -- SAFE FALLBACKS ADDED HERE TOO:
+            local inputX = isTouch and (input.Position and input.Position.X or 0) or (UserInputService and UserInputService:GetMouseLocation().X or 0)
+            local iconPos = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsolutePosition) and self.UIElements.SliderIcon.AbsolutePosition.X or 0
+            local iconSize = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsoluteSize) and self.UIElements.SliderIcon.AbsoluteSize.X or 1
+
+            local delta = iconSize > 0 and math.clamp((inputX - iconPos) / iconSize, 0, 1) or 0
             local rawValue = min + delta * (max - min)
             Value = snapValue(rawValue)
             if Value ~= LastValue then
@@ -453,28 +456,34 @@ local delta = range ~= 0 and ((Value - min) / range) or 0
         end
     end
 end
-
 	function Slider:SetMax(newMax)
+		newMax = newMax or 100
 		Slider.Value.Max = newMax
 
-		local currentValue = tonumber(Slider.Value.Default) or LastValue
+		local minVal = Slider.Value.Min or 0
+		local currentValue = tonumber(Slider.Value.Default) or LastValue or minVal
+
 		if currentValue > newMax then
 			Slider:Set(newMax)
 		else
-			local newDelta =
-				math.clamp((currentValue - (Slider.Value.Min or 0)) / (newMax - (Slider.Value.Min or 0)), 0, 1)
+			local range = newMax - minVal
+			local newDelta = range ~= 0 and math.clamp((currentValue - minVal) / range, 0, 1) or 0
 			SetFillSize(newDelta, "Fast")
 		end
 	end
 
 	function Slider:SetMin(newMin)
+		newMin = newMin or 0
 		Slider.Value.Min = newMin
 
-		local currentValue = tonumber(Slider.Value.Default) or LastValue
+		local maxVal = Slider.Value.Max or 100
+		local currentValue = tonumber(Slider.Value.Default) or LastValue or newMin
+
 		if currentValue < newMin then
 			Slider:Set(newMin)
 		else
-			local newDelta = math.clamp((currentValue - newMin) / ((Slider.Value.Max or 100) - newMin), 0, 1)
+			local range = maxVal - newMin
+			local newDelta = range ~= 0 and math.clamp((currentValue - newMin) / range, 0, 1) or 0
 			SetFillSize(newDelta, "Fast")
 		end
 	end
