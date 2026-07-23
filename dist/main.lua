@@ -14395,6 +14395,8 @@ end
 end
 
 function al.Set(aB,aC,aD)
+al.Value.Min=al.Value.Min or 0
+al.Value.Max=al.Value.Max or 100
 if not al then return end
 
 if aC==nil then
