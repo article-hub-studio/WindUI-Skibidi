@@ -14422,7 +14422,11 @@ end
 function al.Set(aB,aC,aD)
 
 if not al then return end
-
+if not al.Value then
+al.Value={Min=0,Max=100,Default=1}
+end
+al.Value.Min=al.Value.Min or 0
+al.Value.Max=al.Value.Max or 100
 
 if not al.Value then
 al.Value={Min=0,Max=100,Default=0}
