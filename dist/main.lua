@@ -14397,11 +14397,6 @@ end
 function al.Set(aB,aC,aD)
 al.Value.Min=al.Value.Min or 0
 al.Value.Max=al.Value.Max or 100
-if not aB.Value then return end
-if not aC then aC = aB.Value.Default or aB.Value.Min or 0 end
-if not aB.UIElements or not aB.UIElements.SliderIcon then return end
-local sliderSize = aB.UIElements.SliderIcon.AbsoluteSize and aB.UIElements.SliderIcon.AbsoluteSize.X
-if not sliderSize or sliderSize == 0 then return end                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
 if not al then return end
 
 if aC==nil then
