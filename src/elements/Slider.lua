@@ -15,7 +15,10 @@ function Element:New(Config)
 		Desc = Config.Desc or nil,
 		Locked = Config.Locked or nil,
 		LockedTitle = Config.LockedTitle,
-		Value = Config.Value or {},
+		Value = Config.Value or {
+        Min = Config.Min or 0,
+        Max = Config.Max or 100,
+        Default = Config.Default or Config.Min or 0,},
 		Icons = Config.Icons or nil,
 		IsTooltip = Config.IsTooltip or false,
 		IsTextbox = Config.IsTextbox,
@@ -45,7 +48,11 @@ function Element:New(Config)
 	local moveconnection
 	local releaseconnection
 	local IsSliderHolding = false
-	local Value = Slider.Value.Default or Slider.Value.Min or 0
+	Slider.Value.Min = Slider.Value.Min or 0
+    Slider.Value.Max = Slider.Value.Max or 100
+    Slider.Value.Default = Slider.Value.Default or Slider.Value.Min
+
+local Value = Slider.Value.Default
 
 	local LastValue = Value
 	local delta = (Value - (Slider.Value.Min or 0)) / ((Slider.Value.Max or 100) - (Slider.Value.Min or 0))
@@ -426,7 +433,12 @@ function Slider:Set(Value, input)
     else
         -- Programmatic set (no input) – safe even without UI
         Value = math.clamp(Value, min, max)
-        local delta = (Value - min) / (max - min)
+        if typeof(Value) ~= "number" then
+    Value = min
+end
+
+local range = max - min
+local delta = range ~= 0 and ((Value - min) / range) or 0
         Value = snapValue(Value)
 
         if Value ~= LastValue then
