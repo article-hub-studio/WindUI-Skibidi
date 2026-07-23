@@ -285,6 +285,8 @@ function Element:New(Config)
 	end
 
 	function Slider:Set(Value, input)
+	Slider.Value.Min = Slider.Value.Min or 0
+    Slider.Value.Max = Slider.Value.Max or 100
     if not Slider then return end
 
     if Value == nil then
