@@ -19,7 +19,7 @@ function Element:New(Config)
 		Icons = Config.Icons or nil,
 		IsTooltip = Config.IsTooltip or false,
 		IsTextbox = Config.IsTextbox,
-		Step = Config.Step or 1,
+		Step = Config.Step or 1, -- Can be 1, 0.5, 0.1, 0.01, etc.
 		Callback = Config.Callback or function() end,
 		UIElements = {},
 		IsFocusing = false,
@@ -51,21 +51,44 @@ function Element:New(Config)
 	local delta = (Value - (Slider.Value.Min or 0)) / ((Slider.Value.Max or 100) - (Slider.Value.Min or 0))
 
 	local CanCallback = true
-	local IsFloat = Slider.Step % 1 ~= 0
+
+	local IsFloat = Slider.Step % 1 ~= 0  -- True if Step is 0.1, 0.5, etc.
+	local DecimalPlaces = 0
+	if IsFloat then
+		-- Count decimal places from Step (e.g., 0.1 → 1, 0.01 → 2)
+		local stepStr = tostring(Slider.Step)
+		local dotIndex = stepStr:find("%.")
+		if dotIndex then
+			DecimalPlaces = #stepStr:sub(dotIndex + 1)
+		end
+	end
 
 	local function FormatValue(val)
 		if IsFloat then
-			return tonumber(string.format("%.2f", val))
+			-- Round to the correct number of decimal places
+			local multiplier = 10 ^ DecimalPlaces
+			return tonumber(string.format("%." .. DecimalPlaces .. "f", math.round(val * multiplier) / multiplier))
 		end
 		return math.floor(val + 0.5)
 	end
 
 	local function CalculateValue(rawValue)
 		if IsFloat then
-			return math.floor(rawValue / Slider.Step + 0.5) * Slider.Step
+			-- Snap to nearest Step (e.g., 0.1, 0.5, etc.)
+			local multiplier = 10 ^ DecimalPlaces
+			return math.round(rawValue / Slider.Step) * Slider.Step
 		else
 			return math.floor(rawValue / Slider.Step + 0.5) * Slider.Step
 		end
+	end
+
+	-- Math Round helper (Luau 5.1 doesn't have this Natively)
+	local function round(num)
+		return math.floor(num + 0.5)
+	end
+	-- Override math.round if it doesn't exist
+	if not math.round then
+		math.round = round
 	end
 
 	local IconFrom, IconTo
@@ -282,15 +305,12 @@ function Element:New(Config)
 
 	function Slider:Set(Value, input)
 		if not Slider then return end
-        if not Slider.Value then
-        Slider.Value = { Min = 0, Max = 100, Default = 1 }
-    end
-    Slider.Value.Min = Slider.Value.Min or 0
-    Slider.Value.Max = Slider.Value.Max or 100
+
 		if not Slider.Value then
-			Slider.Value = { Min = 0, Max = 100, Default = 1 }
+			Slider.Value = { Min = 0, Max = 100, Default = 0 }
 		end
 
+		-- Ensure min and Max are numbers
 		Slider.Value.Min = Slider.Value.Min or 0
 		Slider.Value.Max = Slider.Value.Max or 100
 
@@ -305,6 +325,7 @@ function Element:New(Config)
 			and Slider.UIElements.SliderIcon.AbsoluteSize
 			and Slider.UIElements.SliderIcon.AbsoluteSize.X > 0
 
+		-- Main Logic
 		if CanCallback then
 			if
 				not Slider.IsFocusing
@@ -318,6 +339,7 @@ function Element:New(Config)
 				)
 			then
 				if input then
+					-- Drag input
 					if not uiReady then
 						warn("Slider:Set() – UI not rendered, skipping drag input")
 						return
@@ -382,7 +404,7 @@ function Element:New(Config)
 						end
 					end)
 				else
-					-- Programmatic set (no input) 
+					-- Programmatic set (no input) – safe even if UI not ready
 					Value = math.clamp(Value, Slider.Value.Min, Slider.Value.Max)
 
 					local delta = math.clamp(
@@ -432,9 +454,14 @@ function Element:New(Config)
 		end
 	end
 
+	-- ============================================================
+	--  UPDATED: TextBox FocusLost – accepts decimal input
+	-- ============================================================
 	Creator.AddSignal(Slider.UIElements.SliderContainer.TextBox.FocusLost, function(enterPressed)
 		local newValue = tonumber(Slider.UIElements.SliderContainer.TextBox.Text)
 		if newValue then
+			-- Clamp to Min/Max
+			newValue = math.clamp(newValue, Slider.Value.Min, Slider.Value.Max)
 			Slider:Set(newValue)
 		else
 			Slider.UIElements.SliderContainer.TextBox.Text = FormatValue(LastValue)
