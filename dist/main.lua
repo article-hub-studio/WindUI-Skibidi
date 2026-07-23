@@ -14138,7 +14138,6 @@ end
 return ah end function a.Q()
 
 local aa=a.load'a'
-
 local ad=aa(game:GetService"UserInputService")
 local ae=aa(game:GetService"RunService")
 
@@ -14370,7 +14369,6 @@ if al.Locked then
 al:Lock()
 end
 
-
 local az=ak.Tab.UIElements.ContainerFrame
 local aA=ak.WindUI.GenerateGUID()
 
@@ -14422,20 +14420,30 @@ end
 end
 
 function al.Set(aB,aC,aD)
+
+if not al then return end
+
+
+if not al.Value then
+al.Value={Min=0,Max=100,Default=0}
+end
+
+
 al.Value.Min=al.Value.Min or 0
 al.Value.Max=al.Value.Max or 100
-if not al then return end
+
 
 if aC==nil then
 warn"Slider:Set() called with nil value – using current default"
 aC=al.Value.Default or al.Value.Min or 0
 end
 
-al.Value.Min=al.Value.Min or 0
-al.Value.Max=al.Value.Max or 100
-local aE=al.UIElements and al.UIElements.SliderIcon
+
+local aE=al.UIElements
+and al.UIElements.SliderIcon
 and al.UIElements.SliderIcon.AbsolutePosition
 and al.UIElements.SliderIcon.AbsoluteSize
+and al.UIElements.SliderIcon.AbsoluteSize.X>0
 
 
 if at then
@@ -14515,6 +14523,7 @@ FinishSliderInput()
 end
 end)
 else
+
 aC=math.clamp(aC,al.Value.Min,al.Value.Max)
 
 local aF=math.clamp(
@@ -14591,7 +14600,6 @@ ak.WindUI.CurrentInput=aA
 
 al:Set(aq,aB)
 
-
 if ak.Window.NewElements then
 ag.Play(al.UIElements.SliderIcon.Frame.Thumb,"Focus",{
 ImageTransparency=0.85,
@@ -14606,7 +14614,6 @@ end
 if ay then
 ay:Open()
 end
-
 end
 end)
 
