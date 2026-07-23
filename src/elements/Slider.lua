@@ -281,36 +281,30 @@ function Element:New(Config)
 	end
 
 	function Slider:Set(Value, input)
-		-- Safety Guards 1
 		if not Slider then return end
         if not Slider.Value then
         Slider.Value = { Min = 0, Max = 100, Default = 1 }
     end
     Slider.Value.Min = Slider.Value.Min or 0
     Slider.Value.Max = Slider.Value.Max or 100
-		-- Safety Guards 3
 		if not Slider.Value then
-			Slider.Value = { Min = 0, Max = 100, Default = 0 }
+			Slider.Value = { Min = 0, Max = 100, Default = 1 }
 		end
 
-		-- Safety Guards 3
 		Slider.Value.Min = Slider.Value.Min or 0
 		Slider.Value.Max = Slider.Value.Max or 100
 
-		-- Safety Guards 4
 		if Value == nil then
 			warn("Slider:Set() called with nil value – using current default")
 			Value = Slider.Value.Default or Slider.Value.Min or 0
 		end
 
-		-- Safety Guards 5
 		local uiReady = Slider.UIElements
 			and Slider.UIElements.SliderIcon
 			and Slider.UIElements.SliderIcon.AbsolutePosition
 			and Slider.UIElements.SliderIcon.AbsoluteSize
 			and Slider.UIElements.SliderIcon.AbsoluteSize.X > 0
 
-		-- main logic
 		if CanCallback then
 			if
 				not Slider.IsFocusing
