@@ -43,9 +43,21 @@ See [`examples/modern-window.client.lua`](/examples/modern-window.client.lua) an
 aftman install     # rojo, darklua, lune, stylua
 npm install
 npm run build      # src/ -> dist/main.lua
-npm run sync:pages # copy dist/ + themes into website/public
+npm run sync:pages # copy dist/, loader and themes into website/public
 npm run test:static
+npm run docs:build # website/ -> website/out
 ```
+
+### Site deployment
+
+`.github/workflows/pages.yml` builds the library, syncs the Pages assets,
+exports the docs site and publishes `website/out` to GitHub Pages on every push
+to `main`. That export is also what serves the loadstring URLs — `loader.lua`,
+`main.lua`, `dist/main.lua`, `main_example.lua` and `src/themes/Init.lua` all
+sit at the paths the runtime fetches.
+
+It needs **Settings → Pages → Source = "GitHub Actions"**; with the older
+"Deploy from a branch" setting the workflow runs but nothing is published.
 
 ## Credits
 

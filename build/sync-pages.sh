@@ -28,6 +28,9 @@ copy() {
 copy "$ROOT/dist/main.lua" "$PUBLIC/dist/main.lua"
 copy "$ROOT/dist/main.lua" "$PUBLIC/main.lua"
 
+# The canonical entry point: loadstring(HttpGet(".../loader.lua")).
+copy "$ROOT/loader.lua" "$PUBLIC/loader.lua"
+
 # The docs read the theme list from here when the repo checkout is unavailable.
 copy "$ROOT/src/themes/Init.lua" "$PUBLIC/src/themes/Init.lua"
 

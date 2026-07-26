@@ -1,0 +1,96 @@
+name: Deploy site (GitHub Pages)
+
+# Nothing published the docs site before this workflow existed: build.yml only
+# committed dist/main.lua back to the repo, so https://.../WindUI-Skibidi/docs/
+# was never served. The export in website/out also carries loader.lua,
+# main.lua, dist/main.lua, main_example.lua and src/themes/Init.lua at the same
+# paths the runtime loader fetches, so deploying it keeps every loadstring URL
+# working as well as putting the docs online.
+#
+# Requires Settings -> Pages -> Source = "GitHub Actions".
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a running deployment - a half-applied Pages deploy can leave the
+# loadstring URLs serving a partial site.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Aftman
+        uses: ok-nick/setup-aftman@v0.3.0
+
+      - name: Install Rojo, Lune and DarkLua
+        run: aftman install
+
+      - name: Install library dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build library
+        run: npm run build
+
+      - name: Sync Pages assets
+        run: npm run sync:pages
+
+      - name: Install docs dependencies
+        run: npm ci --prefix website --no-audit --no-fund
+
+      - name: Build docs site
+        # Lets getLatestVersion authenticate instead of hitting the 60 req/hour
+        # unauthenticated GitHub API limit.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run docs:build
+
+      - name: Verify runtime URLs are in the export
+        run: |
+          missing=0
+          for path in loader.lua main.lua dist/main.lua main_example.lua src/themes/Init.lua index.html docs/index.html; do
+            if [ ! -f "website/out/$path" ]; then
+              echo "::error::website/out/$path is missing - deploying would break that URL"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
