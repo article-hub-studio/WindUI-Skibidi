@@ -29,6 +29,62 @@ return function(WindUI, Creator)
 			ElementBackgroundTransparency = 0,
 		},
 
+		-- Neutral near-black surfaces + a single lime accent, matching the
+		-- palette used by the "modern" window type (see themes/TypeWindow.lua).
+		Modern = {
+			Name = "Modern",
+
+			Accent = Color3.fromHex("#131617"),
+			Dialog = Color3.fromHex("#1D2022"),
+			Outline = Color3.fromHex("#FFFFFF"),
+			Text = Color3.fromHex("#FFFFFF"),
+			Placeholder = Color3.fromHex("#8E8F91"),
+			Background = Color3.fromHex("#131617"),
+			Button = Color3.fromHex("#29292A"),
+			Icon = Color3.fromHex("#C4C6C8"),
+
+			Primary = Color3.fromHex("#A2FF31"),
+			Toggle = Color3.fromHex("#A2FF31"),
+			Slider = Color3.fromHex("#A2FF31"),
+			Checkbox = Color3.fromHex("#A2FF31"),
+
+			ElementBackground = Color3.fromHex("#1D2022"),
+			ElementBackgroundTransparency = 0,
+
+			PanelBackground = Color3.fromHex("#FFFFFF"),
+			PanelBackgroundTransparency = 0.97,
+
+			LabelBackground = Color3.fromHex("#FFFFFF"),
+			LabelBackgroundTransparency = 0.94,
+
+			TabBackgroundHover = Color3.fromHex("#FFFFFF"),
+			TabBackgroundHoverTransparency = 0.94,
+			TabBackgroundActive = Color3.fromHex("#FFFFFF"),
+			TabBackgroundActiveTransparency = 0.88,
+			TabTextTransparency = 0.35,
+			TabIconTransparency = 0.35,
+			TabBorderTransparency = 1,
+			TabBorderTransparencyActive = 1,
+
+			-- The accent is bright enough that anything painted on top of it
+			-- needs dark ink instead of the usual white.
+			BadgeText = Color3.fromHex("#0E1112"),
+			BadgeIcon = Color3.fromHex("#0E1112"),
+			CheckboxIcon = Color3.fromHex("#0E1112"),
+			CheckboxGroupIcon = Color3.fromHex("#0E1112"),
+			TooltipSecondaryText = Color3.fromHex("#0E1112"),
+
+			-- Segmented controls fill their whole active pill, so they stay
+			-- neutral rather than turning into a block of accent colour.
+			SegmentedControlActive = Color3.fromHex("#3A3D3F"),
+
+			Tooltip = Color3.fromHex("#29292A"),
+
+			SectionBoxTransparency = 0.96,
+			SectionBoxBorderTransparency = 0.88,
+			SearchBarBorderTransparency = 0.88,
+		},
+
 		Light = {
 			Name = "Light",
 

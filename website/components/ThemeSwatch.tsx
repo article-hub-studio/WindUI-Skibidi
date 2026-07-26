@@ -6,6 +6,95 @@ import {
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Eye } from "lucide-react";
 
+/** Not every theme has a screenshot yet - checked at build time. */
+function hasPreviewImage(label: string) {
+    try {
+        // eval'd so the bundler does not pull node builtins into the client
+        // graph - this component is rendered from MDX. Same trick as getThemes.
+        const req = eval("require");
+        const fs = req("fs");
+        const path = req("path");
+        return fs.existsSync(
+            path.resolve(
+                process.cwd(),
+                "public",
+                "windui",
+                "themes",
+                `${label}.png`,
+            ),
+        );
+    } catch {
+        return false;
+    }
+}
+
+/** Stand-in for themes that have no screenshot: the real palette, in CSS. */
+function ThemeMock({ theme }: { theme: any }) {
+    const flat = (value: any, fallback: string) =>
+        typeof value === "string"
+            ? value
+            : isGradient(value) && value.gradient.length
+              ? value.gradient[0].hex
+              : fallback;
+
+    const background = flat(theme?.Background ?? theme?.Accent, "#101010");
+    const surface = flat(theme?.ElementBackground, "#2a2a2c");
+    const text = flat(theme?.Text, "#ffffff");
+    const muted = flat(theme?.Placeholder, "#a1a1a1");
+    const accent = flat(theme?.Primary ?? theme?.Button, "#0091ff");
+
+    return (
+        <div
+            className="w-96 max-md:w-full h-auto p-2 my-0!"
+            aria-label={`${theme?.Name ?? "Theme"} preview`}
+        >
+            <div
+                className="flex flex-col gap-2 rounded-2xl p-3"
+                style={{ backgroundColor: background }}
+            >
+                <div className="flex items-center gap-2">
+                    <span
+                        className="size-2 rounded-full"
+                        style={{ backgroundColor: accent }}
+                    />
+                    <span
+                        className="text-xs font-semibold"
+                        style={{ color: text }}
+                    >
+                        {theme?.Name ?? "Theme"}
+                    </span>
+                </div>
+
+                {[0, 1].map((row) => (
+                    <div
+                        key={row}
+                        className="flex items-center justify-between rounded-xl px-3 py-2"
+                        style={{ backgroundColor: surface }}
+                    >
+                        <span className="flex flex-col gap-1">
+                            <span
+                                className="block h-1.5 w-20 rounded-full"
+                                style={{ backgroundColor: text, opacity: 0.85 }}
+                            />
+                            <span
+                                className="block h-1.5 w-12 rounded-full"
+                                style={{ backgroundColor: muted }}
+                            />
+                        </span>
+                        <span
+                            className="h-4 w-9 rounded-full"
+                            style={{
+                                backgroundColor: row === 0 ? accent : muted,
+                                opacity: row === 0 ? 1 : 0.4,
+                            }}
+                        />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function asset(path: string) {
     const encoded = path
         .split("/")
@@ -147,12 +236,16 @@ export function ThemeSwatch({ theme }: { theme: any }) {
                 </div>
             </div>
 
-            <img
-                src={asset(`/windui/themes/${label}.png`)}
-                alt={label}
-                className="w-96 h-auto p-2 my-0!"
-                loading="lazy"
-            />
+            {hasPreviewImage(label) ? (
+                <img
+                    src={asset(`/windui/themes/${label}.png`)}
+                    alt={label}
+                    className="w-96 h-auto p-2 my-0!"
+                    loading="lazy"
+                />
+            ) : (
+                <ThemeMock theme={theme} />
+            )}
         </span>
     );
 }

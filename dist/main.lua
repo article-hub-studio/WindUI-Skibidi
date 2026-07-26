@@ -4,7 +4,7 @@
     | |/ |/ / / _ \/ _  / /_/ // /
     |__/|__/_/_//_/\_,_/\____/___/
 
-    v1.6.65  |  2026-07-23  |  Roblox UI Library for scripts
+    v1.6.65  |  2026-07-26  |  Roblox UI Library for scripts
 
     To view the source code, see the `src/` folder on the official GitHub repository.
 
@@ -4928,6 +4928,7 @@ return[[
     "scripts": {
         "dev": "bash build/build.sh dev $INPUT_FILE",
         "build": "bash build/build.sh build $INPUT_FILE",
+        "sync:pages": "bash build/sync-pages.sh",
         "live": "python3 -m http.server 8642",
         "watch": "chokidar . -i 'node_modules' -i 'dist' -i 'build' -c 'npm run dev --'",
         "live-build": "concurrently \"npm run live\" \"npm run watch --\"",
@@ -4938,7 +4939,7 @@ return[[
         "docs:start": "npm --prefix website run start",
         "verify:notification": "stylua --syntax Luau --check src/components/Notification.lua tests/Notification.lua && node tests/notification-layout-safety.test.js",
         "verify:ui": "stylua --syntax Luau --check src/modules/Icons.lua src/modules/Creator.lua src/Init.lua src/components/Notification.lua src/components/window/Openbutton.lua src/themes/Fallbacks.lua tests/Notification.lua && node tests/notification-layout-safety.test.js && node tests/ui-library-advanced.test.js",
-        "test:static": "node tests/acrylic-theme-safety.test.js && node tests/notification-layout-safety.test.js && node tests/ui-library-advanced.test.js && node tests/input-lifecycle-safety.test.js"
+        "test:static": "node tests/acrylic-theme-safety.test.js && node tests/notification-layout-safety.test.js && node tests/ui-library-advanced.test.js && node tests/input-lifecycle-safety.test.js && node tests/type-window-presets.test.js && node tests/docs-theme-parser.test.js"
     },
     "keywords": [
         "ui-library",
@@ -7358,6 +7359,62 @@ ElementBackground=Color3.fromHex"#2A2A2C",
 ElementBackgroundTransparency=0,
 },
 
+
+
+Modern={
+Name="Modern",
+
+Accent=Color3.fromHex"#131617",
+Dialog=Color3.fromHex"#1D2022",
+Outline=Color3.fromHex"#FFFFFF",
+Text=Color3.fromHex"#FFFFFF",
+Placeholder=Color3.fromHex"#8E8F91",
+Background=Color3.fromHex"#131617",
+Button=Color3.fromHex"#29292A",
+Icon=Color3.fromHex"#C4C6C8",
+
+Primary=Color3.fromHex"#A2FF31",
+Toggle=Color3.fromHex"#A2FF31",
+Slider=Color3.fromHex"#A2FF31",
+Checkbox=Color3.fromHex"#A2FF31",
+
+ElementBackground=Color3.fromHex"#1D2022",
+ElementBackgroundTransparency=0,
+
+PanelBackground=Color3.fromHex"#FFFFFF",
+PanelBackgroundTransparency=0.97,
+
+LabelBackground=Color3.fromHex"#FFFFFF",
+LabelBackgroundTransparency=0.94,
+
+TabBackgroundHover=Color3.fromHex"#FFFFFF",
+TabBackgroundHoverTransparency=0.94,
+TabBackgroundActive=Color3.fromHex"#FFFFFF",
+TabBackgroundActiveTransparency=0.88,
+TabTextTransparency=0.35,
+TabIconTransparency=0.35,
+TabBorderTransparency=1,
+TabBorderTransparencyActive=1,
+
+
+
+BadgeText=Color3.fromHex"#0E1112",
+BadgeIcon=Color3.fromHex"#0E1112",
+CheckboxIcon=Color3.fromHex"#0E1112",
+CheckboxGroupIcon=Color3.fromHex"#0E1112",
+TooltipSecondaryText=Color3.fromHex"#0E1112",
+
+
+
+SegmentedControlActive=Color3.fromHex"#3A3D3F",
+
+Tooltip=Color3.fromHex"#29292A",
+
+SectionBoxTransparency=0.96,
+SectionBoxBorderTransparency=0.88,
+SearchBarBorderTransparency=0.88,
+},
+
 Light={
 Name="Light",
 
@@ -8608,8 +8665,53 @@ end
 
 return af end function a.D()
 
-return{
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+local aa={
+Theme=true,
+Description=true,
+}
+
+local ab={
+
+
 modern={
+Description="Flat near-black cards with wide gaps and a lime accent",
+Theme="Modern",
+
+NewElements=true,
+LiquidGlass=false,
+LinkElementCorners=false,
+ElementGap=10,
+ElementsRadius=18,
+ElementTransparency=0,
+BackgroundOverlayTransparency=0.35,
+BackgroundColor=Color3.fromHex"#131617",
+ShadowTransparency=0.35,
+Radius=24,
+SideBarWidth=210,
+Topbar={Height=46,ButtonsType="Mac"},
+HideSearchBar=false,
+},
+
+
+
+glass={
+Description="Translucent liquid-glass elements with linked corners",
+
 NewElements=true,
 LiquidGlass=true,
 LinkElementCorners=true,
@@ -8623,7 +8725,10 @@ Topbar={Height=48,ButtonsType="Mac"},
 CornerLink={InnerRadius=0,BridgeHidden=true},
 HideSearchBar=false,
 },
+
 default={
+Description="The original WindUI look",
+
 NewElements=false,
 LiquidGlass=false,
 LinkElementCorners=false,
@@ -8635,7 +8740,99 @@ Radius=16,
 SideBarWidth=200,
 Topbar={Height=52,ButtonsType="Default"},
 },
-}end function a.E()
+}
+
+local ad={
+modern="modern",
+card="modern",
+cards="modern",
+flat="modern",
+
+glass="glass",
+liquid="glass",
+liquidglass="glass",
+acrylic="glass",
+
+default="default",
+classic="default",
+legacy="default",
+original="default",
+}
+
+local ae={
+Presets=ab,
+Aliases=ad,
+}
+
+
+local function Normalize(af)
+if typeof(af)~="string"then
+return nil
+end
+return(string.gsub(string.lower(af),"[%s_%-%./]",""))
+end
+
+
+function ae.Resolve(af)
+local ag=Normalize(af)
+if not ag then
+return nil
+end
+return ad[ag]or(ab[ag]and ag)or nil
+end
+
+
+function ae.Get(af)
+local ag=ae.Resolve(af)
+return ag and ab[ag]or nil
+end
+
+
+function ae.GetTheme(af)
+local ag=ae.Get(af)
+return ag and ag.Theme or nil
+end
+
+
+function ae.List()
+local af={}
+for ag in next,ab do
+table.insert(af,ag)
+end
+table.sort(af)
+return af
+end
+
+
+
+
+function ae.Apply(af)
+if af==nil or af.TypeWindow==nil then
+return nil
+end
+
+local ag=ae.Resolve(af.TypeWindow)
+if not ag then
+warn(
+"[ WindUI ] Unknown TypeWindow '"
+..tostring(af.TypeWindow)
+.."'. Expected one of: "
+..table.concat(ae.List(),", ")
+)
+return nil
+end
+
+for ah,ai in next,ab[ag]do
+if not aa[ah]and af[ah]==nil then
+af[ah]=ai
+end
+end
+
+af.TypeWindow=ag
+return ag
+end
+
+return ae end function a.E()
 
 local aa={}
 
@@ -26314,19 +26511,10 @@ if aA~=nil then
 return aA
 end
 return aB
-end
+end a.load'D'
 
-if aw.TypeWindow then
-local az=a.load'D'
-local aA=az[aw.TypeWindow]
-if aA then
-for aB,aC in next,aA do
-if aw[aB]==nil then
-aw[aB]=aC
-end
-end
-end
-end
+
+.Apply(aw)
 
 if ax then
 aw.NewElements=Pick(aw.NewElements,true)
@@ -29728,39 +29916,43 @@ if not aB.KeySystem then
 OpenLoader("Preparing interface",0.16)
 end
 
-local aG=aB.Theme or"Dark"
-local aH
-if typeof(aG)=="table"then
-aH=aG
-elseif typeof(aG)=="string"then
-aH=aa.Themes[aG]
+
+
+local aG=a.load'D'.GetTheme(aB.TypeWindow)
+
+local aH=aB.Theme or aG or"Dark"
+local aI
+if typeof(aH)=="table"then
+aI=aH
+elseif typeof(aH)=="string"then
+aI=aa.Themes[aH]
 end
 
-aH=aH or aa.Theme or aa.Themes.Dark
-aa.Theme=aH
-af.SetTheme(aH)
+aI=aI or aa.Theme or aa.Themes.Dark
+aa.Theme=aI
+af.SetTheme(aI)
 
-local aI=gethwid or function()
+local aJ=gethwid or function()
 return al.LocalPlayer.UserId
 end
 
-local aJ=aI()
+local aK=aJ()
 
-local function PickField(aK,aL)
-for aM,aN in next,aL do
-if aK[aN]~=nil then
-return aK[aN]
+local function PickField(aL,aM)
+for aN,aO in next,aM do
+if aL[aO]~=nil then
+return aL[aO]
 end
 end
 return nil
 end
 
-local function NormalizeServiceType(aK)
-local aL=string.lower(tostring(aK or""))
-aL=string.gsub(aL,"%s+","")
-aL=string.gsub(aL,"[_%-%./]","")
+local function NormalizeServiceType(aL)
+local aM=string.lower(tostring(aL or""))
+aM=string.gsub(aM,"%s+","")
+aM=string.gsub(aM,"[_%-%./]","")
 
-local aM={
+local aN={
 luarmor="luarmor",
 platoboost="platoboost",
 plato="platoboost",
@@ -29772,7 +29964,7 @@ junkiedev="junkiedevelopment",
 junkiedevelopment="junkiedevelopment",
 }
 
-return aM[aL]or aL
+return aN[aM]or aM
 end
 
 local function NormalizeKeySystemAPI()
@@ -29780,21 +29972,21 @@ if not aB.KeySystem or typeof(aB.KeySystem.API)~="table"then
 return
 end
 
-local aK=aB.KeySystem.API
-local aL=aK
-if aK.Type or aK.type or aK.Service or aK.service then
-aL={aK}
+local aL=aB.KeySystem.API
+local aM=aL
+if aL.Type or aL.type or aL.Service or aL.service then
+aM={aL}
 end
 
-local aM={}
-for aN,aO in next,aL do
-if typeof(aO)=="table"then
-local aP={}
-for aQ,aR in next,aO do
-aP[aQ]=aR
+local aN={}
+for aO,aP in next,aM do
+if typeof(aP)=="table"then
+local aQ={}
+for aR,aS in next,aP do
+aQ[aR]=aS
 end
 
-aP.Type=NormalizeServiceType(PickField(aO,{
+aQ.Type=NormalizeServiceType(PickField(aP,{
 "Type",
 "type",
 "Service",
@@ -29803,7 +29995,7 @@ aP.Type=NormalizeServiceType(PickField(aO,{
 "provider",
 }))
 
-aP.ScriptId=PickField(aO,{
+aQ.ScriptId=PickField(aP,{
 "ScriptId",
 "ScriptID",
 "scriptId",
@@ -29814,9 +30006,9 @@ aP.ScriptId=PickField(aO,{
 "Id",
 "ID",
 "id",
-})or aP.ScriptId
+})or aQ.ScriptId
 
-aP.ServiceId=PickField(aO,{
+aQ.ServiceId=PickField(aP,{
 "ServiceId",
 "ServiceID",
 "serviceId",
@@ -29827,9 +30019,9 @@ aP.ServiceId=PickField(aO,{
 "Id",
 "ID",
 "id",
-})or aP.ServiceId
+})or aQ.ServiceId
 
-aP.Discord=PickField(aO,{
+aQ.Discord=PickField(aP,{
 "Discord",
 "discord",
 "DiscordURL",
@@ -29841,33 +30033,33 @@ aP.Discord=PickField(aO,{
 "URL",
 "Url",
 "url",
-})or aP.Discord
+})or aQ.Discord
 
-aP.Secret=PickField(aO,{
+aQ.Secret=PickField(aP,{
 "Secret",
 "secret",
 "ApiSecret",
 "APISecret",
 "apiSecret",
 "api_secret",
-})or aP.Secret
+})or aQ.Secret
 
-aP.ApiKey=PickField(aO,{
+aQ.ApiKey=PickField(aP,{
 "ApiKey",
 "APIKey",
 "apiKey",
 "api_key",
 "Key",
 "key",
-})or aP.ApiKey
+})or aQ.ApiKey
 
-if aP.Type and aP.Type~=""then
-table.insert(aM,aP)
+if aQ.Type and aQ.Type~=""then
+table.insert(aN,aQ)
 end
 end
 end
 
-aB.KeySystem.API=aM
+aB.KeySystem.API=aN
 end
 
 NormalizeKeySystemAPI()
@@ -29876,19 +30068,19 @@ if aB.KeySystem then
 aD=false
 
 local function loadKeysystem()
-as.new(aB,aJ,function(aK)
-aD=aK
+as.new(aB,aK,function(aL)
+aD=aL
 end)
 end
 
-local aK=(aB.Folder or"Temp").."/"..aJ..".key"
+local aL=(aB.Folder or"Temp").."/"..aK..".key"
 
 if aB.KeySystem.KeyValidator then
-if aB.KeySystem.SaveKey and isfile(aK)then
-local aL=readfile(aK)
-local aM,aN=pcall(aB.KeySystem.KeyValidator,aL)
+if aB.KeySystem.SaveKey and isfile(aL)then
+local aM=readfile(aL)
+local aN,aO=pcall(aB.KeySystem.KeyValidator,aM)
 
-if aM and aN then
+if aN and aO then
 aD=true
 else
 loadKeysystem()
@@ -29897,12 +30089,12 @@ else
 loadKeysystem()
 end
 elseif not aB.KeySystem.API then
-if aB.KeySystem.SaveKey and isfile(aK)then
-local aL=readfile(aK)
-local aM=(type(aB.KeySystem.Key)=="table")and table.find(aB.KeySystem.Key,aL)
-or tostring(aB.KeySystem.Key)==tostring(aL)
+if aB.KeySystem.SaveKey and isfile(aL)then
+local aM=readfile(aL)
+local aN=(type(aB.KeySystem.Key)=="table")and table.find(aB.KeySystem.Key,aM)
+or tostring(aB.KeySystem.Key)==tostring(aM)
 
-if aM then
+if aN then
 aD=true
 else
 loadKeysystem()
@@ -29911,34 +30103,34 @@ else
 loadKeysystem()
 end
 else
-if isfile(aK)then
-local aL=readfile(aK)
-local aM=false
+if isfile(aL)then
+local aM=readfile(aL)
+local aN=false
 
-for aN,aO in next,aB.KeySystem.API do
-local aP=aa.Services[aO.Type]
-if aP then
-local aQ={}
-for aR,aS in next,aP.Args do
-table.insert(aQ,aO[aS])
+for aO,aP in next,aB.KeySystem.API do
+local aQ=aa.Services[aP.Type]
+if aQ then
+local aR={}
+for aS,aT in next,aQ.Args do
+table.insert(aR,aP[aT])
 end
 
-local aR,aS=pcall(function()
-return aP.New(table.unpack(aQ))
+local aS,aT=pcall(function()
+return aQ.New(table.unpack(aR))
 end)
-local aT,aU=false,false
-if aR and aS and type(aS.Verify)=="function"then
-aT,aU=pcall(aS.Verify,aL)
+local aU,aV=false,false
+if aS and aT and type(aT.Verify)=="function"then
+aU,aV=pcall(aT.Verify,aM)
 end
-if aT and aU then
-aM=true
+if aU and aV then
+aN=true
 break
 end
 end
 end
 
-aD=aM
-if not aM then
+aD=aN
+if not aN then
 loadKeysystem()
 end
 else
@@ -29954,10 +30146,10 @@ OpenLoader("Access granted",0.42)
 end
 
 OpenLoader("Building window",0.72)
-local aK=aC(aB)
+local aL=aC(aB)
 
 aa.Transparent=aB.Transparent
-aa.Window=aK
+aa.Window=aL
 
 if aB.Acrylic then
 av.init()
@@ -29981,7 +30173,7 @@ end
 
 
 
-return aK
+return aL
 end
 
 return aa

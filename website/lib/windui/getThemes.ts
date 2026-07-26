@@ -34,13 +34,17 @@ export async function getThemes(): Promise<Record<string, any>> {
     try {
         const txt = await readThemesSource();
 
+        // A theme entry ends at the first `},` followed by the next entry, the
+        // closing `end` - or a Lua comment introducing either. Without the
+        // comment branch a documented theme gets swallowed into its neighbour.
         const themeRegex =
-            /([A-Za-z0-9_]+)\s*=\s*\{([^]*?)\},\s*(?=[A-Za-z0-9_]+\s*=|}\s*end|$)/g;
+            /([A-Za-z0-9_]+)\s*=\s*\{([^]*?)\},\s*(?=(?:--[^\n]*\s*)*(?:[A-Za-z0-9_]+\s*=|}\s*end|$))/g;
         const themes: Record<string, any> = {};
         let m;
         while ((m = themeRegex.exec(txt)) !== null) {
             const key = m[1];
-            const body = m[2];
+            // Commented-out declarations are not part of the theme.
+            const body = m[2].replace(/--[^\n]*/g, "");
             const theme: Record<string, any> = {};
 
             const colorRegex =
