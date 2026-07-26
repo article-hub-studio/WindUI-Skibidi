@@ -6,11 +6,41 @@ local New = Creator.New
 
 local UserInputService = game:GetService("UserInputService")
 
+local function Coalesce(...)
+	for Index = 1, select("#", ...) do
+		local Value = select(Index, ...)
+		if Value ~= nil then
+			return Value
+		end
+	end
+	return nil
+end
+
 function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 	Config = if typeof(Config) == "table" then Config else {}
 
-	local UseGlassSpritesheet = Config.GlassSpritesheet == true or Config.Spritesheet == true
-	local UseDrag = Config.Drag == true or Config.Draggable == true or Config.Swipe == true
+	local WindowConfig = if typeof(Config.Window) == "table" then Config.Window else nil
+
+	-- The liquid-glass knob is part of how a WindUI toggle looks, not an
+	-- add-on: it renders by default and can be switched off per element
+	-- (GlassSpritesheet = false) or per window (ToggleGlass = false).
+	local UseGlassSpritesheet = Coalesce(
+		Config.GlassSpritesheet,
+		Config.Spritesheet,
+		WindowConfig and WindowConfig.ToggleGlass,
+		true
+	) == true
+
+	-- The swipe gesture belongs to the modern element set, so it follows
+	-- NewElements unless the caller says otherwise.
+	local UseDrag = Coalesce(
+		Config.Drag,
+		Config.Draggable,
+		Config.Swipe,
+		WindowConfig and WindowConfig.ToggleDrag,
+		NewElement
+	) == true
+
 	local UseHoldAnimation = Config.HoldAnimation ~= false and Config.Hold ~= false
 	local Control = {
 		UseGlassSpritesheet = UseGlassSpritesheet,
@@ -220,10 +250,18 @@ function Toggle.New(Value, Icon, IconSize, Parent, Callback, NewElement, Config)
 		end
 
 		if Instant then
+			-- A tween still running from an earlier animated Render would
+			-- carry on writing the old target over these assignments, and the
+			-- RenderedValue dedup below means nothing would ever correct it.
+			Motion.Cancel(ToggleFrame.Frame, "Position")
+			Motion.Cancel(ToggleFrame.Layer, "Layer")
+			Motion.Cancel(ToggleFrame.Frame.Bar.Highlight.Glass, "Glass")
+
 			ToggleFrame.Frame.Position = TargetPosition
 			ToggleFrame.Layer.ImageTransparency = LayerTransparency
 			ToggleFrame.Frame.Bar.Highlight.Glass.ImageTransparency = GlassTransparency
 			if IconToggleFrame then
+				Motion.Cancel(IconToggleFrame, "Icon")
 				IconToggleFrame.ImageTransparency = IconTransparency
 			end
 			return

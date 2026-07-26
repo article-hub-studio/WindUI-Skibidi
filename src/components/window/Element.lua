@@ -134,6 +134,8 @@ return function(Config)
 	local NativeBackground
 	local NativeBackgroundCorner
 	local NativeLiquidSheen
+	local NativeLiquidSheenLayer
+	local NativeLiquidStroke
 	local NativeLayerCorners = {}
 	local CurrentCorners = {
 		TopLeft = true,
@@ -519,12 +521,13 @@ return function(Config)
 		end
 	end
 
+	--- Builds the liquid-glass rim light and specular sheen.
+	---
+	--- Both layers are always created and simply start disabled when glass is
+	--- off, so Element:SetLiquidGlass can turn glass on as well as off.
 	local function CreateLiquidGlassChildren()
-		if not Element.LiquidGlass then
-			return {}
-		end
-
 		NativeLiquidSheen = New("UIGradient", {
+			Enabled = Element.LiquidGlass == true,
 			Rotation = 25,
 			Offset = Vector2.new(-0.35, 0),
 			Color = ColorSequence.new({
@@ -539,14 +542,35 @@ return function(Config)
 			}),
 		})
 
-		return {
-			New("UIStroke", {
-				ApplyStrokeMode = "Border",
-				Thickness = 1,
-				Color = Color3.new(1, 1, 1),
-				Transparency = 0.88,
-			}),
+		-- The sheen needs a surface of its own. A UIGradient parented straight
+		-- to NativeBackground modulates that frame's own alpha instead of
+		-- compositing a highlight over it, so glass used to rub the card out
+		-- rather than light it: card alpha 0.82 times sheen alpha 0.06 left
+		-- roughly 5% of the surface visible.
+		NativeLiquidSheenLayer = New("Frame", {
+			Name = "LiquidSheen",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0, -- the gradient supplies the alpha ramp
+			Visible = Element.LiquidGlass == true,
+			ZIndex = 1,
+			Active = false,
+		}, {
+			NewLayerCorner(),
 			NativeLiquidSheen,
+		})
+
+		NativeLiquidStroke = New("UIStroke", {
+			Enabled = Element.LiquidGlass == true,
+			ApplyStrokeMode = "Border",
+			Thickness = 1,
+			Color = Color3.new(1, 1, 1),
+			Transparency = 0.88,
+		})
+
+		return {
+			NativeLiquidStroke,
+			NativeLiquidSheenLayer,
 		}
 	end
 
@@ -798,17 +822,26 @@ return function(Config)
 
 	function Element:SetLiquidGlass(value)
 		Element.LiquidGlass = value == true
+
+		if NativeLiquidStroke then
+			NativeLiquidStroke.Enabled = Element.LiquidGlass
+		end
+		if NativeLiquidSheen then
+			NativeLiquidSheen.Enabled = Element.LiquidGlass
+		end
+		if NativeLiquidSheenLayer then
+			NativeLiquidSheenLayer.Visible = Element.LiquidGlass
+		end
+
+		if ElementTransparency ~= nil then
+			return
+		end
+
 		if NativeBackground then
-			for _, Child in next, NativeBackground:GetChildren() do
-				if Child:IsA("UIStroke") or Child:IsA("UIGradient") then
-					pcall(function()
-						Child.Enabled = Element.LiquidGlass
-					end)
-				end
-			end
-			if ElementTransparency == nil then
-				NativeBackground.BackgroundTransparency = GetBackgroundTransparency() or 0
-			end
+			NativeBackground.BackgroundTransparency = GetBackgroundTransparency() or 0
+		else
+			-- No native background means the surface is the Main image itself.
+			Main.ImageTransparency = GetBackgroundTransparency() or 0
 		end
 	end
 

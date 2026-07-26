@@ -16,13 +16,14 @@ function Element:New(Config)
 		Locked = Config.Locked or nil,
 		LockedTitle = Config.LockedTitle,
 		Value = Config.Value or {
-        Min = Config.Min or 0,
-        Max = Config.Max or 100,
-        Default = Config.Default or Config.Min or 0,},
+			Min = Config.Min or 0,
+			Max = Config.Max or 100,
+			Default = Config.Default or Config.Min or 0,
+		},
 		Icons = Config.Icons or nil,
 		IsTooltip = Config.IsTooltip or false,
 		IsTextbox = Config.IsTextbox,
-		Step = Config.Step or 1, -- Can be 1, 0.5, 0.1, 0.01, etc.
+		Step = Config.Step or 1, -- 1, 0.5, 0.1, 0.01, ...
 		Callback = Config.Callback or function() end,
 		UIElements = {},
 		IsFocusing = false,
@@ -48,55 +49,74 @@ function Element:New(Config)
 	local moveconnection
 	local releaseconnection
 	local IsSliderHolding = false
-	Slider.Value.Min = Slider.Value.Min or 0
-    Slider.Value.Max = Slider.Value.Max or 100
-    Slider.Value.Default = Slider.Value.Default or Slider.Value.Min
 
-local Value = Slider.Value.Default
+	Slider.Value.Min = tonumber(Slider.Value.Min) or 0
+	Slider.Value.Max = tonumber(Slider.Value.Max) or 100
 
-	local LastValue = Value
-	local delta = (Value - (Slider.Value.Min or 0)) / ((Slider.Value.Max or 100) - (Slider.Value.Min or 0))
+	-- An inverted or empty range makes every delta a division by zero, so
+	-- normalise it once here instead of guarding at each use site.
+	if Slider.Value.Max < Slider.Value.Min then
+		Slider.Value.Min, Slider.Value.Max = Slider.Value.Max, Slider.Value.Min
+	end
 
-	local CanCallback = true
+	-- A Step of 0 (or a negative one) would divide by zero when snapping.
+	Slider.Step = math.abs(tonumber(Slider.Step) or 1)
+	if Slider.Step <= 0 then
+		Slider.Step = 1
+	end
 
-	local IsFloat = Slider.Step % 1 ~= 0  -- True if Step is 0.1, 0.5, etc.
+	Slider.Value.Default = tonumber(Slider.Value.Default) or Slider.Value.Min
+
+	local IsFloat = Slider.Step % 1 ~= 0
 	local DecimalPlaces = 0
 	if IsFloat then
-		-- Count decimal places from Step (e.g., 0.1 → 1, 0.01 → 2)
-		local stepStr = tostring(Slider.Step)
-		local dotIndex = stepStr:find("%.")
-		if dotIndex then
-			DecimalPlaces = #stepStr:sub(dotIndex + 1)
+		-- 0.1 -> 1, 0.01 -> 2
+		local StepText = tostring(Slider.Step)
+		local DotIndex = StepText:find("%.")
+		if DotIndex then
+			DecimalPlaces = #StepText:sub(DotIndex + 1)
 		end
 	end
 
-	local function FormatValue(val)
+	local function Round(Number)
+		return math.floor(Number + 0.5)
+	end
+
+	local function FormatValue(RawValue)
+		local Number = tonumber(RawValue) or Slider.Value.Min
 		if IsFloat then
-			-- Round to the correct number of decimal places
-			local multiplier = 10 ^ DecimalPlaces
-			return tonumber(string.format("%." .. DecimalPlaces .. "f", math.round(val * multiplier) / multiplier))
+			local Multiplier = 10 ^ DecimalPlaces
+			return tonumber(string.format("%." .. DecimalPlaces .. "f", Round(Number * Multiplier) / Multiplier))
 		end
-		return math.floor(val + 0.5)
+		return Round(Number)
 	end
 
-	local function CalculateValue(rawValue)
-		if IsFloat then
-			-- Snap to nearest Step (e.g., 0.1, 0.5, etc.)
-			local multiplier = 10 ^ DecimalPlaces
-			return math.round(rawValue / Slider.Step) * Slider.Step
-		else
-			return math.floor(rawValue / Slider.Step + 0.5) * Slider.Step
-		end
+	--- Snaps to the nearest Step and keeps the result inside [Min, Max].
+	--- Snapping can push a value past Max when the range is not a whole
+	--- number of steps, so the clamp has to come last.
+	local function CalculateValue(RawValue)
+		local Number = tonumber(RawValue) or Slider.Value.Min
+		local Snapped = Round(Number / Slider.Step) * Slider.Step
+		return math.clamp(FormatValue(Snapped), Slider.Value.Min, Slider.Value.Max)
 	end
 
-	-- Math Round helper (Luau 5.1 doesn't have this Natively)
-	local function round(num)
-		return math.floor(num + 0.5)
+	--- Fraction of the track a value sits at, 0 when the range is empty.
+	--- Reads Min/Max live because SetMin/SetMax may move them later.
+	local function DeltaFor(RawValue)
+		local Span = Slider.Value.Max - Slider.Value.Min
+		if Span == 0 then
+			return 0
+		end
+		return math.clamp(((tonumber(RawValue) or Slider.Value.Min) - Slider.Value.Min) / Span, 0, 1)
 	end
-	-- Override math.round if it doesn't exist
-	if not math.round then
-		math.round = round
-	end
+
+	local Value = CalculateValue(Slider.Value.Default)
+	Slider.Value.Default = Value
+
+	local LastValue = Value
+	local delta = DeltaFor(Value)
+
+	local CanCallback = true
 
 	local IconFrom, IconTo
 	local TotalSliderWidth = 32
@@ -239,10 +259,33 @@ local Value = Slider.Value.Default
 	local function SetFillSize(Delta, Duration)
 		local Size = UDim2.new(Delta, 0, 1, 0)
 		if Duration == 0 or not Motion.ShouldAnimate(Config) then
+			-- Drop any tween still animating towards the previous target,
+			-- otherwise it keeps writing over this assignment.
+			Motion.Cancel(Slider.UIElements.SliderIcon.Frame, "Fill")
 			Slider.UIElements.SliderIcon.Frame.Size = Size
 		else
 			Motion.Play(Slider.UIElements.SliderIcon.Frame, Duration or "Fast", { Size = Size }, nil, nil, "Fill")
 		end
+	end
+
+	--- The thumb carries a SquircleGlass sheen. It used to sit at a fixed
+	--- transparency, so the thumb read as flat while the toggle's glass
+	--- responded to touch; brighten it while the slider is being dragged.
+	local function SetThumbGlass(Active)
+		local Thumb = Slider.UIElements.SliderIcon and Slider.UIElements.SliderIcon.Frame.Thumb
+		local Highlight = Thumb and Thumb:FindFirstChild("Highlight")
+		if not Highlight then
+			return
+		end
+
+		Motion.Play(
+			Highlight,
+			"Focus",
+			{ ImageTransparency = if Active then 0.18 else 0.5 },
+			Enum.EasingStyle.Quint,
+			Enum.EasingDirection.Out,
+			"Glass"
+		)
 	end
 
 	function Slider:Lock()
@@ -294,6 +337,8 @@ local Value = Slider.Value.Default
 			return
 		end
 
+		SetThumbGlass(false)
+
 		if Config.Window.NewElements then
 			Motion.Play(Slider.UIElements.SliderIcon.Frame.Thumb, "Focus", {
 				ImageTransparency = 0,
@@ -309,197 +354,170 @@ local Value = Slider.Value.Default
 			Tooltip:Close(false)
 		end
 	end
-function Slider:Set(Value, input)
-    local self = Slider  -- alias
+	--- True once the track has been laid out and can be measured.
+	local function TrackIsMeasurable()
+		local Track = Slider.UIElements.SliderIcon
+		return Track ~= nil and Track.AbsoluteSize.X > 0
+	end
 
-    if not self.Value then
-        self.Value = { Min = 0, Max = 100, Default = 0 }
-    end
-
-    local min = self.Value.Min or 0
-    local max = self.Value.Max or 100
-    self.Value.Min = min
-    self.Value.Max = max
-
-    if Value == nil then
-        Value = self.Value.Default or min
-    end
-
-    local step = self.Step or 1
-    self.Step = step
-
-    local isFloat = step % 1 ~= 0
-    local decimalPlaces = 0
-    if isFloat then
-        local stepStr = tostring(step)
-        local dotIdx = stepStr:find("%.")
-        if dotIdx then
-            decimalPlaces = #stepStr:sub(dotIdx + 1)
-        end
-    end
-
-    local function formatValue(val)
-        if isFloat then
-            local mult = 10 ^ decimalPlaces
-            return tonumber(string.format("%." .. decimalPlaces .. "f", math.floor(val * mult + 0.5) / mult))
-        else
-            return math.floor(val + 0.5)
-        end
-    end
-
-    local function snapValue(raw)
-        if isFloat then
-            local mult = 10 ^ decimalPlaces
-            return math.floor(raw / step + 0.5) * step
-        else
-            return math.floor(raw / step + 0.5) * step
-        end
-    end
-
-    local uiReady = self.UIElements
-        and self.UIElements.SliderIcon
-        and self.UIElements.SliderIcon.AbsolutePosition
-        and self.UIElements.SliderIcon.AbsoluteSize
-        and self.UIElements.SliderIcon.AbsoluteSize.X > 0
-
-    if not CanCallback then return end
-    if self.IsFocusing then return end
-    if IsSliderHolding then return end
-
-    if input and not (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-        input = nil
-    end
-    if input then
-        -- Drag input – requires UI to be ready
-        if not uiReady then
-            warn("Slider:Set – UI not ready for drag, skipping")
-            return
-        end
-
-        isTouch = (input.UserInputType == Enum.UserInputType.Touch)
-        ScrollingFrameParent.ScrollingEnabled = false
-        IsSliderHolding = true
-
-        -- SAFE FALLBACKS ADDED HERE:
-        local inputX = isTouch and (input.Position and input.Position.X or 0) or (UserInputService and UserInputService:GetMouseLocation().X or 0)
-        local iconPos = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsolutePosition) and self.UIElements.SliderIcon.AbsolutePosition.X or 0
-        local iconSize = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsoluteSize) and self.UIElements.SliderIcon.AbsoluteSize.X or 1
-
-        local delta = iconSize > 0 and math.clamp((inputX - iconPos) / iconSize, 0, 1) or 0
-
-        local rawValue = min + delta * (max - min)
-        Value = snapValue(rawValue)
-        Value = math.clamp(Value, min, max)
-
-        if Value ~= LastValue then
-            SetFillSize(delta, 0)
-            self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
-            if Tooltip then
-                Tooltip.TitleFrame.Text = formatValue(Value)
-            end
-            self.Value.Default = formatValue(Value)
-            LastValue = Value
-            Creator.SafeCallback(self.Callback, formatValue(Value))
-        end
-
-        -- RenderStepped update
-        moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
-            if not uiReady then return end
-            -- SAFE FALLBACKS ADDED HERE TOO:
-            local inputX = isTouch and (input.Position and input.Position.X or 0) or (UserInputService and UserInputService:GetMouseLocation().X or 0)
-            local iconPos = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsolutePosition) and self.UIElements.SliderIcon.AbsolutePosition.X or 0
-            local iconSize = (self.UIElements and self.UIElements.SliderIcon and self.UIElements.SliderIcon.AbsoluteSize) and self.UIElements.SliderIcon.AbsoluteSize.X or 1
-
-            local delta = iconSize > 0 and math.clamp((inputX - iconPos) / iconSize, 0, 1) or 0
-            local rawValue = min + delta * (max - min)
-            Value = snapValue(rawValue)
-            if Value ~= LastValue then
-                SetFillSize(delta, 0)
-                self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
-                if Tooltip then
-                    Tooltip.TitleFrame.Text = formatValue(Value)
-                end
-                self.Value.Default = formatValue(Value)
-                LastValue = Value
-                Creator.SafeCallback(self.Callback, formatValue(Value))
-            end
-        end)
-
-        releaseconnection = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
-            local isTouchRelease = input.UserInputType == Enum.UserInputType.Touch and endInput == input
-            local isMouseRelease = input.UserInputType == Enum.UserInputType.MouseButton1
-                and endInput.UserInputType == Enum.UserInputType.MouseButton1
-            if isTouchRelease or isMouseRelease then
-                FinishSliderInput()
-            end
-        end)
-    else
-        -- Programmatic set (no input) – safe even without UI
-        Value = math.clamp(Value, min, max)
-        if typeof(Value) ~= "number" then
-    Value = min
-end
-
-local range = max - min
-local delta = range ~= 0 and ((Value - min) / range) or 0
-        Value = snapValue(Value)
-
-        if Value ~= LastValue then
-            SetFillSize(delta, "Fast")
-            self.UIElements.SliderContainer.TextBox.Text = formatValue(Value)
-            if Tooltip then
-                Tooltip.TitleFrame.Text = formatValue(Value)
-            end
-            self.Value.Default = formatValue(Value)
-            LastValue = Value
-            Creator.SafeCallback(self.Callback, formatValue(Value))
-        end
-    end
-end
-	function Slider:SetMax(newMax)
-		newMax = newMax or 100
-		Slider.Value.Max = newMax
-
-		local minVal = Slider.Value.Min or 0
-		local currentValue = tonumber(Slider.Value.Default) or LastValue or minVal
-
-		if currentValue > newMax then
-			Slider:Set(newMax)
-		else
-			local range = newMax - minVal
-			local newDelta = range ~= 0 and math.clamp((currentValue - minVal) / range, 0, 1) or 0
-			SetFillSize(newDelta, "Fast")
+	--- Where the pointer sits along the track, as a 0-1 fraction.
+	local function DeltaForInput(Input)
+		local Track = Slider.UIElements.SliderIcon
+		if not Track then
+			return 0
 		end
+
+		local TrackWidth = Track.AbsoluteSize.X
+		if TrackWidth <= 0 then
+			return 0
+		end
+
+		local PointerX = if isTouch
+			then (Input.Position and Input.Position.X or 0)
+			else UserInputService:GetMouseLocation().X
+
+		return math.clamp((PointerX - Track.AbsolutePosition.X) / TrackWidth, 0, 1)
+	end
+
+	--- Single place that writes a value out: fill, textbox, tooltip, state and
+	--- callback always move together, and the fill is derived from the value
+	--- that was actually committed rather than from the raw pointer position.
+	local function Commit(NextValue, FillDuration)
+		local Committed = CalculateValue(NextValue)
+		if Committed == LastValue then
+			return Committed
+		end
+
+		LastValue = Committed
+		Slider.Value.Default = Committed
+
+		SetFillSize(DeltaFor(Committed), FillDuration)
+		if Slider.UIElements.SliderContainer then
+			Slider.UIElements.SliderContainer.TextBox.Text = tostring(Committed)
+		end
+		if Tooltip then
+			Tooltip.TitleFrame.Text = tostring(Committed)
+		end
+
+		Creator.SafeCallback(Slider.Callback, Committed)
+		return Committed
+	end
+
+	function Slider:Set(NextValue, input)
+		if not CanCallback or Slider.IsFocusing or IsSliderHolding then
+			return
+		end
+
+		if NextValue == nil then
+			NextValue = Slider.Value.Default
+		end
+
+		if
+			input
+			and not (
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			)
+		then
+			input = nil
+		end
+
+		if not input then
+			Value = Commit(NextValue, "Fast")
+			return Value
+		end
+
+		-- Nothing to aim at until the track has a width; a press this early is
+		-- a no-op rather than a warning, because layout catches up next frame.
+		if not TrackIsMeasurable() then
+			return Value
+		end
+
+		-- The input mutex is claimed here, at the one point a drag is certain
+		-- to start. Claiming it earlier meant any guard above returned while
+		-- still holding it, and only DisconnectSliderInput ever releases it -
+		-- which needs the connections this branch is about to create.
+		if Config.WindUI.CurrentInput and Config.WindUI.CurrentInput ~= CurInput then
+			return Value
+		end
+		Config.WindUI.CurrentInput = CurInput
+
+		isTouch = input.UserInputType == Enum.UserInputType.Touch
+		ScrollingFrameParent.ScrollingEnabled = false
+		IsSliderHolding = true
+		SetThumbGlass(true)
+
+		local Span = Slider.Value.Max - Slider.Value.Min
+		local function TrackValue(Delta)
+			return Slider.Value.Min + Delta * Span
+		end
+
+		Value = Commit(TrackValue(DeltaForInput(input)), 0)
+
+		moveconnection = Creator.AddSignal(RunService.RenderStepped, function()
+			if not TrackIsMeasurable() then
+				return
+			end
+			Value = Commit(TrackValue(DeltaForInput(input)), 0)
+		end)
+
+		releaseconnection = Creator.AddSignal(UserInputService.InputEnded, function(endInput)
+			local ReleasedTouch = input.UserInputType == Enum.UserInputType.Touch and endInput == input
+			local ReleasedMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+				and endInput.UserInputType == Enum.UserInputType.MouseButton1
+			if ReleasedTouch or ReleasedMouse then
+				FinishSliderInput()
+			end
+		end)
+
+		return Value
+	end
+
+	--- Moves a bound and re-seats the current value inside the new range.
+	--- Both bounds go through here so the fill, the textbox and Value.Default
+	--- can never disagree after a resize.
+	local function SetBound(Field, NewBound, Fallback)
+		local Bound = tonumber(NewBound) or Fallback
+		Slider.Value[Field] = Bound
+
+		if Slider.Value.Max < Slider.Value.Min then
+			Slider.Value.Min, Slider.Value.Max = Slider.Value.Max, Slider.Value.Min
+		end
+
+		local Current = tonumber(Slider.Value.Default) or LastValue or Slider.Value.Min
+		local Reseated = CalculateValue(Current)
+
+		if Reseated ~= LastValue then
+			-- Out of range now: Commit re-renders everything and fires the callback.
+			Commit(Reseated, "Fast")
+		else
+			-- Still in range, but the track it sits on just changed length.
+			SetFillSize(DeltaFor(Reseated), "Fast")
+			if Slider.UIElements.SliderContainer then
+				Slider.UIElements.SliderContainer.TextBox.Text = tostring(Reseated)
+			end
+		end
+	end
+
+	function Slider:SetMax(newMax)
+		SetBound("Max", newMax, 100)
 	end
 
 	function Slider:SetMin(newMin)
-		newMin = newMin or 0
-		Slider.Value.Min = newMin
-
-		local maxVal = Slider.Value.Max or 100
-		local currentValue = tonumber(Slider.Value.Default) or LastValue or newMin
-
-		if currentValue < newMin then
-			Slider:Set(newMin)
-		else
-			local range = maxVal - newMin
-			local newDelta = range ~= 0 and math.clamp((currentValue - newMin) / range, 0, 1) or 0
-			SetFillSize(newDelta, "Fast")
-		end
+		SetBound("Min", newMin, 0)
 	end
 
-	--  UPDATED: TextBox FocusLost – accepts decimal input
-	Creator.AddSignal(Slider.UIElements.SliderContainer.TextBox.FocusLost, function(enterPressed)
-		local newValue = tonumber(Slider.UIElements.SliderContainer.TextBox.Text)
-		if newValue then
-			-- Clamp to Min/Max
-			newValue = math.clamp(newValue, Slider.Value.Min, Slider.Value.Max)
-			Slider:Set(newValue)
-		else
-			Slider.UIElements.SliderContainer.TextBox.Text = FormatValue(LastValue)
-			if Tooltip then
-				Tooltip.TitleFrame.Text = FormatValue(LastValue)
-			end
+	Creator.AddSignal(Slider.UIElements.SliderContainer.TextBox.FocusLost, function()
+		local Typed = tonumber(Slider.UIElements.SliderContainer.TextBox.Text)
+		if Typed then
+			-- Set snaps and clamps; no need to pre-clamp here.
+			Slider:Set(Typed)
+		end
+
+		-- Whatever was typed, the box shows the value that was actually kept.
+		Slider.UIElements.SliderContainer.TextBox.Text = tostring(LastValue)
+		if Tooltip then
+			Tooltip.TitleFrame.Text = tostring(LastValue)
 		end
 	end)
 
@@ -508,35 +526,39 @@ end
 			return
 		end
 		if
-			input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch
+			input.UserInputType ~= Enum.UserInputType.MouseButton1
+			and input.UserInputType ~= Enum.UserInputType.Touch
 		then
-			if Config.WindUI.CurrentInput and Config.WindUI.CurrentInput ~= CurInput then
-				return
-			end
-			Config.WindUI.CurrentInput = CurInput
+			return
+		end
 
-			Slider:Set(Value, input)
+		Slider:Set(Value, input)
 
-			if Config.Window.NewElements then
-				Motion.Play(Slider.UIElements.SliderIcon.Frame.Thumb, "Focus", {
-					ImageTransparency = 0.85,
-					Size = UDim2.new(
-						0,
-						(Config.Window.NewElements and (Slider.ThumbSize * 2) or Slider.ThumbSize) + 8,
-						0,
-						Slider.ThumbSize + 8
-					),
-				}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Thumb")
-			end
-			if Tooltip then
-				Tooltip:Open()
-			end
+		-- Set only begins a drag once it owns the input and can measure the
+		-- track. If it bailed, there is nothing to animate and no hold to show.
+		if not IsSliderHolding then
+			return
+		end
+
+		if Config.Window.NewElements then
+			Motion.Play(Slider.UIElements.SliderIcon.Frame.Thumb, "Focus", {
+				ImageTransparency = 0.85,
+				Size = UDim2.new(
+					0,
+					(Config.Window.NewElements and (Slider.ThumbSize * 2) or Slider.ThumbSize) + 8,
+					0,
+					Slider.ThumbSize + 8
+				),
+			}, Enum.EasingStyle.Quint, Enum.EasingDirection.Out, "Thumb")
+		end
+		if Tooltip then
+			Tooltip:Open()
 		end
 	end)
 
 	function Slider:Cleanup()
 		DisconnectSliderInput()
+		SetThumbGlass(false)
 		if Tooltip then
 			Tooltip:Close(false)
 		end

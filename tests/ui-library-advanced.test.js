@@ -8,6 +8,8 @@ const dropdown = fs.readFileSync("src/components/ui/Dropdown.lua", "utf8")
 const dropdownElement = fs.readFileSync("src/elements/Dropdown.lua", "utf8")
 const toggle = fs.readFileSync("src/components/ui/Toggle.lua", "utf8")
 const toggleElement = fs.readFileSync("src/elements/Toggle.lua", "utf8")
+const checkbox = fs.readFileSync("src/components/ui/Checkbox.lua", "utf8")
+const slider = fs.readFileSync("src/elements/Slider.lua", "utf8")
 const loading = fs.readFileSync("src/components/LoadingScreen.lua", "utf8")
 const openButton = fs.readFileSync("src/components/window/Openbutton.lua", "utf8")
 const windowModule = fs.readFileSync("src/components/window/Init.lua", "utf8")
@@ -114,15 +116,43 @@ const checks = {
 		/Config\.Centered == true/.test(dropdownElement) &&
 		/Centered and 236/.test(dropdownElement) &&
 		/CenterTarget/.test(dropdownElement),
+	// The liquid-glass knob and the swipe gesture are upstream defaults, not
+	// opt-ins: gating them behind a per-element flag nothing sets made both
+	// unreachable. They stay overridable, but they must default to ON.
 	optimizedToggle:
-		/UseGlassSpritesheet = Config\.GlassSpritesheet == true/.test(toggle) &&
-		/UseDrag = Config\.Drag == true/.test(toggle) &&
+		/local UseGlassSpritesheet = Coalesce\(\s*Config\.GlassSpritesheet,\s*Config\.Spritesheet,\s*WindowConfig and WindowConfig\.ToggleGlass,\s*true\s*\) == true/.test(
+			toggle
+		) &&
+		/local UseDrag = Coalesce\(\s*Config\.Drag,\s*Config\.Draggable,\s*Config\.Swipe,\s*WindowConfig and WindowConfig\.ToggleDrag,\s*NewElement\s*\) == true/.test(
+			toggle
+		) &&
 		/UseHoldAnimation = Config\.HoldAnimation ~= false/.test(toggle) &&
 		/function Control:BeginHold/.test(toggle) &&
 		/function Control:EndHold/.test(toggle) &&
+		// An instant Render must kill in-flight tweens, or the RenderedValue
+		// dedup below it makes the resulting desync permanent.
+		/Motion\.Cancel\(ToggleFrame\.Frame, "Position"\)/.test(toggle) &&
 		/task\.defer/.test(toggle) &&
 		/ToggleFunc\.UseDrag/.test(toggleElement) &&
 		!/task\.spawn/.test(toggle),
+	// Checkbox:Set used to ignore its IsCallback argument, so building a
+	// checkbox fired the user's callback once before they touched anything.
+	checkboxHonoursIsCallback:
+		/function Checkbox:Set\(Toggled, IsCallback, Instant\)/.test(checkbox) &&
+		/if Callback and IsCallback ~= false then/.test(checkbox) &&
+		!/task\.spawn/.test(checkbox),
+	// Slider maths: one rounding implementation, snapped-then-clamped, with
+	// the fill derived from the committed value rather than the raw pointer.
+	sliderValuePipeline:
+		/local function CalculateValue\(RawValue\)/.test(slider) &&
+		/return math\.clamp\(FormatValue\(Snapped\), Slider\.Value\.Min, Slider\.Value\.Max\)/.test(slider) &&
+		/local function Commit\(NextValue, FillDuration\)/.test(slider) &&
+		/SetFillSize\(DeltaFor\(Committed\), FillDuration\)/.test(slider) &&
+		// A UI library must not write to the global math table.
+		!/math\.round = /.test(slider) &&
+		// The input mutex is claimed only where a drag is certain to start.
+		/Config\.WindUI\.CurrentInput = CurInput/.test(slider) &&
+		/Motion\.Cancel\(Slider\.UIElements\.SliderIcon\.Frame, "Fill"\)/.test(slider),
 	tabHolderModes:
 		/TabHolderType = TabHolderType/.test(windowModule) &&
 		/Name = "TopTabHolder"/.test(windowModule) &&
