@@ -50,14 +50,18 @@ npm run docs:build # website/ -> website/out
 
 ### Site deployment
 
-`.github/workflows/pages.yml` builds the library, syncs the Pages assets,
-exports the docs site and publishes `website/out` to GitHub Pages on every push
-to `main`. That export is also what serves the loadstring URLs — `loader.lua`,
-`main.lua`, `dist/main.lua`, `main_example.lua` and `src/themes/Init.lua` all
-sit at the paths the runtime fetches.
+GitHub Pages serves the `gh-pages` branch, which used to be updated by hand —
+so the published docs and the published runtime both went stale whenever nobody
+remembered.
 
-It needs **Settings → Pages → Source = "GitHub Actions"**; with the older
-"Deploy from a branch" setting the workflow runs but nothing is published.
+`.github/workflows/pages.yml` now does it on every push to `main`: build the
+library, sync the Pages assets, export the docs, push `website/out` to
+`gh-pages`. That export is also what serves the loadstring URLs — `loader.lua`,
+`main.lua`, `dist/main.lua`, `main_example.lua` and `src/themes/Init.lua` all
+sit at the paths the runtime fetches, so publishing keeps both in step.
+
+`gh-pages` is build output: each run force-pushes a single fresh commit. Don't
+commit anything there by hand.
 
 ## Credits
 

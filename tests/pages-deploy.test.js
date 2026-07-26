@@ -1,8 +1,8 @@
-// The docs site was never deployed: build.yml only committed dist/main.lua
-// back to the repo, so https://article-hub-studio.github.io/WindUI-Skibidi/docs/
-//404'd. pages.yml publishes the static export instead. That export doubles as
-// the host for every loadstring URL, so a change that drops one of those paths
-// from website/public would take the runtime down with it.
+// The site is served from the gh-pages branch and nothing kept it current -
+// its last commit was pushed by hand, so the published docs and the published
+// runtime both froze. pages.yml republishes the export on every push to main.
+// That export also hosts every loadstring URL, so a change that drops one of
+// those paths from website/public would take the runtime down with it.
 
 const fs = require("fs")
 const path = require("path")
@@ -19,9 +19,17 @@ if (fs.existsSync(workflowPath)) {
 	const workflow = fs.readFileSync(workflowPath, "utf8")
 
 	check("deploys on pushes to main", /branches: \["main"\]/.test(workflow))
-	check("uses the Pages deploy action", /actions\/deploy-pages@v\d/.test(workflow))
-	check("uploads the static export", /actions\/upload-pages-artifact@v\d[\s\S]{0,80}path: website\/out/.test(workflow))
-	check("requests the Pages OIDC permissions", /pages: write/.test(workflow) && /id-token: write/.test(workflow))
+	// Pages serves the gh-pages branch on this repo, so publishing has to
+	// push there. The Actions-artifact route needs a settings change and
+	// fails instantly without it.
+	check("publishes the export to gh-pages", /git push -f .* gh-pages/.test(workflow))
+	check("publishes website/out", /cd website\/out/.test(workflow))
+	check("can write to the repository", /contents: write/.test(workflow))
+	// Jekyll would swallow Next's _next/ asset directory.
+	check("disables Jekyll on the published branch", /touch website\/out\/\.nojekyll/.test(workflow))
+	// A commit subject from the trigger interpolated into the shell would be
+	// an injection vector.
+	check("does not interpolate untrusted text into the shell", !/\$\{\{ github\.event\./.test(workflow))
 	// A cancelled deploy can leave Pages serving a partial site.
 	check("does not cancel in-flight deploys", /cancel-in-progress: false/.test(workflow))
 	// The export has to contain a freshly built bundle, not the committed one.

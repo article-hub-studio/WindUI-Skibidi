@@ -1,13 +1,18 @@
 name: Deploy site (GitHub Pages)
 
-# Nothing published the docs site before this workflow existed: build.yml only
-# committed dist/main.lua back to the repo, so https://.../WindUI-Skibidi/docs/
-# was never served. The export in website/out also carries loader.lua,
-# main.lua, dist/main.lua, main_example.lua and src/themes/Init.lua at the same
-# paths the runtime loader fetches, so deploying it keeps every loadstring URL
-# working as well as putting the docs online.
+# The site is served from the gh-pages branch, and nothing kept that branch up
+# to date: its last commit was pushed by hand. So the docs at
+# https://article-hub-studio.github.io/WindUI-Skibidi/ went stale the moment
+# someone stopped publishing manually.
 #
-# Requires Settings -> Pages -> Source = "GitHub Actions".
+# This builds the library, syncs the Pages assets, exports the docs and pushes
+# the result to gh-pages. The export also hosts every loadstring URL
+# (loader.lua, main.lua, dist/main.lua, main_example.lua,
+# src/themes/Init.lua) at the paths the runtime fetches, so a stale branch
+# meant a stale runtime too.
+#
+# Publishing to the branch keeps working with the repository's current
+# "Deploy from a branch" Pages setting - no settings change required.
 
 on:
   push:
@@ -15,18 +20,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Never cancel a running deployment - a half-applied Pages deploy can leave the
-# loadstring URLs serving a partial site.
+# Never cancel a running publish: a half-pushed branch leaves Pages serving a
+# partial site.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -68,29 +71,34 @@ jobs:
           missing=0
           for path in loader.lua main.lua dist/main.lua main_example.lua src/themes/Init.lua index.html docs/index.html; do
             if [ ! -f "website/out/$path" ]; then
-              echo "::error::website/out/$path is missing - deploying would break that URL"
+              echo "::error::website/out/$path is missing - publishing would break that URL"
               missing=1
             fi
           done
           exit $missing
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Publish to gh-pages
+        env:
+          # Not interpolated into the shell: a commit subject from the trigger
+          # would be an injection vector.
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: website/out
+          # Jekyll drops any path starting with an underscore, which is where
+          # Next puts its entire asset bundle.
+          touch website/out/.nojekyll
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
+          cd website/out
+          git init -q
+          git checkout -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "deploy: $DEPLOY_SHA"
 
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          # The branch is build output; a single fresh commit keeps the repo
+          # from carrying every past export.
+          git push -f "https://x-access-token:${DEPLOY_TOKEN}@github.com/${REPOSITORY}.git" gh-pages

@@ -45,7 +45,13 @@ function readPackageVersion(): string | undefined {
     return undefined;
 }
 
+/** A build must not sit on a hung socket; getThemes uses the same budget. */
+const FETCH_TIMEOUT_MS = 5000;
+
 async function fetchLatestTag(): Promise<string | undefined> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
         const res = await fetch(RELEASES_API, {
             headers: {
@@ -56,6 +62,7 @@ async function fetchLatestTag(): Promise<string | undefined> {
                     ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
                     : {}),
             },
+            signal: controller.signal,
             next: { revalidate: 3600 },
         });
 
@@ -64,8 +71,11 @@ async function fetchLatestTag(): Promise<string | undefined> {
         const data = (await res.json()) as { tag_name?: string };
         return data.tag_name || undefined;
     } catch {
-        // Offline, rate limited, or the API is down - the docs still have to build.
+        // Offline, rate limited, timed out, or the API is down - the docs
+        // still have to build.
         return undefined;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
