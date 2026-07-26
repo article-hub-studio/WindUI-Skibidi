@@ -166,8 +166,31 @@
     display: none;
 }
 
-main div {
+/*
+ * Fumadocs lays its article out expecting a sidebar and a TOC. Both are hidden
+ * above, so the prose column has to reclaim the space they left behind.
+ *
+ * This used to be `main div { width: 100% }`, which forced *every* div on
+ * every page to full width. Unlayered rules beat Tailwind's `@layer utilities`
+ * whatever their specificity, so it silently overrode size-*, w-*, flex-basis
+ * and grid track sizing everywhere: icon tiles stretched across their cards and
+ * pushed the text out of view on narrow screens.
+ *
+ * The narrow replacement: the column wrappers between #nd-docs-layout and
+ * #nd-page are flex items, and flex items default to min-width:auto. A wide
+ * code block, table or image inside therefore stops the column shrinking and
+ * the whole page scrolls sideways on a phone. min-width:0 lets it shrink; the
+ * wide content keeps its own scrollbar.
+ */
+#nd-docs-layout > div,
+#nd-docs-layout > div > main {
+    min-width: 0;
+}
+
+#nd-page,
+#nd-page > article {
     width: 100%;
+    max-width: 100%;
 }
 
 .active {

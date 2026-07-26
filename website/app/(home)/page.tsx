@@ -213,7 +213,8 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:80px_80px] opacity-20" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(20,184,166,0.22),transparent_34%),linear-gradient(135deg,rgba(37,99,235,0.18),transparent_38%,rgba(234,179,8,0.13))]" />
 
-                <div className="relative mx-auto grid min-h-[calc(100dvh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
+                {/* pt clears the 56px fixed navbar; the hero used to sit under it. */}
+                <div className="relative mx-auto grid min-h-[calc(100dvh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 pt-20 pb-14 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
                     <div className="flex flex-col gap-8">
                         <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/14 bg-white/8 px-3 py-1.5 text-sm font-medium text-white/78 backdrop-blur-md">
                             <Sparkles className="size-4 text-cyan-300" />
