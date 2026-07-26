@@ -1372,6 +1372,21 @@ end
 return r
 end
 
+
+
+
+
+
+
+
+function p.RemoveThemeProperty(r,u)
+local v=p.Objects[r]
+if v and v.Properties then
+v.Properties[u]=nil
+end
+return r
+end
+
 function p.AddLangObject(r)
 local u=p.LocalizationObjects[r]
 if not u then
@@ -12934,7 +12949,12 @@ PaddingBottom=UDim.new(0,aj.UIPadding),
 })
 )
 
-local aP,aQ=ae(aj.UICorner,"Squircle",{
+
+
+
+local aP=not ap and aj.LiquidGlass==true
+
+local aQ,aR=ae(aj.UICorner,if aP then"SquircleGlass"else"Squircle",{
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 ImageTransparency=ap and 1 or GetBackgroundTransparency(),
@@ -12943,9 +12963,11 @@ ImageTransparency=ap and 1 or GetBackgroundTransparency(),
 
 Parent=ai.Parent,
 ThemeTag={
+
+
 ImageColor3=not ap
 and not aj.Color
-and(ai.Window.NewElements and"ElementBackground"or"Text")
+and((aP or ai.Window.NewElements)and"ElementBackground"or"Text")
 or nil,
 ImageTransparency=not ap
 and not aj.Color
@@ -12957,7 +12979,7 @@ or nil,
 ImageColor3=not ap and GetElementColor()or nil,
 },aO,true,true)
 
-aj.UIElements.Main=aP
+aj.UIElements.Main=aQ
 aj.UIElements.Locked=aG
 ApplyNativeCorners(ax)
 
@@ -12976,19 +12998,19 @@ aC.TextTransparency=math.min(aC.TextTransparency+0.08,0.72)
 end
 
 if aj.Hover then
-aa.AddSignal(aP.MouseMoved,function(aR,aS)
-if ao and aP.AbsoluteSize.X>0 then
-aM.HoverGradient.Offset=Vector2.new(((aR-aP.AbsolutePosition.X)/aP.AbsoluteSize.X)-0.5,0)
+aa.AddSignal(aQ.MouseMoved,function(aS,aT)
+if ao and aQ.AbsoluteSize.X>0 then
+aM.HoverGradient.Offset=Vector2.new(((aS-aQ.AbsolutePosition.X)/aQ.AbsoluteSize.X)-0.5,0)
 aL.HoverGradient.Offset=
-Vector2.new(((aR-aP.AbsolutePosition.X)/aP.AbsoluteSize.X)-0.5,0)
+Vector2.new(((aS-aQ.AbsolutePosition.X)/aQ.AbsoluteSize.X)-0.5,0)
 if at then
 at.Offset=
-Vector2.new(((aR-aP.AbsolutePosition.X)/aP.AbsoluteSize.X)-0.5,0)
+Vector2.new(((aS-aQ.AbsolutePosition.X)/aQ.AbsoluteSize.X)-0.5,0)
 end
 end
 end)
 
-aa.AddSignal(aP.MouseEnter,function()
+aa.AddSignal(aQ.MouseEnter,function()
 if ao then
 
 aL.Visible=true
@@ -13018,7 +13040,7 @@ BackgroundTransparency=math.max(
 end
 end
 end)
-aa.AddSignal(aP.InputEnded,function()
+aa.AddSignal(aQ.InputEnded,function()
 if ao then
 
 ab.Play(
@@ -13049,7 +13071,7 @@ Enum.EasingDirection.Out,
 end
 end
 end)
-aa.AddSignal(aP.MouseLeave,function()
+aa.AddSignal(aQ.MouseLeave,function()
 if ao then
 ab.Play(
 aM,
@@ -13082,7 +13104,7 @@ end)
 end
 
 if aj.Scalable then
-ab.AttachPress(aP,aa,{
+ab.AttachPress(aQ,aa,{
 Amount=0.985,
 Enabled=function()
 return ao
@@ -13090,24 +13112,37 @@ end,
 })
 end
 
-function aj.SetTitle(aR,aS)
-aj.Title=aS
-aB.Text=aS
+function aj.SetTitle(aS,aT)
+aj.Title=aT
+aB.Text=aT
 end
 
-function aj.SetDesc(aR,aS)
-aj.Desc=aS
-aC.Text=aS or""
-if not aS then
+function aj.SetDesc(aS,aT)
+aj.Desc=aT
+aC.Text=aT or""
+if not aT then
 aC.Visible=false
 elseif not aC.Visible then
 aC.Visible=true
 end
 end
 
-function aj.SetTransparency(aR,aS)
-aq=aa.ClampTransparency(aS,aq or 0)
+
+
+
+
+
+local function ReleaseSurfaceTransparencyTheming()
+if ar then
+aa.RemoveThemeProperty(ar,"BackgroundTransparency")
+end
+aa.RemoveThemeProperty(aQ,"ImageTransparency")
+end
+
+function aj.SetTransparency(aS,aT)
+aq=aa.ClampTransparency(aT,aq or 0)
 aj.Transparency=aq
+ReleaseSurfaceTransparencyTheming()
 
 if ar then
 ab.Play(
@@ -13120,7 +13155,7 @@ Enum.EasingDirection.Out,
 )
 else
 ab.Play(
-aP,
+aQ,
 "Focus",
 {ImageTransparency=aq},
 Enum.EasingStyle.Quint,
@@ -13130,8 +13165,8 @@ Enum.EasingDirection.Out,
 end
 end
 
-function aj.SetLiquidGlass(aR,aS)
-aj.LiquidGlass=aS==true
+function aj.SetLiquidGlass(aS,aT)
+aj.LiquidGlass=aT==true
 
 if av then
 av.Enabled=aj.LiquidGlass
@@ -13143,21 +13178,30 @@ if au then
 au.Visible=aj.LiquidGlass
 end
 
+
+
+
+if not ap and aR then
+aR:SetType(if aj.LiquidGlass then"SquircleGlass"else"Squircle")
+end
+
 if aq~=nil then
 return
 end
+
+ReleaseSurfaceTransparencyTheming()
 
 if ar then
 ar.BackgroundTransparency=GetBackgroundTransparency()or 0
 else
 
-aP.ImageTransparency=GetBackgroundTransparency()or 0
+aQ.ImageTransparency=GetBackgroundTransparency()or 0
 end
 end
 
-function aj.Colorize(aR,aS,aT)
+function aj.Colorize(aS,aT,aU)
 if aj.Color then
-aS[aT]=typeof(aj.Color)=="string"
+aT[aU]=typeof(aj.Color)=="string"
 and GetTextColorForHSB(Color3.fromHex(aa.Colors[aj.Color]))
 or typeof(aj.Color)=="Color3"and GetTextColorForHSB(aj.Color)
 or nil
@@ -13183,18 +13227,18 @@ end
 
 
 
-function aj.SetThumbnail(aR,aS,aT)
-aj.Thumbnail=aS
-if aT then
-aj.ThumbnailSize=aT
-an=aT
+function aj.SetThumbnail(aS,aT,aU)
+aj.Thumbnail=aT
+if aU then
+aj.ThumbnailSize=aU
+an=aU
 end
 
 if az then
-if aS then
+if aT then
 az:Destroy()
 az=aa.Image(
-aS,
+aT,
 aj.Title,
 aj.UICorner-3,
 ai.Window.Folder,
@@ -13205,8 +13249,8 @@ aj.IconThemed
 if az then
 az.Size=UDim2.new(1,0,0,an)
 az.Parent=aj.UIElements.Container
-local aU=aj.UIElements.Container:FindFirstChild"UIListLayout"
-if aU then
+local aV=aj.UIElements.Container:FindFirstChild"UIListLayout"
+if aV then
 az.LayoutOrder=-1
 end
 end
@@ -13214,9 +13258,9 @@ else
 az.Visible=false
 end
 else
-if aS then
+if aT then
 az=aa.Image(
-aS,
+aT,
 aj.Title,
 aj.UICorner-3,
 ai.Window.Folder,
@@ -13227,8 +13271,8 @@ aj.IconThemed
 if az then
 az.Size=UDim2.new(1,0,0,an)
 az.Parent=aj.UIElements.Container
-local aU=aj.UIElements.Container:FindFirstChild"UIListLayout"
-if aU then
+local aV=aj.UIElements.Container:FindFirstChild"UIListLayout"
+if aV then
 az.LayoutOrder=-1
 end
 end
@@ -13236,22 +13280,22 @@ end
 end
 end
 
-function aj.SetImage(aR,aS,aT)
-aj.Image=aS
-if aT then
-aj.ImageSize=aT
-am=aT
+function aj.SetImage(aS,aT,aU)
+aj.Image=aT
+if aU then
+aj.ImageSize=aU
+am=aU
 end
 
-if aS then
-local aU=aA and aA.Parent or aj.UIElements.Container.TitleFrame
+if aT then
+local aV=aA and aA.Parent or aj.UIElements.Container.TitleFrame
 if aA then
 aA:Destroy()
 end
 
 aA=aa.Image(
-aS,
-aS,
+aT,
+aT,
 aj.UICorner-3,
 ai.Window.Folder,
 "Image",
@@ -13266,7 +13310,7 @@ aA.ImageLabel.ImageColor3=GetTextColorForHSB(aj.Color)
 end
 
 aA.Visible=true
-aA.Parent=aU
+aA.Parent=aV
 aA.LayoutOrder=-99
 
 aA.Size=UDim2.new(0,am,0,am)
@@ -13282,25 +13326,25 @@ end
 aj.UIElements.Container.TitleFrame.TitleFrame.Size=UDim2.new(1,-ay,1,0)
 end
 
-function aj.Destroy(aR)
-aP:Destroy()
+function aj.Destroy(aS)
+aQ:Destroy()
 end
 
-function aj.Lock(aR,aS)
+function aj.Lock(aS,aT)
 ao=false
 aG.Active=true
 aG.Visible=true
-aE.Text=aS or"Locked"
+aE.Text=aT or"Locked"
 end
 
-function aj.Unlock(aR)
+function aj.Unlock(aS)
 ao=true
 aG.Active=false
 aG.Visible=false
 end
 
-function aj.Highlight(aR)
-local aS=ad("UIGradient",{
+function aj.Highlight(aS)
+local aT=ad("UIGradient",{
 Color=ColorSequence.new{
 ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),
 ColorSequenceKeypoint.new(0.5,Color3.new(1,1,1)),
@@ -13318,7 +13362,7 @@ Offset=Vector2.new(-1,0),
 Parent=aI,
 })
 
-local aT=ad("UIGradient",{
+local aU=ad("UIGradient",{
 Color=ColorSequence.new{
 ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),
 ColorSequenceKeypoint.new(0.5,Color3.new(1,1,1)),
@@ -13339,11 +13383,11 @@ Parent=aJ,
 aI.ImageTransparency=0.65
 aJ.ImageTransparency=0.88
 
-ab.Play(aS,"Highlight",{
+ab.Play(aT,"Highlight",{
 Offset=Vector2.new(1,0),
 },Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Highlight")
 
-ab.Play(aT,"Highlight",{
+ab.Play(aU,"Highlight",{
 Offset=Vector2.new(1,0),
 },Enum.EasingStyle.Quint,Enum.EasingDirection.Out,"Highlight")
 
@@ -13351,58 +13395,58 @@ task.spawn(function()
 task.wait(ab.GetDuration"Highlight")
 aI.ImageTransparency=1
 aJ.ImageTransparency=1
-aS:Destroy()
 aT:Destroy()
+aU:Destroy()
 end)
 end
 
-function aj.UpdateShape(aR)
+function aj.UpdateShape(aS)
 if ai.Window.NewElements then
-local aS=ai.ParentConfig
+local aT=ai.ParentConfig
 and ai.ParentConfig.ParentTable
 and ai.ParentConfig.ParentTable.__type
 or ai.ParentType
-local aT=aj.LinkCorners~=false
+local aU=aj.LinkCorners~=false
 and(
 aj.LinkCorners==true
 or ai.Window.ElementConfig.LinkCorners
 or(ai.ParentConfig and ai.ParentConfig.LinkCorners==true)
 )
 
-local aU="Squircle"
-local aV={Position="Single",Count=1}
-local aW={
+local aV="Squircle"
+local aW={Position="Single",Count=1}
+local aX={
 TopLeft=true,
 TopRight=true,
 BottomLeft=true,
 BottomRight=true,
 }
 
-if aT then
-aU,aW,aV=aa.GetLinkedCornerShape(
-aR.Elements,
+if aU then
+aV,aX,aW=aa.GetLinkedCornerShape(
+aS.Elements,
 aj.Index,
-aR,
 aS,
+aT,
 ai.CornerLink
 or(ai.ParentConfig and ai.ParentConfig.CornerLink)
 or ai.Window.ElementConfig.CornerLink
 )
 end
 
-if aU and aP then
-local aX=ap and aV.Count>1
-local aY=if aX
+if aV and aQ then
+local aY=ap and aW.Count>1
+local aZ=if aY
 then"Square"
-else(aU=="Squircle-TL-BL"or aU=="Squircle-TR-BR")and"Squircle"or aU
+else(aV=="Squircle-TL-BL"or aV=="Squircle-TR-BR")and"Squircle"or aV
 
-aQ:SetType(aY)
-aH:SetType(aY)
-aK:SetType(aY)
+aR:SetType(aZ)
+aH:SetType(aZ)
+aK:SetType(aZ)
 
-aN:SetType(aY)
+aN:SetType(aZ)
 
-ApplyNativeCorners(aW)
+ApplyNativeCorners(aX)
 end
 end
 end
@@ -19190,7 +19234,9 @@ Desc=an.Desc or nil,
 Locked=an.Locked or false,
 LockedTitle=an.LockedTitle,
 Options=ak.NormalizeOptions(an.Options or an.Values or{}),
-Value=an.Value or an.Default,
+
+
+Value=an.Value,
 Callback=an.Callback or function()end,
 UIElements={},
 Segments={},
@@ -19199,6 +19245,9 @@ Animation=an.Animation~=false,
 Width=GetControlWidth(an),
 }
 
+if ao.Value==nil then
+ao.Value=an.Default
+end
 if typeof(ao.Value)=="number"and ao.Options[ao.Value]then
 ao.Value=ao.Options[ao.Value].Value
 end
@@ -19248,7 +19297,14 @@ local au=at and 0.82 or 1
 local av=as.Option.Disabled and 0.55 or(at and 0 or 0.25)
 
 if aq and ao.Animation then
-af.Play(as.Button,"Select",{ImageTransparency=au},nil,nil,"Select")
+af.Play(
+as.Button,
+"Select",
+{ImageTransparency=au},
+nil,
+nil,
+"Select"
+)
 af.Play(as.Title,"Select",{TextTransparency=av},nil,nil,"Select")
 else
 as.Button.ImageTransparency=au
@@ -19257,17 +19313,31 @@ end
 end
 end
 
-local function CreateSegment(aq,ar,as)
-local at=4
-local au=math.max((ao.Width-8-(at*(as-1)))/math.max(as,1),24)
+local aq=24
 
-local av=ai("TextLabel",{
+
+
+
+local function SegmentWidthFor(ar,as)
+local at=ao.Width-8-(as*math.max(ar-1,0))
+local au=at/math.max(ar,1)
+if au<aq then
+return aq,true
+end
+return au,false
+end
+
+local function CreateSegment(ar,as,at)
+local au=4
+local av=SegmentWidthFor(at,au)
+
+local aw=ai("TextLabel",{
 Name="Title",
 Size=UDim2.new(1,-10,1,0),
 Position=UDim2.new(0.5,0,0.5,0),
 AnchorPoint=Vector2.new(0.5,0.5),
 BackgroundTransparency=1,
-Text=aq.Title,
+Text=ar.Title,
 TextSize=13,
 TextTruncate="AtEnd",
 FontFace=Font.new(aa.Font,Enum.FontWeight.SemiBold),
@@ -19276,95 +19346,106 @@ TextColor3="SegmentedControlText",
 },
 })
 
-local aw=aa.NewRoundFrame(10,"Squircle",{
+local ax=aa.NewRoundFrame(10,"Squircle",{
 Name="Segment",
-Size=UDim2.new(0,au,1,0),
-Position=UDim2.new(0,(ar-1)*(au+at)+4,0,4),
+Size=UDim2.new(0,av,1,0),
+
+
+
+Position=UDim2.new(0,(as-1)*(av+au),0,0),
 ImageTransparency=1,
-Active=not aq.Disabled,
+Active=not ar.Disabled,
 ThemeTag={
 ImageColor3="SegmentedControlActive",
 },
 },{
-av,
+aw,
 },true)
 
-aw.Parent=ao.UIElements.Container
+ax.Parent=ao.UIElements.Container
 
-local ax={
-Button=aw,
-Title=av,
-Option=aq,
+local ay={
+Button=ax,
+Title=aw,
+Option=ar,
 }
-ao.Segments[ar]=ax
+ao.Segments[as]=ay
 
-af.AttachPress(aw,aa,{
+af.AttachPress(ax,aa,{
 Amount=0.96,
 Enabled=function()
-return ao.Animation and not ao.Locked and not aq.Disabled
+return ao.Animation and not ao.Locked and not ar.Disabled
 end,
 })
 
-aa.AddSignal(aw.MouseButton1Click,function()
-if not aq.Disabled then
-ao:Select(aq.Value)
+aa.AddSignal(ax.MouseButton1Click,function()
+if not ar.Disabled then
+ao:Select(ar.Value)
 end
 end)
 end
 
 local function RenderSegments()
-for aq,ar in next,ao.Segments do
-if ar.Button then
-ar.Button:Destroy()
+for ar,as in next,ao.Segments do
+if as.Button then
+as.Button:Destroy()
 end
 end
 
 ao.Segments={}
 
-local aq=#ao.Options
-for ar,as in next,ao.Options do
-CreateSegment(as,ar,aq)
-end
+local ar=#ao.Options
+for as,at in next,ao.Options do
+CreateSegment(at,as,ar)
+end local
+
+
+
+as, at=SegmentWidthFor(ar,4)
+ao.UIElements.Container.ClipsDescendants=at
 
 UpdateSegmentVisuals(false)
 end
 
-function ao.Lock(aq)
+function ao.Lock(ar)
 ao.Locked=true
 ap=false
 return ao.SegmentedControlFrame:Lock(ao.LockedTitle)
 end
-function ao.Unlock(aq)
+function ao.Unlock(ar)
 ao.Locked=false
 ap=true
 return ao.SegmentedControlFrame:Unlock()
 end
 
-function ao.Get(aq)
+function ao.Get(ar)
 return ao.Value
 end
 
-function ao.Select(aq,ar,as)
-local at=ak.FindOption(ao.Options,ar)
-if not at or at.Disabled then
+function ao.Select(ar,as,at)
+local au=ak.FindOption(ao.Options,as)
+if not au or au.Disabled then
 return ao.Value
 end
 
-ao.Value=ar
+ao.Value=as
 UpdateSegmentVisuals(true)
 
-if ap and as~=false then
-aa.SafeCallback(ao.Callback,ar,at)
+if ap and at~=false then
+aa.SafeCallback(ao.Callback,as,au)
 end
 
 return ao.Value
 end
 
-function ao.SetOptions(aq,ar)
-ao.Options=ak.NormalizeOptions(ar)
+function ao.SetOptions(ar,as)
+ao.Options=ak.NormalizeOptions(as)
 
 if not ak.FindOption(ao.Options,ao.Value)then
-ao.Value=ao.Options[1]and ao.Options[1].Value or nil
+
+
+local at=ao.Options[1]
+ao.Value=if at then at.Value else nil
 end
 
 RenderSegments()
@@ -21138,12 +21219,15 @@ local an={}
 
 for ao,ap in next,am or{}do
 if typeof(ap)=="table"then
-local aq=ak.ToFiniteNumber(ap.Max)or 100
+
+
+
+local aq=math.max(ak.ToFiniteNumber(ap.Max)or 100,0.0001)
 local ar=ak.ToFiniteNumber(ap.Value or ap.Default)or 0
 table.insert(an,{
 Title=tostring(ap.Title or ap.Name or("Meter "..tostring(ao))),
 Value=math.clamp(ar,0,aq),
-Max=math.max(aq,0.0001),
+Max=aq,
 Desc=ap.Desc,
 Color=ak.GetColor(ap.Color,nil),
 Format=ap.Format,

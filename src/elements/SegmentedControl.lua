@@ -18,7 +18,9 @@ function Element:New(Config)
 		Locked = Config.Locked or false,
 		LockedTitle = Config.LockedTitle,
 		Options = Utils.NormalizeOptions(Config.Options or Config.Values or {}),
-		Value = Config.Value or Config.Default,
+		-- `false` is a legal option value, so this cannot use `or` - see the
+		-- nil checks below, which mirror RadioGroup.
+		Value = Config.Value,
 		Callback = Config.Callback or function() end,
 		UIElements = {},
 		Segments = {},
@@ -27,6 +29,9 @@ function Element:New(Config)
 		Width = GetControlWidth(Config),
 	}
 
+	if SegmentedControl.Value == nil then
+		SegmentedControl.Value = Config.Default
+	end
 	if typeof(SegmentedControl.Value) == "number" and SegmentedControl.Options[SegmentedControl.Value] then
 		SegmentedControl.Value = SegmentedControl.Options[SegmentedControl.Value].Value
 	end
@@ -76,7 +81,14 @@ function Element:New(Config)
 			local TextTransparency = Segment.Option.Disabled and 0.55 or (Selected and 0 or 0.25)
 
 			if IsAnimated and SegmentedControl.Animation then
-				Motion.Play(Segment.Button, "Select", { ImageTransparency = BackgroundTransparency }, nil, nil, "Select")
+				Motion.Play(
+					Segment.Button,
+					"Select",
+					{ ImageTransparency = BackgroundTransparency },
+					nil,
+					nil,
+					"Select"
+				)
 				Motion.Play(Segment.Title, "Select", { TextTransparency = TextTransparency }, nil, nil, "Select")
 			else
 				Segment.Button.ImageTransparency = BackgroundTransparency
@@ -85,9 +97,23 @@ function Element:New(Config)
 		end
 	end
 
+	local MIN_SEGMENT_WIDTH = 24
+
+	--- Widest each segment can be without the row leaving the container.
+	--- Returns the width and whether the minimum had to kick in, because a
+	--- clamped row no longer fits and has to be told to clip.
+	local function SegmentWidthFor(Count, Gap)
+		local Available = SegmentedControl.Width - 8 - (Gap * math.max(Count - 1, 0))
+		local Exact = Available / math.max(Count, 1)
+		if Exact < MIN_SEGMENT_WIDTH then
+			return MIN_SEGMENT_WIDTH, true
+		end
+		return Exact, false
+	end
+
 	local function CreateSegment(Option, Index, Count)
 		local Gap = 4
-		local SegmentWidth = math.max((SegmentedControl.Width - 8 - (Gap * (Count - 1))) / math.max(Count, 1), 24)
+		local SegmentWidth = SegmentWidthFor(Count, Gap)
 
 		local Title = New("TextLabel", {
 			Name = "Title",
@@ -107,7 +133,10 @@ function Element:New(Config)
 		local Button = Creator.NewRoundFrame(10, "Squircle", {
 			Name = "Segment",
 			Size = UDim2.new(0, SegmentWidth, 1, 0),
-			Position = UDim2.new(0, (Index - 1) * (SegmentWidth + Gap) + 4, 0, 4),
+			-- No manual inset here: the container's UIPadding already moves the
+			-- child origin inside the padded box, so adding 4 again pushed the
+			-- whole row 4px right and 4px down and broke the vertical centring.
+			Position = UDim2.new(0, (Index - 1) * (SegmentWidth + Gap), 0, 0),
 			ImageTransparency = 1,
 			Active = not Option.Disabled,
 			ThemeTag = {
@@ -154,6 +183,11 @@ function Element:New(Config)
 			CreateSegment(Option, Index, Count)
 		end
 
+		-- Past a certain option count the segments hit their minimum width and
+		-- the row is wider than the container. Clip rather than let it spill.
+		local _, Clamped = SegmentWidthFor(Count, 4)
+		SegmentedControl.UIElements.Container.ClipsDescendants = Clamped
+
 		UpdateSegmentVisuals(false)
 	end
 
@@ -192,7 +226,10 @@ function Element:New(Config)
 		SegmentedControl.Options = Utils.NormalizeOptions(Options)
 
 		if not Utils.FindOption(SegmentedControl.Options, SegmentedControl.Value) then
-			SegmentedControl.Value = SegmentedControl.Options[1] and SegmentedControl.Options[1].Value or nil
+			-- `and ... or nil` would collapse a first option whose value is
+			-- `false` back to nil, leaving nothing selected.
+			local First = SegmentedControl.Options[1]
+			SegmentedControl.Value = if First then First.Value else nil
 		end
 
 		RenderSegments()

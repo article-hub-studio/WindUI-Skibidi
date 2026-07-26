@@ -624,7 +624,12 @@ return function(Config)
 		})
 	)
 
-	local Main, MainTable = NewRoundFrame(Element.UICorner, "Squircle", {
+	-- Glass layers live inside NativeBackground, which only exists for native
+	-- corners. On the shape path the surface itself carries the glass sprite,
+	-- otherwise a LiquidGlass request produced an opaque slab with no sheen.
+	local UseShapeGlass = not UseNativeCorners and Element.LiquidGlass == true
+
+	local Main, MainTable = NewRoundFrame(Element.UICorner, if UseShapeGlass then "SquircleGlass" else "Squircle", {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = "Y",
 		ImageTransparency = UseNativeCorners and 1 or GetBackgroundTransparency(),
@@ -633,9 +638,11 @@ return function(Config)
 		--AutoButtonColor = false,
 		Parent = Config.Parent,
 		ThemeTag = {
+			-- The legacy "Text" tint is white; at the glass transparency that
+			-- reads as a white block, so glass surfaces take the element colour.
 			ImageColor3 = not UseNativeCorners
 					and not Element.Color
-					and (Config.Window.NewElements and "ElementBackground" or "Text")
+					and ((UseShapeGlass or Config.Window.NewElements) and "ElementBackground" or "Text")
 				or nil,
 			ImageTransparency = not UseNativeCorners
 					and not Element.Color
@@ -795,9 +802,22 @@ return function(Config)
 		end
 	end
 
+	--- Hands the surface's transparency over to manual control.
+	---
+	--- Both surfaces bind their transparency to the theme at construction, so
+	--- writing the property alone is not enough: the next theme change would
+	--- reassign the tagged value and undo it.
+	local function ReleaseSurfaceTransparencyTheming()
+		if NativeBackground then
+			Creator.RemoveThemeProperty(NativeBackground, "BackgroundTransparency")
+		end
+		Creator.RemoveThemeProperty(Main, "ImageTransparency")
+	end
+
 	function Element:SetTransparency(value)
 		ElementTransparency = Creator.ClampTransparency(value, ElementTransparency or 0)
 		Element.Transparency = ElementTransparency
+		ReleaseSurfaceTransparencyTheming()
 
 		if NativeBackground then
 			Motion.Play(
@@ -833,9 +853,18 @@ return function(Config)
 			NativeLiquidSheenLayer.Visible = Element.LiquidGlass
 		end
 
+		-- Without native corners there is no separate background frame to hold
+		-- the glass layers, so the surface itself has to become the glass
+		-- sprite - otherwise asking for glass just made the element opaque.
+		if not UseNativeCorners and MainTable then
+			MainTable:SetType(if Element.LiquidGlass then "SquircleGlass" else "Squircle")
+		end
+
 		if ElementTransparency ~= nil then
 			return
 		end
+
+		ReleaseSurfaceTransparencyTheming()
 
 		if NativeBackground then
 			NativeBackground.BackgroundTransparency = GetBackgroundTransparency() or 0

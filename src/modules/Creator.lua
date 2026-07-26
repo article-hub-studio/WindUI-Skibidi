@@ -356,6 +356,21 @@ function Creator.AddThemeObject(Object, Properties, skipUpdate)
 	return Object
 end
 
+--- Drops a single theme binding.
+---
+--- AddThemeObject merges its table, so a nil can never remove a property
+--- through it. Without this, a value written by hand (glass transparency,
+--- a manual SetTransparency) is silently reverted by the next theme change,
+--- while removing the whole object would unbind the properties that should
+--- still follow the theme.
+function Creator.RemoveThemeProperty(Object, Property)
+	local Data = Creator.Objects[Object]
+	if Data and Data.Properties then
+		Data.Properties[Property] = nil
+	end
+	return Object
+end
+
 function Creator.AddLangObject(idx)
 	local currentObj = Creator.LocalizationObjects[idx]
 	if not currentObj then

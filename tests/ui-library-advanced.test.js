@@ -10,6 +10,9 @@ const toggle = fs.readFileSync("src/components/ui/Toggle.lua", "utf8")
 const toggleElement = fs.readFileSync("src/elements/Toggle.lua", "utf8")
 const checkbox = fs.readFileSync("src/components/ui/Checkbox.lua", "utf8")
 const slider = fs.readFileSync("src/elements/Slider.lua", "utf8")
+const elementSurface = fs.readFileSync("src/components/window/Element.lua", "utf8")
+const segmented = fs.readFileSync("src/elements/SegmentedControl.lua", "utf8")
+const meterGroup = fs.readFileSync("src/elements/MeterGroup.lua", "utf8")
 const loading = fs.readFileSync("src/components/LoadingScreen.lua", "utf8")
 const openButton = fs.readFileSync("src/components/window/Openbutton.lua", "utf8")
 const windowModule = fs.readFileSync("src/components/window/Init.lua", "utf8")
@@ -153,6 +156,38 @@ const checks = {
 		// The input mutex is claimed only where a drag is certain to start.
 		/Config\.WindUI\.CurrentInput = CurInput/.test(slider) &&
 		/Motion\.Cancel\(Slider\.UIElements\.SliderIcon\.Frame, "Fill"\)/.test(slider),
+	// A UIGradient modulates its parent's own alpha rather than compositing
+	// over it, so the liquid-glass sheen must sit on a layer of its own or it
+	// erases the card instead of lighting it.
+	liquidGlassSheenIsolated:
+		/NativeLiquidSheenLayer = New\("Frame", \{\s*Name = "LiquidSheen"/.test(elementSurface) &&
+		/BackgroundColor3 = Color3\.new\(1, 1, 1\)/.test(elementSurface) &&
+		// Both layers exist regardless of the initial state, so SetLiquidGlass
+		// can turn glass on and not only off.
+		/Enabled = Element\.LiquidGlass == true/.test(elementSurface) &&
+		/NativeLiquidStroke\.Enabled = Element\.LiquidGlass/.test(elementSurface) &&
+		// Without native corners the surface itself has to become the sprite.
+		/MainTable:SetType\(if Element\.LiquidGlass then "SquircleGlass" else "Squircle"\)/.test(elementSurface) &&
+		/local UseShapeGlass = not UseNativeCorners and Element\.LiquidGlass == true/.test(elementSurface),
+	// Manual surface writes must drop their theme binding, or the next theme
+	// change silently reverts them.
+	manualSurfaceBeatsTheme:
+		/function Creator\.RemoveThemeProperty\(Object, Property\)/.test(creator) &&
+		/Data\.Properties\[Property\] = nil/.test(creator) &&
+		/local function ReleaseSurfaceTransparencyTheming\(\)/.test(elementSurface) &&
+		(elementSurface.match(/ReleaseSurfaceTransparencyTheming\(\)/g) || []).length >= 3,
+	segmentedControlLayout:
+		// `false` is a legal option value; `or` would drop it.
+		/Value = Config\.Value,/.test(segmented) &&
+		/if SegmentedControl\.Value == nil then\s*SegmentedControl\.Value = Config\.Default/.test(segmented) &&
+		/SegmentedControl\.Value = if First then First\.Value else nil/.test(segmented) &&
+		// UIPadding already insets the children; a manual +4 double-counted it.
+		/Position = UDim2\.new\(0, \(Index - 1\) \* \(SegmentWidth \+ Gap\), 0, 0\)/.test(segmented) &&
+		/ClipsDescendants = Clamped/.test(segmented),
+	// math.clamp errors when max < min, so Max has to be sanitised first.
+	meterGroupClampOrder:
+		/local Max = math\.max\(Utils\.ToFiniteNumber\(Meter\.Max\) or 100, 0\.0001\)/.test(meterGroup) &&
+		/Value = math\.clamp\(Value, 0, Max\),\s*Max = Max,/.test(meterGroup),
 	tabHolderModes:
 		/TabHolderType = TabHolderType/.test(windowModule) &&
 		/Name = "TopTabHolder"/.test(windowModule) &&

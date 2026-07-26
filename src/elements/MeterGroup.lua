@@ -11,12 +11,15 @@ local function NormalizeMeters(Meters)
 
 	for Index, Meter in next, Meters or {} do
 		if typeof(Meter) == "table" then
-			local Max = Utils.ToFiniteNumber(Meter.Max) or 100
+			-- Sanitise before clamping: math.clamp errors outright when max is
+			-- below min, so a negative Max used to throw during construction.
+			-- The floor also keeps Value / Max below from dividing by zero.
+			local Max = math.max(Utils.ToFiniteNumber(Meter.Max) or 100, 0.0001)
 			local Value = Utils.ToFiniteNumber(Meter.Value or Meter.Default) or 0
 			table.insert(Normalized, {
 				Title = tostring(Meter.Title or Meter.Name or ("Meter " .. tostring(Index))),
 				Value = math.clamp(Value, 0, Max),
-				Max = math.max(Max, 0.0001),
+				Max = Max,
 				Desc = Meter.Desc,
 				Color = Utils.GetColor(Meter.Color, nil),
 				Format = Meter.Format,
