@@ -34,6 +34,19 @@ local Window = WindUI:CreateWindow({
 WindUI:SetTheme("Dark")
 ```
 
+## Modern
+
+`Modern` is the palette that ships with the [`modern` window type](/docs/windui/window#window-types): neutral near-black surfaces (`#131617` panel, `#1D2022` card) and a single lime accent (`#A2FF31`). Selecting that window type applies it automatically unless you pass a `Theme` of your own.
+
+```luau
+local Window = WindUI:CreateWindow({
+    Title = "My Hub",
+    TypeWindow = "modern", -- Theme = "Modern" comes with it
+})
+```
+
+Because the accent is bright, the theme also darkens the ink drawn on top of it (`BadgeText`, `CheckboxIcon`, `TooltipSecondaryText`, …) so labels stay readable. Do the same if you build a theme around a light accent.
+
 ## Create Own Theme
 
 You can create theme with `WindUI:AddTheme()`

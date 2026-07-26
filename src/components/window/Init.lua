@@ -44,17 +44,8 @@ return function(Config)
 		return Default
 	end
 
-	if Config.TypeWindow then
-		local TypeWindowPresets = require("../../themes/TypeWindow")
-		local Preset = TypeWindowPresets[Config.TypeWindow]
-		if Preset then
-			for key, value in next, Preset do
-				if Config[key] == nil then
-					Config[key] = value
-				end
-			end
-		end
-	end
+	-- Fills in whatever the caller left out; explicit config always wins.
+	require("../../themes/TypeWindow").Apply(Config)
 
 	if UseDefaultPreset then
 		Config.NewElements = Pick(Config.NewElements, true)

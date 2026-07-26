@@ -144,7 +144,11 @@ local Window = WindUI:CreateWindow({
         },
         'Theme': {
             type: 'string',
-            description: 'Library theme name (e.g., "Dark", "Light"). Default is "Dark".',
+            description: 'Library theme name (e.g., "Dark", "Light", "Modern"). Default is "Dark", or the theme the chosen TypeWindow ships with.',
+        },
+        'TypeWindow': {
+            type: 'string',
+            description: 'Window type preset: "modern", "glass" or "default". Fills in surface, spacing and topbar defaults for you - anything you pass explicitly still wins. Names are case-insensitive. More <a href="#window-types" className="underline">here</a>.',
         },
         'Default': {
             type: 'boolean',
@@ -397,6 +401,38 @@ Window:HideOpenButton()
 Window:WakeOpenButton()
 Window:SetOpenButtonState("Expanded", { Content = "Custom state" })
 ```
+
+## Window Types
+
+A window type is a bundle of surface, spacing and topbar defaults. Pass one instead of hand-tuning a dozen fields:
+
+```luau
+local Window = WindUI:CreateWindow({
+    Title = "My Hub",
+    TypeWindow = "modern",
+})
+```
+
+Anything you pass explicitly wins over the preset, so you can start from a type and adjust:
+
+```luau
+local Window = WindUI:CreateWindow({
+    Title = "My Hub",
+    TypeWindow = "modern",
+    Radius = 16,        -- overrides the preset's 24
+    Theme = "Midnight", -- overrides the preset's default theme
+})
+```
+
+Names are case-insensitive and ignore spaces, dashes and underscores, so `"Modern"`, `"liquid-glass"` and `"Liquid Glass"` all resolve. An unrecognised name warns in the console and leaves your config untouched.
+
+| Type | Aliases | Look |
+| --- | --- | --- |
+| `modern` | `card`, `cards`, `flat` | Flat near-black cards (`#131617` panel, `#1D2022` card) separated by 10px gaps, 18px element radius, 24px window radius, Mac topbar, and the lime `#A2FF31` accent from the `Modern` theme. |
+| `glass` | `liquid`, `liquidglass`, `acrylic` | Translucent liquid-glass elements welded into one column by linked corners. This is what `modern` looked like before the rework. |
+| `default` | `classic`, `legacy`, `original` | The original WindUI look: opaque elements, 8px gaps, 16px radius, standard topbar. |
+
+`modern` and `glass` set `Theme` for you (`Modern` for `modern`) only when you have not chosen one yourself.
 
 ## Advanced Linked Corners
 

@@ -460,7 +460,11 @@ function WindUI:CreateWindow(Config)
 		OpenLoader("Preparing interface", 0.16)
 	end
 
-	local RequestedTheme = Config.Theme or "Dark"
+	-- A window type may prefer a palette of its own ("modern" ships with the
+	-- Modern theme), but an explicit Config.Theme always wins.
+	local TypeWindowTheme = require("./themes/TypeWindow").GetTheme(Config.TypeWindow)
+
+	local RequestedTheme = Config.Theme or TypeWindowTheme or "Dark"
 	local Theme
 	if typeof(RequestedTheme) == "table" then
 		Theme = RequestedTheme

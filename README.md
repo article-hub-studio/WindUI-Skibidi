@@ -18,6 +18,35 @@
 > WindUI Modded is currently in Beta.
 > This project is still under active development. Bugs, issues, and unstable features may occur. We’re constantly working on improvements, so please be patient and report any problems you encounter.
 
+## Window types
+
+`TypeWindow` picks a bundle of surface, spacing and topbar defaults. Anything you pass explicitly still wins.
+
+```luau
+local Window = WindUI:CreateWindow({
+    Title = "My Hub",
+    TypeWindow = "modern",
+})
+```
+
+| Type | Look |
+| --- | --- |
+| `modern` | Flat near-black cards (`#131617` panel, `#1D2022` card) with wide gaps, 18px element radius and the lime `#A2FF31` accent from the `Modern` theme. |
+| `glass` | Translucent liquid-glass elements welded together by linked corners — what `modern` looked like before the rework. |
+| `default` | The original WindUI look. |
+
+See [`examples/modern-window.client.lua`](/examples/modern-window.client.lua) and the [window docs](https://article-hub-studio.github.io/WindUI-Skibidi/docs/windui/window/#window-types).
+
+## Development
+
+```bash
+aftman install     # rojo, darklua, lune, stylua
+npm install
+npm run build      # src/ -> dist/main.lua
+npm run sync:pages # copy dist/ + themes into website/public
+npm run test:static
+```
+
 ## Credits
 
 #### Icons (https://github.com/Footagesus/Icons)
