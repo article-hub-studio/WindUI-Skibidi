@@ -39,7 +39,7 @@ local WindUI = loadstring(game:HttpGet("https://cdn.jsdelivr.net/gh/article-hub-
 
 ## Setup (optional)
 ### Set Notification Lower
-It makes notifications appear lower, ignoring the jump button on the mobile
+Starts the notification stack further down the screen, clear of the mobile topbar controls.
 ```luau
 WindUI:SetNotificationLower(true)
 ```
@@ -258,8 +258,7 @@ WindUI:Localization({ -- it automatically detects the user's language
         },
         ':SetNotificationLower': {
             type: 'function',
-            description: (<> <div>It makes notifications appear lower, ignoring the jump button on the mobile
-</div> </>),
+            description: (<> <div>Starts the notification stack further down the screen, clear of the mobile topbar controls.</div> </>),
             args: {
                 Lower: {
                     type: 'boolean',

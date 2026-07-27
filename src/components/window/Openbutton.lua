@@ -1,6 +1,7 @@
 local OpenButton = {}
 
 local Creator = require("../../modules/Creator")
+local Motion = require("../../modules/Motion")
 local New = Creator.New
 local Tween = Creator.Tween
 
@@ -84,10 +85,77 @@ local function GetInnerCornerRadius(CornerRadius, Inset)
 	return UDim.new(0, math.max(CornerRadius.Offset - Inset, 0))
 end
 
-local function MeasureText(Text, Size, MaxWidth)
+--[[
+	Text measurement.
+
+	The island sizes itself around its label, so a measurement taken with the
+	wrong typeface makes the pill too narrow and TextTruncate eats the end of
+	the title. GetTextSize only accepts the legacy Enum.Font, but the label
+	renders with Creator.Font - a font asset the caller can swap at runtime via
+	WindUI:SetFont. So the legacy call is used for the immediate, non-yielding
+	answer, and GetTextBoundsAsync refines it in the background with the font
+	that actually renders. Results are cached per (text, size, weight, font).
+]]
+local MeasureCache = {}
+local MeasureFontId = Creator.Font
+local PendingMeasures = {}
+
+local function MeasureKey(Text, Size, Weight)
+	return tostring(Text) .. "\0" .. tostring(Size) .. "\0" .. tostring(Weight.Value)
+end
+
+--- Queues an exact measurement; OnResolved fires only when the cached width
+--- actually changes, so callers can re-run their layout without looping.
+local function RefineMeasurement(Text, Size, Weight, MaxWidth, Key, OnResolved)
+	if PendingMeasures[Key] then
+		return
+	end
+	PendingMeasures[Key] = true
+
+	task.spawn(function()
+		local Ok, Bounds = pcall(function()
+			local Params = Instance.new("GetTextBoundsParams")
+			Params.Text = tostring(Text or "")
+			Params.Size = Size
+			Params.Font = Font.new(Creator.Font, Weight)
+			Params.Width = MaxWidth
+			return TextService:GetTextBoundsAsync(Params)
+		end)
+
+		PendingMeasures[Key] = nil
+		if not Ok or typeof(Bounds) ~= "Vector2" then
+			return
+		end
+
+		local Width = math.ceil(Bounds.X)
+		if MeasureCache[Key] ~= Width then
+			MeasureCache[Key] = Width
+			Creator.SafeCallback(OnResolved)
+		end
+	end)
+end
+
+local function MeasureText(Text, Size, MaxWidth, Weight, OnResolved)
+	Weight = Weight or Enum.FontWeight.Medium
+
+	-- A font swap invalidates every cached width.
+	if MeasureFontId ~= Creator.Font then
+		MeasureFontId = Creator.Font
+		MeasureCache = {}
+	end
+
+	local Key = MeasureKey(Text, Size, Weight)
+	local Cached = MeasureCache[Key]
+	if Cached then
+		return Cached
+	end
+
 	local Bounds =
 		TextService:GetTextSize(tostring(Text or ""), Size, Enum.Font.GothamMedium, Vector2.new(MaxWidth, 1000))
-	return math.ceil(Bounds.X), math.ceil(Bounds.Y)
+	local Estimate = math.ceil(Bounds.X)
+	MeasureCache[Key] = Estimate
+	RefineMeasurement(Text, Size, Weight, MaxWidth, Key, OnResolved)
+	return Estimate
 end
 
 function OpenButton.New(Window)
@@ -387,7 +455,9 @@ function OpenButton.New(Window)
 
 	local function Animate(Object, Duration, Properties)
 		StopTween(Object)
-		if Duration <= 0 then
+		-- The island used to tween regardless of the user's motion settings,
+		-- unlike every other component in the library.
+		if Duration <= 0 or not Motion:IsEnabled() or Motion.Reduced then
 			for Name, Value in Properties do
 				Object[Name] = Value
 			end
@@ -419,7 +489,7 @@ function OpenButton.New(Window)
 		return Height
 	end
 
-	local function GetTargetSize(State)
+	local function GetTargetSize(State, OnMeasured)
 		if State == "Idle" then
 			return Vector2.new(Settings.IdleWidth, Settings.IdleHeight)
 		end
@@ -430,9 +500,11 @@ function OpenButton.New(Window)
 		end
 
 		local MaxTextWidth = math.max(Settings.MaxWidth - 120, 80)
-		local TitleWidth = MeasureText(Settings.Title, 15, MaxTextWidth)
+		-- Weights must match the labels below, or the pill is sized for a
+		-- typeface it never renders.
+		local TitleWidth = MeasureText(Settings.Title, 15, MaxTextWidth, Enum.FontWeight.SemiBold, OnMeasured)
 		local ContentWidth = if State == "Expanded" and Settings.Content
-			then MeasureText(Settings.Content, 12, MaxTextWidth)
+			then MeasureText(Settings.Content, 12, MaxTextWidth, Enum.FontWeight.Regular, OnMeasured)
 			else 0
 		local TextWidth = math.max(TitleWidth, ContentWidth)
 		local DragWidth = GetDragWidth(State, Height)
@@ -446,10 +518,21 @@ function OpenButton.New(Window)
 		return Vector2.new(math.clamp(NaturalWidth, Height, Settings.MaxWidth), Height)
 	end
 
-	local function ApplyState(State, AnimateState)
+	local ApplyState
+
+	--- Re-runs the layout when a background text measurement comes back with a
+	--- different width, so the pill settles onto its true size instead of
+	--- staying at the estimate.
+	local function ReflowFromMeasurement()
+		if OpenButtonMain.State then
+			ApplyState(OpenButtonMain.State)
+		end
+	end
+
+	function ApplyState(State, AnimateState)
 		State = NormalizeState(State)
 		local Duration = if AnimateState == false then 0 else 0.28
-		local TargetSize = GetTargetSize(State)
+		local TargetSize = GetTargetSize(State, ReflowFromMeasurement)
 		local DragWidth = GetDragWidth(State, TargetSize.Y)
 		local ActionPadding = Settings.Padding
 		local HasIcon = Icon ~= nil
@@ -470,9 +553,15 @@ function OpenButton.New(Window)
 			Position = UDim2.fromOffset(DragWidth, 0),
 		})
 
-		Drag.Size = UDim2.fromOffset(math.max(TargetSize.Y - 8, 0), math.max(TargetSize.Y - 8, 0))
-		Drag.Position = UDim2.fromOffset(4, 4)
-		Divider.Position = UDim2.new(0, DragWidth, 0.5, 0)
+		-- Everything below travels on the same clock as the container. These
+		-- used to be direct assignments, so the text and the drag handle
+		-- snapped into their new places while the pill was still resizing
+		-- around them, which is what made the morph read as a glitch.
+		Animate(Drag, Duration, {
+			Size = UDim2.fromOffset(math.max(TargetSize.Y - 8, 0), math.max(TargetSize.Y - 8, 0)),
+			Position = UDim2.fromOffset(4, 4),
+		})
+		Animate(Divider, Duration, { Position = UDim2.new(0, DragWidth, 0.5, 0) })
 
 		if Icon then
 			local IconX = if State == "Collapsed" or State == "Idle"
@@ -488,10 +577,14 @@ function OpenButton.New(Window)
 		end
 
 		local TextX = ActionPadding + IconOffset
-		TextStack.Position = UDim2.fromOffset(TextX, 0)
-		TextStack.Size = UDim2.new(1, -(TextX + ActionPadding + TrailingWidth), 1, 0)
-		Title.Size = if Description.Visible then UDim2.new(1, 0, 0, 22) else UDim2.fromScale(1, 1)
-		Title.Position = if Description.Visible then UDim2.fromOffset(0, 13) else UDim2.fromOffset(0, 0)
+		Animate(TextStack, Duration, {
+			Position = UDim2.fromOffset(TextX, 0),
+			Size = UDim2.new(1, -(TextX + ActionPadding + TrailingWidth), 1, 0),
+		})
+		Animate(Title, Duration, {
+			Size = if Description.Visible then UDim2.new(1, 0, 0, 22) else UDim2.fromScale(1, 1),
+			Position = if Description.Visible then UDim2.fromOffset(0, 13) else UDim2.fromOffset(0, 0),
+		})
 		Description.Text = tostring(Settings.Content or "")
 
 		Creator.SafeCallback(Settings.OnStateChange, State, OpenButtonMain)

@@ -6,6 +6,10 @@ local Tween = Creator.Tween
 
 local HOLDER_SIDE_MARGIN = 14
 local HOLDER_TOP = 58
+-- Where the stack starts once SetLower is on. The stack is top-aligned, so
+-- "lower" has to move the top edge; shrinking the bottom margin only changed
+-- how many cards fit before trimming.
+local HOLDER_LOWER_TOP = 96
 local HOLDER_BOTTOM = 72
 local HOLDER_MAX_WIDTH = 420
 local HOLDER_MIN_WIDTH = 240
@@ -285,10 +289,18 @@ function NotificationModule.Init(Parent)
 		}),
 	})
 
+	--- Pushes the notification stack further down the screen, clear of the
+	--- mobile topbar controls.
+	---
+	--- This used to move the holder's *bottom* edge. The list is top-aligned,
+	--- so that changed nothing visible: it only altered the height used to
+	--- decide when to trim the stack, which is the opposite of what the name
+	--- promises. Moving the top edge is what actually lowers the cards.
 	function NotModule.SetLower(Value)
 		NotModule.Lower = Value == true
-		local Bottom = if NotModule.Lower then 12 else HOLDER_BOTTOM
-		NotModule.Frame.Size = UDim2.new(1, -(HOLDER_SIDE_MARGIN * 2), 1, -(HOLDER_TOP + Bottom))
+		local Top = if NotModule.Lower then HOLDER_LOWER_TOP else HOLDER_TOP
+		NotModule.Frame.Position = UDim2.new(1, -HOLDER_SIDE_MARGIN, 0, Top)
+		NotModule.Frame.Size = UDim2.new(1, -(HOLDER_SIDE_MARGIN * 2), 1, -(Top + HOLDER_BOTTOM))
 	end
 
 	NotificationModule.Holder = NotModule.Frame

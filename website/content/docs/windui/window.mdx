@@ -361,6 +361,8 @@ code={`OpenButton = {
 
 `EditOpenButton` returns a controller. Its width, height, icon, title, and content animate between four states without recreating the UI. After `AutoHide` seconds, the button contracts into the small `Idle` pill while remaining tappable. When `MorphWindow` is enabled, closing the window keeps its layout intact while the whole surface scales down and travels into the Dynamic Island; opening reverses the same animation.
 
+Every part of the pill travels on one clock, so the label, drag handle and divider move with the container instead of snapping ahead of it. The pill sizes itself from the font it actually renders with, including a font swapped in later through `WindUI:SetFont`, so a long `Title` widens the island rather than being truncated. State changes honour `WindUI:SetReducedMotion(true)` and apply instantly.
+
 ```luau
 local Island = Window:EditOpenButton({
     Title = "WindUI",
