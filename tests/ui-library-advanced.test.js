@@ -11,6 +11,7 @@ const toggleElement = fs.readFileSync("src/elements/Toggle.lua", "utf8")
 const checkbox = fs.readFileSync("src/components/ui/Checkbox.lua", "utf8")
 const slider = fs.readFileSync("src/elements/Slider.lua", "utf8")
 const elementSurface = fs.readFileSync("src/components/window/Element.lua", "utf8")
+const watermark = fs.readFileSync("src/components/window/Watermark.lua", "utf8")
 const segmented = fs.readFileSync("src/elements/SegmentedControl.lua", "utf8")
 const meterGroup = fs.readFileSync("src/elements/MeterGroup.lua", "utf8")
 const loading = fs.readFileSync("src/components/LoadingScreen.lua", "utf8")
@@ -166,9 +167,23 @@ const checks = {
 		// can turn glass on and not only off.
 		/Enabled = Element\.LiquidGlass == true/.test(elementSurface) &&
 		/NativeLiquidStroke\.Enabled = Element\.LiquidGlass/.test(elementSurface) &&
-		// Without native corners the surface itself has to become the sprite.
-		/MainTable:SetType\(if Element\.LiquidGlass then "SquircleGlass" else "Squircle"\)/.test(elementSurface) &&
-		/local UseShapeGlass = not UseNativeCorners and Element\.LiquidGlass == true/.test(elementSurface),
+		// The sheen ramp is an overlay, not a modulation of the surface. The
+		// old 0.78 mid-stop painted 22% white over the whole card.
+		/NumberSequenceKeypoint\.new\(0\.5, 0\.93\)/.test(elementSurface) &&
+		!/NumberSequenceKeypoint\.new\(0\.45, 0\.78\)/.test(elementSurface) &&
+		// Without native corners the glass rides on top of the Squircle rather
+		// than replacing it: the sprite is a specular texture, and stretching
+		// it to card size reads as a grey slab.
+		/local UseShapeGlass = not UseNativeCorners and Element\.LiquidGlass == true/.test(elementSurface) &&
+		/Creator\.NewRoundFrame\(Element\.UICorner, "SquircleGlass", \{\s*\n\s*Name = "LiquidSheen"/.test(
+			elementSurface
+		) &&
+		!/MainTable:SetType\(if Element\.LiquidGlass/.test(elementSurface) &&
+		// The watermark had the same gradient-on-the-surface bug.
+		/Name = "Sheen"/.test(watermark) &&
+		!/ThemeTag = \{\s*\n\s*ImageColor3 = "Background",\s*\n\s*\},\s*\n\s*\}, \{\s*\n\s*New\("UIStroke"[\s\S]{0,200}New\("UIGradient"/.test(
+			watermark
+		),
 	// Manual surface writes must drop their theme binding, or the next theme
 	// change silently reverts them.
 	manualSurfaceBeatsTheme:

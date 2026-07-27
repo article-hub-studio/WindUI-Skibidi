@@ -9914,14 +9914,26 @@ Color=Color3.new(1,1,1),
 Transparency=0.82,
 Thickness=1,
 }),
+
+
+
+
+ab.NewRoundFrame(14,"Squircle",{
+Name="Sheen",
+Size=UDim2.fromScale(1,1),
+ImageColor3=Color3.new(1,1,1),
+ImageTransparency=0,
+ZIndex=120,
+},{
 ae("UIGradient",{
 Rotation=24,
 Color=ColorSequence.new(Color3.new(1,1,1),Color3.fromRGB(210,235,255)),
 Transparency=NumberSequence.new{
-NumberSequenceKeypoint.new(0,0.96),
-NumberSequenceKeypoint.new(0.48,0.76),
-NumberSequenceKeypoint.new(1,0.96),
+NumberSequenceKeypoint.new(0,1),
+NumberSequenceKeypoint.new(0.48,0.9),
+NumberSequenceKeypoint.new(1,1),
 },
+}),
 }),
 ae("UIListLayout",{
 Padding=UDim.new(0,8),
@@ -12956,19 +12968,21 @@ end
 
 
 local function CreateLiquidGlassChildren()
+
+
+
+
 at=ad("UIGradient",{
 Enabled=aj.LiquidGlass==true,
 Rotation=25,
 Offset=Vector2.new(-0.35,0),
-Color=ColorSequence.new{
-ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),
-ColorSequenceKeypoint.new(0.45,Color3.new(1,1,1)),
-ColorSequenceKeypoint.new(1,Color3.new(1,1,1)),
-},
+Color=ColorSequence.new(Color3.new(1,1,1)),
 Transparency=NumberSequence.new{
-NumberSequenceKeypoint.new(0,0.94),
-NumberSequenceKeypoint.new(0.45,0.78),
-NumberSequenceKeypoint.new(1,0.98),
+NumberSequenceKeypoint.new(0,1),
+NumberSequenceKeypoint.new(0.38,0.975),
+NumberSequenceKeypoint.new(0.5,0.93),
+NumberSequenceKeypoint.new(0.62,0.975),
+NumberSequenceKeypoint.new(1,1),
 },
 })
 
@@ -13057,9 +13071,27 @@ PaddingBottom=UDim.new(0,aj.UIPadding),
 
 
 
-local aP=not ap and aj.LiquidGlass==true
 
-local aQ,aR=ae(aj.UICorner,if aP then"SquircleGlass"else"Squircle",{
+
+local aP=not ap and aj.LiquidGlass==true
+if not ap then
+
+
+table.insert(
+aO,
+aa.NewRoundFrame(aj.UICorner,"SquircleGlass",{
+Name="LiquidSheen",
+Size=UDim2.fromScale(1,1),
+ImageColor3=Color3.new(1,1,1),
+ImageTransparency=0.86,
+Visible=aP,
+ZIndex=0,
+Active=false,
+})
+)
+end
+
+local aQ,aR=ae(aj.UICorner,"Squircle",{
 Size=UDim2.new(1,0,0,0),
 AutomaticSize="Y",
 ImageTransparency=ap and 1 or GetBackgroundTransparency(),
@@ -13285,9 +13317,9 @@ end
 
 
 
-
-if not ap and aR then
-aR:SetType(if aj.LiquidGlass then"SquircleGlass"else"Squircle")
+local aU=aQ and aQ:FindFirstChild"LiquidSheen"
+if aU then
+aU.Visible=aj.LiquidGlass
 end
 
 if aq~=nil then

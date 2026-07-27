@@ -84,13 +84,25 @@ function Watermark.New(Window, WindUI)
 			Transparency = 0.82,
 			Thickness = 1,
 		}),
-		New("UIGradient", {
-			Rotation = 24,
-			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(210, 235, 255)),
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.96),
-				NumberSequenceKeypoint.new(0.48, 0.76),
-				NumberSequenceKeypoint.new(1, 0.96),
+		-- The sheen sits on its own layer. Parented straight to the Squircle it
+		-- multiplied the surface's own alpha instead of compositing over it,
+		-- dropping the watermark background from 0.82 opacity to roughly 0.1
+		-- and leaving the text floating on the game world.
+		Creator.NewRoundFrame(14, "Squircle", {
+			Name = "Sheen",
+			Size = UDim2.fromScale(1, 1),
+			ImageColor3 = Color3.new(1, 1, 1),
+			ImageTransparency = 0,
+			ZIndex = 120,
+		}, {
+			New("UIGradient", {
+				Rotation = 24,
+				Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(210, 235, 255)),
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0.48, 0.9),
+					NumberSequenceKeypoint.new(1, 1),
+				}),
 			}),
 		}),
 		New("UIListLayout", {

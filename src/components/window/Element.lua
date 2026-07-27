@@ -526,19 +526,21 @@ return function(Config)
 	--- Both layers are always created and simply start disabled when glass is
 	--- off, so Element:SetLiquidGlass can turn glass on as well as off.
 	local function CreateLiquidGlassChildren()
+		-- A narrow diagonal glint, not a wash. The old ramp (0.94 / 0.78 / 0.98)
+		-- was written back when the gradient modulated the card's own alpha, so
+		-- as an overlay it painted 22% white across the whole surface and every
+		-- glass element came out looking like a grey slab.
 		NativeLiquidSheen = New("UIGradient", {
 			Enabled = Element.LiquidGlass == true,
 			Rotation = 25,
 			Offset = Vector2.new(-0.35, 0),
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.45, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
-			}),
+			Color = ColorSequence.new(Color3.new(1, 1, 1)),
 			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.94),
-				NumberSequenceKeypoint.new(0.45, 0.78),
-				NumberSequenceKeypoint.new(1, 0.98),
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.38, 0.975),
+				NumberSequenceKeypoint.new(0.5, 0.93),
+				NumberSequenceKeypoint.new(0.62, 0.975),
+				NumberSequenceKeypoint.new(1, 1),
 			}),
 		})
 
@@ -625,11 +627,29 @@ return function(Config)
 	)
 
 	-- Glass layers live inside NativeBackground, which only exists for native
-	-- corners. On the shape path the surface itself carries the glass sprite,
-	-- otherwise a LiquidGlass request produced an opaque slab with no sheen.
+	-- corners. On the shape path the surface stays a plain Squircle and the
+	-- glass rides on top of it as a highlight, the way the toggle knob and the
+	-- slider thumb do it. Swapping the surface itself to the SquircleGlass
+	-- sprite renders a specular texture at card size and reads as a grey slab.
 	local UseShapeGlass = not UseNativeCorners and Element.LiquidGlass == true
+	if not UseNativeCorners then
+		-- Built regardless of the initial state so SetLiquidGlass can turn it
+		-- on later, matching how the native layers behave.
+		table.insert(
+			MainChildren,
+			Creator.NewRoundFrame(Element.UICorner, "SquircleGlass", {
+				Name = "LiquidSheen",
+				Size = UDim2.fromScale(1, 1),
+				ImageColor3 = Color3.new(1, 1, 1),
+				ImageTransparency = 0.86,
+				Visible = UseShapeGlass,
+				ZIndex = 0,
+				Active = false,
+			})
+		)
+	end
 
-	local Main, MainTable = NewRoundFrame(Element.UICorner, if UseShapeGlass then "SquircleGlass" else "Squircle", {
+	local Main, MainTable = NewRoundFrame(Element.UICorner, "Squircle", {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = "Y",
 		ImageTransparency = UseNativeCorners and 1 or GetBackgroundTransparency(),
@@ -853,11 +873,11 @@ return function(Config)
 			NativeLiquidSheenLayer.Visible = Element.LiquidGlass
 		end
 
-		-- Without native corners there is no separate background frame to hold
-		-- the glass layers, so the surface itself has to become the glass
-		-- sprite - otherwise asking for glass just made the element opaque.
-		if not UseNativeCorners and MainTable then
-			MainTable:SetType(if Element.LiquidGlass then "SquircleGlass" else "Squircle")
+		-- On the shape path the glass is a highlight layered over the surface,
+		-- so toggling it is just a matter of showing that layer.
+		local ShapeSheen = Main and Main:FindFirstChild("LiquidSheen")
+		if ShapeSheen then
+			ShapeSheen.Visible = Element.LiquidGlass
 		end
 
 		if ElementTransparency ~= nil then
